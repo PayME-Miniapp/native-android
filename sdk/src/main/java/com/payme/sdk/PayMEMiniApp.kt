@@ -7,8 +7,8 @@ import com.payme.sdk.ui.MiniAppActivity
 
 class PayMEMiniApp(
     context: Context,
-    onOneSignalSendTags: ((String) -> Unit)?,
-    onOneSignalDeleteTags: ((String) -> Unit)?,
+    onOneSignalSendTags: ((String) -> Unit)? = null,
+    onOneSignalDeleteTags: ((String) -> Unit)? = null,
 ) {
     companion object {
         @SuppressLint("StaticFieldLeak")

@@ -16,7 +16,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         openSdkButton = findViewById(R.id.open_sdk)
-        payMEMiniApp = PayMEMiniApp(this, null, null)
+        payMEMiniApp = PayMEMiniApp(this)
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.openMiniApp()
         }
