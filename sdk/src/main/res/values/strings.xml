@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">PayME Wallet</string>
+    <string name="identity_card_title">Chụp mặt trước CMND/CCCD</string>
+    <string name="identity_card_hint">Cân chỉnh mặt trước CMND/CCCD vào giữa khung.</string>
+    <string name="identity_card_hint2">Ảnh hơi xa, bạn kéo lại gần chút nhé.</string>
+    <string name="identity_card_hint3">Giữ nguyên vị trí cho hình ảnh này.</string>
+    <string name="identity_card_error">Ảnh giấy tờ không hợp lệ.\nBạn kiểm tra và chụp lại.</string>
+    <string name="face_detector_title">Xác thực khuôn mặt</string>
+    <string name="face_detector_hint1">Nhìn thẳng vào camera</string>
+    <string name="face_detector_hint2">Tốt lắm! Bây giờ bạn hãy chớp mắt 1 lần</string>
+    <string name="face_detector_hint3">Cuối cùng hãy cười thật tươi</string>
+    <string name="force_updating">Đang tải dữ liệu</string>
+    <string name="version_checking">Đang kiểm tra phiên bản</string>
+</resources>
