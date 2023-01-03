@@ -72,8 +72,8 @@ afterEvaluate {
             release(MavenPublication) {
                 from components.release
                 groupId = "com.payme.sdk"
-                artifactId = "PayME_Android_Sdk"
-                version = '0.0.1'
+                artifactId = "PayME-Android-Sdk"
+                version = '0.0.4'
             }
         }
     }

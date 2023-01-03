@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "PayME-Android-Sdk"
-include ':sdk'
 include ':app'
+include ':sdk'
