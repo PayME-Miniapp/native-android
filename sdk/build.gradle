@@ -66,3 +66,15 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
 }
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = "com.payme.sdk"
+                artifactId = "PayME_Android_Sdk"
+                version = '0.0.1'
+            }
+        }
+    }
+}
