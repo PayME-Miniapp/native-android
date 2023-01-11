@@ -24,6 +24,8 @@ class PayMEMiniApp(
     }
 
     fun openMiniApp() {
-        context.startActivity(Intent(context, MiniAppActivity::class.java))
+        val intent = Intent(context, MiniAppActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
     }
 }
