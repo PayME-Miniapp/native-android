@@ -16,7 +16,7 @@ class MiniappViewModel() : ViewModel() {
   }
 
   fun setEvaluateJsData(data: Pair<String, String>) {
-    this.evaluateJsData.value = data
+    this.evaluateJsData.postValue(data)
   }
 
   private val openMiniAppData: MutableLiveData<OpenMiniAppData?> = MutableLiveData<OpenMiniAppData?>(null)
@@ -26,7 +26,7 @@ class MiniappViewModel() : ViewModel() {
   }
 
   fun setOpenMiniAppData(data: OpenMiniAppData?) {
-    this.openMiniAppData.value = data
+    this.openMiniAppData.postValue(data)
   }
 
 }
