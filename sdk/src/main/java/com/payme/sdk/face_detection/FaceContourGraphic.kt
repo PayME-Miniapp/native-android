@@ -52,8 +52,8 @@ class FaceContourGraphic(
             return
         }
 
-        val rectHeight = Utils().pxToDp(context, abs(rect.bottom - rect.top).toInt())
-        val activeHeight = Utils().pxToDp(
+        val rectHeight = Utils.pxToDp(context, abs(rect.bottom - rect.top).toInt())
+        val activeHeight = Utils.pxToDp(
             context,
             abs(activeFrame.boundingBox.bottom - activeFrame.boundingBox.top).toInt()
         )

@@ -60,7 +60,7 @@ class ObjectDetectionProcessor(
     ) {
         graphicOverlay.clear()
 //    Log.d("HIEU", "onSuccess: ${results.size} $results")
-        val filtered = results.filter { Utils().validateListObject(it) }
+        val filtered = results.filter { Utils.validateListObject(it) }
         if (filtered.size == 1) {
             val objectGraphic =
                 ObjectContourGraphic(

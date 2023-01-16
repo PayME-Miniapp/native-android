@@ -154,7 +154,7 @@ class SubWebView(
               Log.d("HIEU", "page start $url")
               loading.visibility = View.VISIBLE
               if (!url.isNullOrEmpty()) {
-                MiniAppActivity.evaluateJs("nativeWebViewNavigation", "\"$url\"")
+                MiniAppFragment.evaluateJs("nativeWebViewNavigation", "\"$url\"")
                 if (closeInstruction.isNotEmpty() && url.contains(closeInstruction)) {
                   dialog?.dismiss()
                 }
@@ -267,7 +267,7 @@ class SubWebView(
         override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
           Log.d("HIEU", "page started $url")
           if (!url.isNullOrEmpty()) {
-            MiniAppActivity.evaluateJs("nativeWebViewNavigation", "\"$url\"")
+            MiniAppFragment.evaluateJs("nativeWebViewNavigation", "\"$url\"")
             if (closeInstruction.isNotEmpty() && url.contains(closeInstruction)) {
               dialog?.dismiss()
             }

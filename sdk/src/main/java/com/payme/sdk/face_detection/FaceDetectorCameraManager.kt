@@ -97,9 +97,9 @@ class FaceDetectorCameraManager(
             object : ImageCapture.OnImageCapturedCallback() {
                 @SuppressLint("UnsafeOptInUsageError")
                 override fun onCaptureSuccess(image: ImageProxy) {
-                    val imageBitmap = Utils().handleFaceImageProxy(image)
+                    val imageBitmap = Utils.handleFaceImageProxy(image)
                     if (imageBitmap != null) {
-                        Utils().compressBitmapToFile(context, imageBitmap, fileName)
+                        Utils.compressBitmapToFile(context, imageBitmap, fileName)
                     }
                     Log.d("HIEU", "pic taken")
                     if (callback != null) {

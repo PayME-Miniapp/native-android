@@ -52,16 +52,16 @@ class ProgressDetectBar : View {
 
         val width = this.width.toFloat()
 
-        val viewportMargin = Utils().dpToPx(context, 40)
+        val viewportMargin = Utils.dpToPx(context, 40)
         val radius = (width - viewportMargin * 2) / 2
-        val padding = Utils().dpToPx(context, 10)
-        val paddingMilesStones = Utils().dpToPx(context, 16)
+        val padding = Utils.dpToPx(context, 10)
+        val paddingMilesStones = Utils.dpToPx(context, 16)
 
         val oval = RectF(
             viewportMargin.toFloat() - padding,
-            Utils().dpToPx(context, 79).toFloat() - padding,
+            Utils.dpToPx(context, 79).toFloat() - padding,
             viewportMargin.toFloat() + radius * 2 + padding,
-            Utils().dpToPx(context, 79).toFloat() + radius * 2 + padding
+            Utils.dpToPx(context, 79).toFloat() + radius * 2 + padding
         )
 
         val milesStonesPaint = Paint()
@@ -72,26 +72,26 @@ class ProgressDetectBar : View {
 
         canvas?.drawLine(
             viewportMargin.toFloat() + radius,
-            Utils().dpToPx(context, 79).toFloat() - paddingMilesStones,
+            Utils.dpToPx(context, 79).toFloat() - paddingMilesStones,
             viewportMargin.toFloat() + radius,
-            Utils().dpToPx(context, 79).toFloat(),
+            Utils.dpToPx(context, 79).toFloat(),
             milesStonesPaint
         )
 
         canvas?.drawLine(
             viewportMargin.toFloat() + radius + (radius * cos((PI / 6).toFloat())),
-            Utils().dpToPx(context, 79).toFloat() + radius + (radius * cos((PI / 3).toFloat())),
+            Utils.dpToPx(context, 79).toFloat() + radius + (radius * cos((PI / 3).toFloat())),
             viewportMargin.toFloat() + radius + ((radius + paddingMilesStones) * cos((PI / 6).toFloat())),
-            Utils().dpToPx(context, 79)
+            Utils.dpToPx(context, 79)
                 .toFloat() + radius + ((radius + paddingMilesStones) * cos((PI / 3).toFloat())),
             milesStonesPaint
         )
 
         canvas?.drawLine(
             viewportMargin.toFloat() + radius - radius * cos(PI / 6).toFloat(),
-            Utils().dpToPx(context, 79).toFloat() + radius + (radius * cos((PI / 3).toFloat())),
+            Utils.dpToPx(context, 79).toFloat() + radius + (radius * cos((PI / 3).toFloat())),
             viewportMargin.toFloat() + radius - (radius + paddingMilesStones) * cos((PI / 6).toFloat()),
-            Utils().dpToPx(context, 79)
+            Utils.dpToPx(context, 79)
                 .toFloat() + radius + ((radius + paddingMilesStones) * cos((PI / 3).toFloat())),
             milesStonesPaint
         )

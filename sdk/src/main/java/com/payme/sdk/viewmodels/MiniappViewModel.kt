@@ -3,6 +3,7 @@ package com.payme.sdk.viewmodels
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.payme.sdk.models.OpenMiniAppData
 
 class MiniappViewModel() : ViewModel() {
   private val evaluateJsData: MutableLiveData<Pair<String, String>> =
@@ -16,6 +17,16 @@ class MiniappViewModel() : ViewModel() {
 
   fun setEvaluateJsData(data: Pair<String, String>) {
     this.evaluateJsData.value = data
+  }
+
+  private val openMiniAppData: MutableLiveData<OpenMiniAppData?> = MutableLiveData<OpenMiniAppData?>(null)
+
+  fun getOpenMiniAppData(): LiveData<OpenMiniAppData?> {
+    return openMiniAppData
+  }
+
+  fun setOpenMiniAppData(data: OpenMiniAppData?) {
+    this.openMiniAppData.value = data
   }
 
 }

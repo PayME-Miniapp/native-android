@@ -171,12 +171,12 @@ class IdentityCardActivity : AppCompatActivity() {
         // text hint
         val displayMetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displayMetrics)
-        val viewportMargin = Utils().dpToPx(this, 20)
+        val viewportMargin = Utils.dpToPx(this, 20)
         val width = displayMetrics.widthPixels.toFloat() - viewportMargin
-        val bottom = width * 0.7 + Utils().dpToPx(this, 66)
+        val bottom = width * 0.7 + Utils.dpToPx(this, 66)
         val lp = textHint.layoutParams as ConstraintLayout.LayoutParams
         lp.leftMargin = 0
-        lp.topMargin = bottom.toInt() + Utils().dpToPx(this, 24)
+        lp.topMargin = bottom.toInt() + Utils.dpToPx(this, 24)
         lp.rightMargin = 0
         lp.bottomMargin = 0
         textHint.requestLayout()
@@ -184,7 +184,7 @@ class IdentityCardActivity : AppCompatActivity() {
         // artwork
         val layoutParams = imageCCCD.layoutParams as ConstraintLayout.LayoutParams
         layoutParams.leftMargin = 0
-        layoutParams.topMargin = viewportMargin + Utils().dpToPx(this, 134)
+        layoutParams.topMargin = viewportMargin + Utils.dpToPx(this, 134)
         layoutParams.rightMargin = 0
         layoutParams.bottomMargin = 0
         imageCCCD.requestLayout()

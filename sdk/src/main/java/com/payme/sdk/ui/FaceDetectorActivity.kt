@@ -121,7 +121,7 @@ class FaceDetectorActivity : AppCompatActivity() {
     private fun adjustLayout() {
         val layoutParams = hintContainer.layoutParams as ConstraintLayout.LayoutParams
         layoutParams.leftMargin = 0
-        layoutParams.topMargin = Utils().dpToPx(this, 430)
+        layoutParams.topMargin = Utils.dpToPx(this, 430)
         layoutParams.rightMargin = 0
         layoutParams.bottomMargin = 0
         hintContainer.requestLayout()

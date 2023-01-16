@@ -49,7 +49,7 @@ enum class BiometricError {
     BIOMETRY_LOCKOUT, BIOMETRY_NOT_AVAILABLE, BIOMETRY_NOT_ENROLLED, UNKNOWN
 }
 
-class Utils {
+object Utils {
     private val IPV4_PATTERN: Pattern = Pattern.compile(
         "^(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}$"
     )
@@ -242,7 +242,7 @@ class Utils {
                 all.forEach { (_, value) ->
                     val json = JSONObject(value.toString())
                     Log.d("HIEU", "[SEND_NATIVE_PREF]set native pref json $json")
-                    Utils().evaluateJSWebView(
+                    Utils.evaluateJSWebView(
                         context as Activity, webView, "nativePreferences", json.toString(), null
                     )
                 }

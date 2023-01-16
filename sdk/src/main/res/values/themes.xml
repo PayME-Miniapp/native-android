@@ -4,6 +4,7 @@
         <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">true</item>
+        <item name="bottomSheetDialogTheme">@style/AppBottomSheetDialogTheme</item>
     </style>
 
     <style name="CameraActivityTheme" parent="Theme.AppCompat.Light.NoActionBar">
@@ -22,4 +23,16 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowSoftInputMode">adjustPan</item>
     </style>
+
+    <style name="AppBottomSheetDialogTheme"
+      parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/AppModalStyle</item>
+    </style>
+
+    <style name="AppModalStyle"
+      parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@drawable/rounded_dialog</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
+    </style>
+
 </resources>

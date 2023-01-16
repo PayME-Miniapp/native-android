@@ -35,14 +35,14 @@ class IdentityCardActiveFrame : ViewGroup {
 
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
-        val viewportMargin = Utils().dpToPx(context, 20)
+        val viewportMargin = Utils.dpToPx(context, 20)
         val viewportCornerRadius = 16
-        val top = Utils().dpToPx(context, 86)
+        val top = Utils.dpToPx(context, 86)
         val eraser = Paint()
         eraser.isAntiAlias = true
         eraser.xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
         val width = width.toFloat() - viewportMargin
-        val bottom = width * 0.7 + Utils().dpToPx(context, 66)
+        val bottom = width * 0.7 + Utils.dpToPx(context, 66)
         val rect = RectF(viewportMargin.toFloat(), top.toFloat(), width, bottom.toFloat())
         val frame =
             RectF(viewportMargin.toFloat() - 2, top.toFloat() - 2, width + 4, bottom.toFloat() + 4)

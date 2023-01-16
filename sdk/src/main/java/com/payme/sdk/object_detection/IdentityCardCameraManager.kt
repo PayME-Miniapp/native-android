@@ -129,11 +129,11 @@ class IdentityCardCameraManager(
                     object : ImageCapture.OnImageCapturedCallback() {
                         @SuppressLint("UnsafeOptInUsageError")
                         override fun onCaptureSuccess(image: ImageProxy) {
-                            val imageBitmap = Utils().handleImageProxy(context, image, finderView)
+                            val imageBitmap = Utils.handleImageProxy(context, image, finderView)
                             val fileName =
                                 if (identityCardType == "FRONT") "kycFrontIdCard.jpeg" else "kycBackIdCard.jpeg"
                             if (imageBitmap != null) {
-                                Utils().compressBitmapToFile(context, imageBitmap, fileName)
+                                Utils.compressBitmapToFile(context, imageBitmap, fileName)
                                 val intent = Intent()
                                 intent.putExtra("fileName", "images/$fileName")
                                 intent.putExtra("type", identityCardType)
