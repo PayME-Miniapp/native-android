@@ -1,10 +1,12 @@
 package com.payme.sdk
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.models.OpenMiniAppData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.ui.MiniAppActivity
@@ -37,9 +39,9 @@ class PayMEMiniApp(
             try {
                 val modal = MiniAppBottomSheetDialog()
                 MiniAppFragment.setOpenMiniAppData(openMiniAppData)
-                modal.show((context as AppCompatActivity).supportFragmentManager, null)
-            } catch (e: ClassCastException) {
-                Log.d("HIEU", "khong phai activty")
+                modal.show((context as FragmentActivity).supportFragmentManager, null)
+            } catch (e: Exception) {
+                Log.d("HIEU", "ex cast: ${e.message}")
             }
             return
         }
