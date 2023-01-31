@@ -6,11 +6,13 @@
   android:id="@+id/root_view"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
+  android:background="@drawable/rounded_dialog"
   >
 
   <androidx.fragment.app.FragmentContainerView
     android:id="@+id/fragment_container_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:name="com.payme.sdk.ui.MiniAppFragment" />
+    android:name="com.payme.sdk.ui.MiniAppFragment"
+    android:background="@drawable/rounded_dialog" />
 </FrameLayout>

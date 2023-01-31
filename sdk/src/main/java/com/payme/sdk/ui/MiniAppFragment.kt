@@ -520,6 +520,8 @@ class MiniAppFragment : Fragment() {
 
             overScrollMode = View.OVER_SCROLL_NEVER
 
+            setBackgroundColor(0)
+
             val javaScriptInterface = JavaScriptInterface(
                 setNativePreferences = { data: String? ->
                     activity?.let {

@@ -103,6 +103,8 @@ class SubWebView(
           newWebView.settings.apply {
             setSupportZoom(true)
             textZoom = 100
+            useWideViewPort = true
+            loadWithOverviewMode = true
             builtInZoomControls = true
             displayZoomControls = false
             javaScriptEnabled = true
@@ -301,7 +303,7 @@ class SubWebView(
       }
 
       settings.apply {
-        setSupportZoom(false)
+        setSupportZoom(true)
         textZoom = 100
         builtInZoomControls = true
         displayZoomControls = false
@@ -319,6 +321,7 @@ class SubWebView(
         requestFocus(View.FOCUS_DOWN)
       }
       overScrollMode = View.OVER_SCROLL_NEVER
+      setBackgroundColor(0)
       if (type == "url") {
         loadUrl(content)
       } else if (type == "html") {
