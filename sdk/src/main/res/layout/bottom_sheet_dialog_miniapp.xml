@@ -1,18 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<androidx.cardview.widget.CardView
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:app="http://schemas.android.com/apk/res-auto"
-  xmlns:tools="http://schemas.android.com/tools"
-  android:id="@+id/root_view"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   android:background="@drawable/rounded_dialog"
+  app:cardCornerRadius="16dp"
+  android:layout_marginBottom="-16dp"
   >
 
-  <androidx.fragment.app.FragmentContainerView
-    android:id="@+id/fragment_container_view"
+  <FrameLayout
+    android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:name="com.payme.sdk.ui.MiniAppFragment"
-    android:background="@drawable/rounded_dialog" />
-</FrameLayout>
+    android:background="@drawable/rounded_dialog"
+    android:layout_marginBottom="16dp"
+
+    >
+
+    <androidx.fragment.app.FragmentContainerView
+      android:id="@+id/fragment_container_view"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:name="com.payme.sdk.ui.MiniAppFragment"
+      android:background="@drawable/rounded_dialog" />
+  </FrameLayout>
+
+</androidx.cardview.widget.CardView>
+
