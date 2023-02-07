@@ -7,11 +7,14 @@ import android.content.Intent
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
+import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.OpenMiniAppData
 import com.payme.sdk.models.OpenMiniAppType
+import com.payme.sdk.models.PayMEError
 import com.payme.sdk.ui.MiniAppActivity
 import com.payme.sdk.ui.MiniAppBottomSheetDialog
 import com.payme.sdk.ui.MiniAppFragment
+import org.json.JSONObject
 
 class PayMEMiniApp(
     context: Context,
@@ -32,24 +35,38 @@ class PayMEMiniApp(
     }
 
     fun openMiniApp(
-        type: OpenMiniAppType = OpenMiniAppType.screen,
-        openMiniAppData: OpenMiniAppData
+        openType: OpenMiniAppType = OpenMiniAppType.screen,
+        openMiniAppData: OpenMiniAppData,
+        onSuccess: (ActionOpenMiniApp ,JSONObject?) -> Unit,
+        onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
-        if (type == OpenMiniAppType.modal) {
-            try {
+        try {
+            if (openType == OpenMiniAppType.modal) {
                 val modal = MiniAppBottomSheetDialog()
                 MiniAppFragment.setOpenMiniAppData(openMiniAppData)
+                MiniAppFragment.openType = openType
+                MiniAppFragment.openMiniAppData = openMiniAppData
+                MiniAppFragment.onSuccess = onSuccess
+                MiniAppFragment.onError = onError
+                MiniAppFragment.closeMiniApp = {
+                    modal.dismiss()
+                }
                 modal.show((context as FragmentActivity).supportFragmentManager, null)
-            } catch (e: Exception) {
-                Log.d("HIEU", "ex cast: ${e.message}")
+                return
             }
-            return
-        }
-        if (type == OpenMiniAppType.screen) {
-            val intent = Intent(context, MiniAppActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-            return
+            if (openType == OpenMiniAppType.screen) {
+                MiniAppFragment.setOpenMiniAppData(openMiniAppData)
+                MiniAppFragment.openType = openType
+                MiniAppFragment.openMiniAppData = openMiniAppData
+                MiniAppFragment.onSuccess = onSuccess
+                MiniAppFragment.onError = onError
+                val intent = Intent(context, MiniAppActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                return
+            }
+        } catch (e: Exception) {
+            Log.d("HIEU", "ex cast: ${e.message}")
         }
     }
 }

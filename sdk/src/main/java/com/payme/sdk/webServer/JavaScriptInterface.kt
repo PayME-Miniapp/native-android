@@ -19,6 +19,8 @@ class JavaScriptInterface(
     val getContacts: () -> Unit,
     val nativeOpenKeyboard: () -> Unit,
     val openWebView: (String) -> Unit,
+    val onSuccess: (String) -> Unit,
+    val onError: (String) -> Unit,
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -118,5 +120,17 @@ class JavaScriptInterface(
     public fun jsOpenWebView(data: String) {
         Log.d("HIEU", "anh dat goi jsOpenWebView: $data")
         openWebView(data)
+    }
+
+    @JavascriptInterface
+    public fun jsError(data: String) {
+        Log.d("HIEU", "anh dat goi jsError: $data")
+        onError(data)
+    }
+
+    @JavascriptInterface
+    public fun jsResponse(data: String) {
+        Log.d("HIEU", "anh dat goi jsResponse: $data")
+        onSuccess(data)
     }
 }

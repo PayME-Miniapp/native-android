@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,6 +23,7 @@ import android.webkit.*
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -34,9 +36,7 @@ import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.R
-import com.payme.sdk.models.ActionOpenMiniApp
-import com.payme.sdk.models.OpenMiniAppData
-import com.payme.sdk.models.PayMEVersion
+import com.payme.sdk.models.*
 import com.payme.sdk.utils.DeviceTypeResolver
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.Utils
@@ -112,7 +112,7 @@ class MiniAppFragment : Fragment() {
         }
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
         loadUrl = "http://localhost" + ":" + port + "/"
-//    loadUrl = "http://10.8.103.29:3000/"
+//        loadUrl = "http://10.7.0.112:3000/"
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
@@ -136,16 +136,31 @@ class MiniAppFragment : Fragment() {
         val statusHeight = activity?.let {
             Utils.getStatusBarHeight(it)
         }
-        insets.put("top", statusHeight?.let { Utils.pxToDp(requireContext(), it) })
+        if (MiniAppFragment.openType == OpenMiniAppType.screen) {
+            insets.put("top", statusHeight?.let { Utils.pxToDp(requireContext(), it) })
+        }
         val bottom = Utils.getRootWindowInsetsCompat(rootView!!) ?: 0
         insets.put("bottom", Utils.pxToDp(requireContext(), bottom.toInt()))
         val deviceInfo = JSONObject()
         deviceInfo.put("platform", "android")
-        val deviceId = Settings.Secure.getString(requireContext().contentResolver, Settings.Secure.ANDROID_ID)
+        val deviceId =
+            Settings.Secure.getString(requireContext().contentResolver, Settings.Secure.ANDROID_ID)
         deviceInfo.put("deviceId", deviceId)
         deviceInfo.put("userAgent", Utils.getUserAgent(requireContext()))
-        deviceInfo.put("version", requireContext().packageManager.getPackageInfo(requireContext().packageName, 0).versionName)
-        deviceInfo.put("buildNumber", requireContext().packageManager.getPackageInfo(requireContext().packageName, 0).versionCode)
+        deviceInfo.put(
+            "version",
+            requireContext().packageManager.getPackageInfo(
+                requireContext().packageName,
+                0
+            ).versionName
+        )
+        deviceInfo.put(
+            "buildNumber",
+            requireContext().packageManager.getPackageInfo(
+                requireContext().packageName,
+                0
+            ).versionCode
+        )
         deviceInfo.put("isEmulator", Utils.isEmulator())
         deviceInfo.put("brand", Build.BRAND)
         deviceInfo.put("model", Build.MODEL)
@@ -184,7 +199,11 @@ class MiniAppFragment : Fragment() {
         }
         sourceWeb.createNewFile()
         url?.let {
-            Utils.download(requireContext(), it, sourceWeb.absolutePath) { totalBytesCopied, length ->
+            Utils.download(
+                requireContext(),
+                it,
+                sourceWeb.absolutePath
+            ) { totalBytesCopied, length ->
                 val progressValuePercent = (totalBytesCopied * 100 / length).toInt()
                 activity?.runOnUiThread {
                     progressBar.progress = progressValuePercent
@@ -258,7 +277,10 @@ class MiniAppFragment : Fragment() {
                 val url = found.optString("url")
 
                 val sharedPreference =
-                    requireContext().getSharedPreferences("PAYME_NATIVE_UPDATE", Context.MODE_PRIVATE)
+                    requireContext().getSharedPreferences(
+                        "PAYME_NATIVE_UPDATE",
+                        Context.MODE_PRIVATE
+                    )
                 val editor = sharedPreference.edit()
 
                 val localPatch = sharedPreference.getInt("PAYME_PATCH", 0)
@@ -279,7 +301,8 @@ class MiniAppFragment : Fragment() {
                 }
                 Log.d("HIEU", "force update")
                 activity?.runOnUiThread {
-                    textUpdateLabel.text = "Đang tải dữ liệu (${BuildConfig.SDK_VERSION}.${patch})..."
+                    textUpdateLabel.text =
+                        "Đang tải dữ liệu (${BuildConfig.SDK_VERSION}.${patch})..."
                 }
                 payMEUpdatePatchViewModel.setShowUpdatingUI(true)
                 payMEUpdatePatchViewModel.setIsForceUpdating(true)
@@ -315,7 +338,8 @@ class MiniAppFragment : Fragment() {
                 }
             }
 
-        val connectivityManager = requireContext().getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val connectivityManager =
+            requireContext().getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             connectivityManager.registerDefaultNetworkCallback(networkCallback)
@@ -347,7 +371,15 @@ class MiniAppFragment : Fragment() {
                     )
                 }
             } else {
-                activity?.let { Utils.evaluateJSWebView(it, myWebView!!, "nativeKeyboardHeight", "0", null) }
+                activity?.let {
+                    Utils.evaluateJSWebView(
+                        it,
+                        myWebView!!,
+                        "nativeKeyboardHeight",
+                        "0",
+                        null
+                    )
+                }
             }
         }
 
@@ -554,7 +586,9 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 },
-                openWebView = { data: String -> openWebView(data) }
+                openWebView = { data: String -> openWebView(data) },
+                onSuccess = {data: String -> returnSuccess(data) },
+                onError = {data: String -> returnError(data) }
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -617,6 +651,38 @@ class MiniAppFragment : Fragment() {
         return view
     }
 
+    private fun returnSuccess(data: String) {
+        try {
+            val json = JSONObject(data)
+            MiniAppFragment.onSuccess(MiniAppFragment.openMiniAppData.action, json)
+        } catch (e: Exception) {
+            Log.d("HIEU", "miniapp returnSuccess: ${e.message} ")
+        }
+    }
+
+    private fun returnError(data: String) {
+        try {
+            val json = JSONObject(data)
+            val code = json.optString("code", "")
+            val description = json.optString("description", "")
+            val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
+            MiniAppFragment.onError(MiniAppFragment.openMiniAppData.action, PayMEError(code, description))
+            if (isCloseMiniApp) {
+                closeMiniApp()
+            }
+        } catch (e: Exception) {
+            Log.d("HIEU", "miniapp returnError: ${e.message} ")
+        }
+    }
+
+
+    private fun closeMiniApp() {
+        if (MiniAppFragment.openType == OpenMiniAppType.modal) {
+            MiniAppFragment.closeMiniApp()
+        } else if (MiniAppFragment.openType == OpenMiniAppType.screen) {
+            (requireContext() as Activity).finish()
+        }
+    }
 
     private var fileChooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -662,10 +728,24 @@ class MiniAppFragment : Fragment() {
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "READ_CONTACTS", "GRANTED") }
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "READ_CONTACTS",
+                        "GRANTED"
+                    )
+                }
                 Utils.getContacts(requireContext(), myWebView!!)
             } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "READ_CONTACTS", "DENIED") }
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "READ_CONTACTS",
+                        "DENIED"
+                    )
+                }
             }
         }
 
@@ -676,16 +756,30 @@ class MiniAppFragment : Fragment() {
                     requireContext(),
                     Manifest.permission.READ_CONTACTS
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "READ_CONTACTS", "GRANTED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "READ_CONTACTS",
+                            "GRANTED"
+                        )
+                    }
                     Utils.getContacts(requireContext(), myWebView!!)
                 }
-                    activity?.let {
+                activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
                         it,
                         Manifest.permission.READ_CONTACTS
                     )
                 } == true -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "READ_CONTACTS", "BLOCKED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "READ_CONTACTS",
+                            "BLOCKED"
+                        )
+                    }
                 }
                 else -> {
                     requestContactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
@@ -702,9 +796,23 @@ class MiniAppFragment : Fragment() {
                 return@registerForActivityResult
             }
             if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, permissionType, "GRANTED") }
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        permissionType,
+                        "GRANTED"
+                    )
+                }
             } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, permissionType, "DENIED") }
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        permissionType,
+                        "DENIED"
+                    )
+                }
             }
             permissionType = ""
         }
@@ -717,7 +825,14 @@ class MiniAppFragment : Fragment() {
                     requireContext(),
                     "android.permission.$permissionType"
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, permissionType, "GRANTED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            permissionType,
+                            "GRANTED"
+                        )
+                    }
                 }
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
@@ -725,7 +840,14 @@ class MiniAppFragment : Fragment() {
                         "android.permission.$permissionType"
                     )
                 } == true -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, permissionType, "BLOCKED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            permissionType,
+                            "BLOCKED"
+                        )
+                    }
                 }
                 else -> {
                     if (permissionType == "CAMERA") {
@@ -771,7 +893,14 @@ class MiniAppFragment : Fragment() {
                     requireContext(),
                     Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "GRANTED"
+                        )
+                    }
                     startIdentityCardActivity(json)
                 }
                 activity?.let {
@@ -780,7 +909,14 @@ class MiniAppFragment : Fragment() {
                         Manifest.permission.CAMERA
                     )
                 } == true -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "BLOCKED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "BLOCKED"
+                        )
+                    }
                 }
                 else -> {
                     requestCardKycPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -824,7 +960,14 @@ class MiniAppFragment : Fragment() {
                     requireContext(),
                     Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "GRANTED"
+                        )
+                    }
                     startFaceDetectorActivity(json)
                 }
                 activity?.let {
@@ -833,7 +976,14 @@ class MiniAppFragment : Fragment() {
                         Manifest.permission.CAMERA
                     )
                 } == true -> {
-                    activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "BLOCKED") }
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "BLOCKED"
+                        )
+                    }
                 }
                 else -> {
                     requestFaceKycPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -922,20 +1072,44 @@ class MiniAppFragment : Fragment() {
 
     private val evaluateJsDataObserver: Observer<Pair<String, String>> = Observer {
         if (it.first.isNotEmpty() && myWebView != null) {
-            activity?.let { it1 -> Utils.evaluateJSWebView(it1, myWebView!!, it.first, it.second, null) }
+            activity?.let { it1 ->
+                Utils.evaluateJSWebView(
+                    it1,
+                    myWebView!!,
+                    it.first,
+                    it.second,
+                    null
+                )
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        nativeAppState = "background"
+        activity?.let {
+            Utils.evaluateJSWebView(
+                it,
+                myWebView!!,
+                "nativeAppState",
+                "\"background\"",
+                null
+            )
         }
     }
 
     override fun onResume() {
         super.onResume()
         nativeAppState = "active"
-        activity?.let { Utils.evaluateJSWebView(it, myWebView!!, "nativeAppState", "\"active\"", null) }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        nativeAppState = "background"
-        activity?.let { Utils.evaluateJSWebView(it, myWebView!!, "nativeAppState", "\"background\"", null) }
+        activity?.let {
+            Utils.evaluateJSWebView(
+                it,
+                myWebView!!,
+                "nativeAppState",
+                "\"active\"",
+                null
+            )
+        }
     }
 
     override fun onDestroy() {
@@ -945,13 +1119,21 @@ class MiniAppFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(action: ActionOpenMiniApp = ActionOpenMiniApp.PayME) = MiniAppFragment().apply {
+        internal lateinit var onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit
+        internal lateinit var onError: (ActionOpenMiniApp, PayMEError) -> Unit
+        internal lateinit var openMiniAppData: OpenMiniAppData
+        internal lateinit var openType: OpenMiniAppType
+        internal lateinit var closeMiniApp: () -> Unit
+
+        fun newInstance(action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME) = MiniAppFragment().apply {
             arguments = Bundle().apply {
                 putString("ACTION", action.toString())
             }
         }
+
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
         var miniappViewModel: MiniappViewModel = MiniappViewModel()
+
         fun nativeNotificationOpenedApp(data: JSONObject) {
             notificationViewModel.setNotificationData(data)
         }

@@ -3,11 +3,13 @@ package com.example.app
 import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import com.payme.sdk.PayMEMiniApp
-import com.payme.sdk.models.ActionOpenMiniApp
-import com.payme.sdk.models.OpenMiniAppData
-import com.payme.sdk.models.OpenMiniAppType
+import com.payme.sdk.models.*
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
     private lateinit var openSdkButton: TextView
@@ -25,7 +27,7 @@ class MainActivity : AppCompatActivity() {
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.openMiniApp(
                 OpenMiniAppType.modal, OpenMiniAppData(
-                    ActionOpenMiniApp.PayME,
+                    ActionOpenMiniApp.PAY,
                     "853702955206",
                     "0372823042",
                     "-----BEGIN PUBLIC KEY-----\n" +
@@ -40,8 +42,16 @@ class MainActivity : AppCompatActivity() {
                             "hS9q0bgnE+cccNYZBsI+6mK3e/cBk1sCIQDhTh1GrDLmXQAOV5nXScpJJfXbUSv+\n" +
                             "5MlkTGcP9n847wIgHzySAzuK4lqdRglXa3t7oycp5ubuSd1Gr5WwgP3QWTkCIQDG\n" +
                             "IuSTOw3KVf4m42HDiomfgkAaHG8LviwLJlPAMmgliQ==\n" +
-                            "-----END RSA PRIVATE KEY-----"
-                )
+                            "-----END RSA PRIVATE KEY-----",
+                    PaymentData("1111111", 10000, "aaaaaa", "adfkajljfds")
+                ),
+                onSuccess = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
+                    Log.d("HIEU", "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
+                },
+                onError = { actionOpenMiniApp: ActionOpenMiniApp, payMEError: PayMEError ->
+                    Log.d("HIEU", "onError actionOpenMiniApp: $actionOpenMiniApp payMEError: $payMEError")
+                    Toast.makeText(this, payMEError.message, Toast.LENGTH_LONG).show()
+                }
             )
         }
     }
