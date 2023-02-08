@@ -4,7 +4,7 @@ plugins {
     id 'maven-publish'
 }
 
-def sdk_version = "1.0.10"
+def sdk_version = "1.0.12"
 
 android {
     compileSdk 33
@@ -76,7 +76,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.0.13'
+                version = '0.0.14'
             }
         }
     }

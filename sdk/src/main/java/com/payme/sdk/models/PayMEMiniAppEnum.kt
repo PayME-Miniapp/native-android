@@ -1,7 +1,7 @@
 package com.payme.sdk.models
 
 enum class ActionOpenMiniApp {
-    PAYME, LINK, PAY
+    PAYME, OPEN, PAY
 }
 
 enum class OpenMiniAppType {

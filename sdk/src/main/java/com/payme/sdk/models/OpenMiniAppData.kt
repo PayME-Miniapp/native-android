@@ -6,7 +6,7 @@ import org.json.JSONObject
 data class OpenMiniAppData(
     val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME,
     val phone: String,
-    val env: ENV,
+    val env: ENV = ENV.PRODUCTION,
     var paymentData: PaymentData? = null
 ) {
     init {
