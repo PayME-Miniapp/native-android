@@ -39,7 +39,7 @@ data class PaymentData(
     val transactionId: String,
     val amount: Int,
     val note: String?,
-    val ipnUrl: String
+    val ipnUrl: String?
 )
 
 enum class ENV {
