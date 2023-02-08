@@ -33,7 +33,6 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import com.airbnb.lottie.LottieAnimationView
-import com.google.gson.Gson
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.R
 import com.payme.sdk.models.*
@@ -112,7 +111,7 @@ class MiniAppFragment : Fragment() {
         }
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
         loadUrl = "http://localhost" + ":" + port + "/"
-//        loadUrl = "http://10.7.0.112:3000/"
+        loadUrl = "http://10.7.0.112:3000/"
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
@@ -487,13 +486,13 @@ class MiniAppFragment : Fragment() {
 
                         val openMiniAppData = miniappViewModel.getOpenMiniAppData().value
                         if (openMiniAppData != null) {
-                            val jsonString = Gson().toJson(openMiniAppData)
+                            val json = openMiniAppData.toJsonData()
                             activity?.let {
                                 Utils.evaluateJSWebView(
                                     it,
                                     myWebView!!,
                                     "openMiniApp",
-                                    jsonString,
+                                    json.toString(),
                                     null
                                 )
                             }
@@ -588,7 +587,8 @@ class MiniAppFragment : Fragment() {
                 },
                 openWebView = { data: String -> openWebView(data) },
                 onSuccess = {data: String -> returnSuccess(data) },
-                onError = {data: String -> returnError(data) }
+                onError = {data: String -> returnError(data) },
+                closeMiniApp = { closeMiniApp() }
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -647,6 +647,28 @@ class MiniAppFragment : Fragment() {
         }
 
         miniappViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
+
+        view.setOnKeyListener(object : View.OnKeyListener {
+            override fun onKey(v: View?, keyCode: Int, event: KeyEvent): Boolean {
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    if (keyCode == KeyEvent.KEYCODE_BACK) {
+                        Log.d("HIEU", "onBackPressed Called")
+                        if (myWebView != null) {
+                            if (myWebView!!.canGoBack()) {
+                                val url = myWebView!!.url
+                                val check = (!url.isNullOrEmpty() && url.endsWith("home"))
+                                if (!check) {
+                                    Log.d("HIEU", "webview back")
+                                    myWebView!!.goBack()
+                                }
+                            }
+                        }
+                        return true
+                    }
+                }
+                return false
+            }
+        })
 
         return view
     }

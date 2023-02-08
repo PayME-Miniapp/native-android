@@ -21,6 +21,7 @@ class JavaScriptInterface(
     val openWebView: (String) -> Unit,
     val onSuccess: (String) -> Unit,
     val onError: (String) -> Unit,
+    val closeMiniApp: () -> Unit,
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -132,5 +133,11 @@ class JavaScriptInterface(
     public fun jsResponse(data: String) {
         Log.d("HIEU", "anh dat goi jsResponse: $data")
         onSuccess(data)
+    }
+
+    @JavascriptInterface
+    public fun jsClose(data: String) {
+        Log.d("HIEU", "anh dat goi jsClose: $data")
+        closeMiniApp()
     }
 }

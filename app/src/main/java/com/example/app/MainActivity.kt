@@ -10,6 +10,7 @@ import android.widget.Toast
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.*
 import org.json.JSONObject
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private lateinit var openSdkButton: TextView
@@ -26,30 +27,23 @@ class MainActivity : AppCompatActivity() {
         payMEMiniApp = PayMEMiniApp(this)
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.modal, OpenMiniAppData(
+                OpenMiniAppType.screen, OpenMiniAppData(
                     ActionOpenMiniApp.PAY,
-                    "853702955206",
+                    "559163930378",
                     "0372823042",
-                    "-----BEGIN PUBLIC KEY-----\n" +
-                            "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJICs/GmGlDYW3jQiIMzt+SATx81CmOc\n" +
-                            "SMACY0kznT4XG9wiTE22CETHGoocNTkDam0IM6Q4Utp5Ku6kbdBLnn0CAwEAAQ==\n" +
-                            "-----END PUBLIC KEY-----",
-                    "-----BEGIN RSA PRIVATE KEY-----\n" +
-                            "MIIBOwIBAAJBAK/nYQsbwmhqEudNjL3qEQDnWPrlFjJbqGRmeTvTKKsl+bklXtbT\n" +
-                            "+KAbf+Gd1BdSTwcWY3WNaU1+4EHoaBmuzv0CAwEAAQJAVwZKrXs7T/sChSqJsb9m\n" +
-                            "UCMkk2PY+mr8QUetPNq36QuaHjJ9EQW7SiVB4/uwnJH79nOSp9qgFO3smtn+lRuV\n" +
-                            "RQIhAO+XlPuECbKQE0EzwQn/M2AChXyCPxkMCxZLBl6S626HAiEAu/M+U51t2lXr\n" +
-                            "hS9q0bgnE+cccNYZBsI+6mK3e/cBk1sCIQDhTh1GrDLmXQAOV5nXScpJJfXbUSv+\n" +
-                            "5MlkTGcP9n847wIgHzySAzuK4lqdRglXa3t7oycp5ubuSd1Gr5WwgP3QWTkCIQDG\n" +
-                            "IuSTOw3KVf4m42HDiomfgkAaHG8LviwLJlPAMmgliQ==\n" +
-                            "-----END RSA PRIVATE KEY-----",
-                    PaymentData("1111111", 10000, "aaaaaa", "adfkajljfds")
+                    """-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK0RONYVPYn/3IWloU83Qy16hKNHhlCx\ngTJay6/rERk8tmsMbILLzTYW7H9WOqN2gS0s0ymD+3TxP+q+MxEp0qECAwEAAQ==\n-----END PUBLIC KEY-----""",
+                    """-----BEGIN RSA PRIVATE KEY-----\nMIIBOgIBAAJBAMXIuvTT8Z5U/AqyFvBbDApQ2STLm9Ca2nmu2pxqwhrhN+80mOLb\nMzbQDRCNpro6S61d34A7cEIX/5gxxrAaVAkCAwEAAQJAfzB70e/uJHTgdHxcNgtG\n7edaDMiHFhpPPwtL+GTLGH70yhFDs2eIXFHLY/wfRRcxzwGyGOyvXlGbDjsMFdpn\nlQIhAPIoUVsADDfI4KNZEKHaJRVAmz2D0xdiB6R716HA7A0XAiEA0RcPxHzYLhVp\n+adoGpJBq7e87BzQrVBJQFSOg8Kim98CIQCYmynyFEye1zwiFR3zMfuOsiFjGfFs\n2f2A/f69VEwuTwIgFN/3jAdm0dsDdJBZHWYCtnEmpHAQCW2dkpWekNsKvwMCIGXm\nrg+mppNNZQx6+6Swsp8L8Hgc+HikKy02Okijjw0W\n-----END RSA PRIVATE KEY-----""",
+                    ENV.LOCAL,
+                    PaymentData(UUID.randomUUID().toString(), 10000, "aaaaaa", "adfkajljfds")
                 ),
                 onSuccess = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
                     Log.d("HIEU", "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
                 },
                 onError = { actionOpenMiniApp: ActionOpenMiniApp, payMEError: PayMEError ->
-                    Log.d("HIEU", "onError actionOpenMiniApp: $actionOpenMiniApp payMEError: $payMEError")
+                    Log.d(
+                        "HIEU",
+                        "onError actionOpenMiniApp: $actionOpenMiniApp payMEError: $payMEError"
+                    )
                     Toast.makeText(this, payMEError.message, Toast.LENGTH_LONG).show()
                 }
             )

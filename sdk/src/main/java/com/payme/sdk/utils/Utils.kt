@@ -135,7 +135,6 @@ object Utils {
         data: String,
         callback: ((String) -> Unit)?
     ) {
-        Log.d("HIEU", "[EVALUATE_JS] $functionName  $data")
         val injectedJS = "       const script = document.createElement('script');\n" +
                 "          script.type = 'text/javascript';\n" +
                 "          script.async = true;\n" +
@@ -144,6 +143,7 @@ object Utils {
                 "          true; // note: this is required, or you'll sometimes get silent failures\n"
         activity.runOnUiThread {
             webView.evaluateJavascript("(function() {\n$injectedJS;\n})();", callback)
+            Log.d("HIEU", "[EVALUATE_JS] $functionName  $data")
         }
     }
 
@@ -194,7 +194,6 @@ object Utils {
     }
 
     fun pxToDp(context: Context, px: Int): Int {
-        Log.d("HIEU", "pxToDp ${context.resources.displayMetrics.density}")
         return (px / context.resources.displayMetrics.density).toInt()
     }
 
