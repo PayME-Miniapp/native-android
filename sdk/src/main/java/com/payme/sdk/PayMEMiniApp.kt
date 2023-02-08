@@ -18,18 +18,27 @@ import org.json.JSONObject
 
 class PayMEMiniApp(
     context: Context,
+    appId: String,
+    publicKey: String,
+    privateKey : String,
     onOneSignalSendTags: ((String) -> Unit)? = null,
     onOneSignalDeleteTags: ((String) -> Unit)? = null,
 ) {
     companion object {
         @SuppressLint("StaticFieldLeak")
         internal lateinit var context: Context
+        internal lateinit var appId: String
+        internal lateinit var publicKey: String
+        internal lateinit var privateKey: String
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
     }
 
     init {
         PayMEMiniApp.context = context
+        PayMEMiniApp.appId = appId
+        PayMEMiniApp.publicKey = publicKey
+        PayMEMiniApp.privateKey = privateKey
         PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
         PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
     }

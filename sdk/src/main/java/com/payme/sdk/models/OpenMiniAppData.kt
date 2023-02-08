@@ -1,13 +1,11 @@
 package com.payme.sdk.models
 
+import com.payme.sdk.PayMEMiniApp
 import org.json.JSONObject
 
 data class OpenMiniAppData(
     val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME,
-    val appId: String,
     val phone: String,
-    val publicKey: String,
-    val privateKey: String,
     val env: ENV,
     var paymentData: PaymentData? = null
 ) {
@@ -22,16 +20,16 @@ data class OpenMiniAppData(
     fun toJsonData(): JSONObject {
         val json = JSONObject()
         json.put("action", action)
-        json.put("appId", appId)
+        json.put("appId", PayMEMiniApp.appId)
         json.put("phone", phone)
-        json.put("publicKey", publicKey)
-        json.put("privateKey", privateKey)
+        json.put("publicKey", PayMEMiniApp.publicKey)
+        json.put("privateKey", PayMEMiniApp.privateKey)
         json.put("env", env)
         if (action == ActionOpenMiniApp.PAY && paymentData != null) {
             json.put("transactionId", paymentData!!.transactionId)
             json.put("amount", paymentData!!.amount)
             json.put("note", paymentData!!.note)
-//            json.put("ipnUrl", paymentData!!.ipnUrl)
+            json.put("ipnUrl", paymentData!!.ipnUrl)
         }
         return json
     }
