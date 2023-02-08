@@ -37,8 +37,8 @@ class PayMEMiniApp(
     init {
         PayMEMiniApp.context = context
         PayMEMiniApp.appId = appId
-        PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "")
-        PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "")
+        PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\\n", "")
+        PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\\n", "")
         PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
         PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
     }

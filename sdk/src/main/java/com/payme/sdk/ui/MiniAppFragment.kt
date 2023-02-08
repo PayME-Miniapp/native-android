@@ -111,7 +111,7 @@ class MiniAppFragment : Fragment() {
         }
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
         loadUrl = "http://localhost" + ":" + port + "/"
-        loadUrl = "http://10.8.20.40:3000/"
+//        loadUrl = "http://10.8.20.40:3000/"
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
@@ -663,7 +663,6 @@ class MiniAppFragment : Fragment() {
                                 }
                             }
                         }
-                        return true
                     }
                 }
                 return false
