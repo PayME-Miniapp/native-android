@@ -45,7 +45,7 @@ class PayMEMiniApp(
 
     fun openMiniApp(
         openType: OpenMiniAppType = OpenMiniAppType.screen,
-        openMiniAppData: OpenMiniAppData,
+        openMiniAppData: OpenMiniAppDataInterface,
         onSuccess: (ActionOpenMiniApp ,JSONObject?) -> Unit,
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {

@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+
+# Gradle files
+.gradle
+build/
+
+# Kotlin generated files
+*.class
+*.jar
+*.war
+
+# Android related
+*.apk
+*.ap_
+*.dex
+*.dpj
+*.aar
+*.idea
+
+# Generated IDEA files
+.idea/
+*.iml
+out/
+
+# Gradle cache
+.gradle/
+
+# JUnit and TestNG reports
+build/test-results/
+build/reports/
+
+# Virtual environment
+.env/
+
+# Windows Thumbs db
+Thumbs.db
+
+# OSX files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+*.lock

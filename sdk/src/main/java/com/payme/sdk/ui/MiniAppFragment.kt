@@ -1141,7 +1141,7 @@ class MiniAppFragment : Fragment() {
     companion object {
         internal lateinit var onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit
         internal lateinit var onError: (ActionOpenMiniApp, PayMEError) -> Unit
-        internal lateinit var openMiniAppData: OpenMiniAppData
+        internal lateinit var openMiniAppData: OpenMiniAppDataInterface
         internal lateinit var openType: OpenMiniAppType
         internal lateinit var closeMiniApp: () -> Unit
 
@@ -1162,7 +1162,7 @@ class MiniAppFragment : Fragment() {
             miniappViewModel.setEvaluateJsData(Pair(functionName, data))
         }
 
-        fun setOpenMiniAppData(data: OpenMiniAppData) {
+        fun setOpenMiniAppData(data: OpenMiniAppDataInterface) {
             miniappViewModel.setOpenMiniAppData(data)
         }
     }

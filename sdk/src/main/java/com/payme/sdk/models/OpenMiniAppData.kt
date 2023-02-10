@@ -3,19 +3,7 @@ package com.payme.sdk.models
 import com.payme.sdk.PayMEMiniApp
 import org.json.JSONObject
 
-data class OpenMiniAppData(
-    val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME,
-    val phone: String,
-    var paymentData: PaymentData? = null
-) {
-    init {
-        if (action != ActionOpenMiniApp.PAY) {
-            paymentData = null
-        } else {
-            requireNotNull(paymentData)
-        }
-    }
-
+abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME, open val phone: String) {
     fun toJsonData(): JSONObject {
         val json = JSONObject()
         json.put("action", action)
@@ -24,13 +12,40 @@ data class OpenMiniAppData(
         json.put("publicKey", PayMEMiniApp.publicKey)
         json.put("privateKey", PayMEMiniApp.privateKey)
         json.put("env", PayMEMiniApp.env)
-        if (action == ActionOpenMiniApp.PAY && paymentData != null) {
-            json.put("transactionId", paymentData!!.transactionId)
-            json.put("amount", paymentData!!.amount)
-            json.put("note", paymentData!!.note)
-            json.put("ipnUrl", paymentData!!.ipnUrl)
-        }
-        return json
+        return appendAdditionalData(json)
+    }
+    abstract fun appendAdditionalData(jsonObject: JSONObject): JSONObject
+}
+
+data class OpenMiniAppPaymentData (
+    override val phone: String,
+    var paymentData: PaymentData
+): OpenMiniAppDataInterface(ActionOpenMiniApp.PAY, phone) {
+    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+        jsonObject.put("transactionId", paymentData.transactionId)
+        jsonObject.put("amount", paymentData.amount)
+        jsonObject.put("note", paymentData.note)
+        jsonObject.put("ipnUrl", paymentData.ipnUrl)
+        return jsonObject
+    }
+}
+
+data class OpenMiniAppPayMEData (
+    override val phone: String,
+    var paymentData: PaymentData
+): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME, phone) {
+    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+        return jsonObject
+    }
+}
+
+data class OpenMiniAppOpenData (
+    override val action: ActionOpenMiniApp = ActionOpenMiniApp.OPEN,
+    override val phone: String,
+    var paymentData: PaymentData
+): OpenMiniAppDataInterface(ActionOpenMiniApp.OPEN, phone) {
+    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+        return jsonObject
     }
 }
 
