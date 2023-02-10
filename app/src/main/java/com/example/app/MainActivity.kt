@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.openMiniApp(
                 OpenMiniAppType.screen, OpenMiniAppData(
-                    ActionOpenMiniApp.PAY,
+                    ActionOpenMiniApp.PAYME,
                     "0372823042",
                     PaymentData(UUID.randomUUID().toString(), 10000, "aaaaaa", "adfkajljfds")
                 ),

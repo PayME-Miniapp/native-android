@@ -48,6 +48,25 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import javax.net.ssl.SSLException
+import androidx.activity.OnBackPressedCallback
+
+
+class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCallback(true) {
+    override fun handleOnBackPressed() {
+        Log.d("PAYME", "onBackPressed Called")
+        val myWebView = fragment.view?.findViewById<WebView>(R.id.webview)
+        if (myWebView != null) {
+            if (myWebView!!.canGoBack()) {
+                val url = myWebView!!.url
+                val check = (!url.isNullOrEmpty() && url.endsWith("home"))
+                if (!check) {
+                    Log.d("PAYME", "webview back")
+                    myWebView!!.goBack()
+                }
+            }
+        }
+    }
+}
 
 class MiniAppFragment : Fragment() {
     private var rootView: View? = null
@@ -233,6 +252,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requireActivity().onBackPressedDispatcher.addCallback(this, BackPressCallback(this))
     }
 
     override fun onCreateView(
@@ -647,27 +667,6 @@ class MiniAppFragment : Fragment() {
         }
 
         miniappViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
-
-        view.setOnKeyListener(object : View.OnKeyListener {
-            override fun onKey(v: View?, keyCode: Int, event: KeyEvent): Boolean {
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (keyCode == KeyEvent.KEYCODE_BACK) {
-                        Log.d("PAYME", "onBackPressed Called")
-                        if (myWebView != null) {
-                            if (myWebView!!.canGoBack()) {
-                                val url = myWebView!!.url
-                                val check = (!url.isNullOrEmpty() && url.endsWith("home"))
-                                if (!check) {
-                                    Log.d("PAYME", "webview back")
-                                    myWebView!!.goBack()
-                                }
-                            }
-                        }
-                    }
-                }
-                return false
-            }
-        })
 
         return view
     }
