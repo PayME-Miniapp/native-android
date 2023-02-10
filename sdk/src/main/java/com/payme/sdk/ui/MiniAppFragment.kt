@@ -79,7 +79,7 @@ class MiniAppFragment : Fragment() {
         val filesDir = requireContext().filesDir
         val sourceWeb = File("${filesDir.path}/update", "sdkWebapp3-main.zip")
         if (sourceWeb.exists() && !backgroundDownload && sourceWeb.length() > 0) {
-            Log.d("HIEU", "chay vo copy update")
+            Log.d("PAYME", "chay vo copy update")
             val wwwDirectory = File(filesDir.path, "www")
             wwwDirectory.delete()
             if (!wwwDirectory.exists()) {
@@ -91,7 +91,7 @@ class MiniAppFragment : Fragment() {
             return
         }
 
-        Log.d("HIEU", "chay vo unzip source down san")
+        Log.d("PAYME", "chay vo unzip source down san")
 
         val wwwDirectory = File(filesDir.path, "www")
         if (!wwwDirectory.exists()) {
@@ -115,15 +115,15 @@ class MiniAppFragment : Fragment() {
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
-            Log.d("HIEU", "start server")
+            Log.d("PAYME", "start server")
         } catch (e: Exception) {
-            Log.d("HIEU", "error ${e.message}")
+            Log.d("PAYME", "error ${e.message}")
         }
     }
 
     private fun stopServer() {
         if (server != null) {
-            Log.w("HIEU", "Stopped Server")
+            Log.d("PAYME", "Stopped Server")
             server!!.stop()
             server = null
         }
@@ -217,7 +217,7 @@ class MiniAppFragment : Fragment() {
                     lottieView.requestLayout()
                 }
             }
-            Log.d("HIEU", "source web length ${sourceWeb.length()}")
+            Log.d("PAYME", "source web length ${sourceWeb.length()}")
             if (sourceWeb.length() > 0) {
                 editor.putInt("PAYME_PATCH", patch)
                 editor.apply()
@@ -287,18 +287,18 @@ class MiniAppFragment : Fragment() {
                 val localMandatory = if (localPatch < latestMandatory) true else mandatory
                 val payMEVersion = PayMEVersion(patch, version, localMandatory, url)
                 if (payMEVersion.patch <= localPatch) {
-                    Log.d("HIEU", "do not update")
+                    Log.d("PAYME", "do not update")
                     payMEUpdatePatchViewModel.setDoneUpdate(true)
                     return@Thread
                 }
                 if (!payMEVersion.mandatory) {
-                    Log.d("HIEU", "download ngầm")
+                    Log.d("PAYME", "download ngầm")
                     backgroundDownload = true
                     payMEUpdatePatchViewModel.setDoneUpdate(true)
                     downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
                     return@Thread
                 }
-                Log.d("HIEU", "force update")
+                Log.d("PAYME", "force update")
                 activity?.runOnUiThread {
                     textUpdateLabel.text =
                         "Đang tải dữ liệu (${BuildConfig.SDK_VERSION}.${patch})..."
@@ -306,14 +306,14 @@ class MiniAppFragment : Fragment() {
                 payMEUpdatePatchViewModel.setShowUpdatingUI(true)
                 payMEUpdatePatchViewModel.setIsForceUpdating(true)
                 downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
-                Log.d("HIEU", "downloaded source moi")
+                Log.d("PAYME", "downloaded source moi")
                 payMEUpdatePatchViewModel.setIsForceUpdating(false)
                 payMEUpdatePatchViewModel.setDoneUpdate(true)
             } catch (e: SSLException) {
-                Log.d("HIEU", "SSLException ex ${e}")
+                Log.d("PAYME", "SSLException ex ${e}")
             } catch (e: Exception) {
                 payMEUpdatePatchViewModel.setDoneUpdate(true)
-                Log.d("HIEU", "thread ex ${e}")
+                Log.d("PAYME", "thread ex ${e}")
             }
         }
         versionCheckingTask?.start()
@@ -393,7 +393,7 @@ class MiniAppFragment : Fragment() {
                     filePathCallback: ValueCallback<Array<Uri>>?,
                     fileChooserParams: FileChooserParams?
                 ): Boolean {
-                    Log.d("HIEU", "chay vo on file chooser $filePathCallback")
+                    Log.d("PAYME", "chay vo on file chooser $filePathCallback")
 
                     if (fileChooserCallback != null) {
                         fileChooserCallback?.onReceiveValue(null)
@@ -404,7 +404,7 @@ class MiniAppFragment : Fragment() {
                     try {
                         fileChooserLauncher.launch(intent)
                     } catch (e: Exception) {
-                        Log.d("HIEU", "chay vo catch ${e.message}")
+                        Log.d("PAYME", "chay vo catch ${e.message}")
                         return true
                     }
                     return true
@@ -412,7 +412,7 @@ class MiniAppFragment : Fragment() {
             }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                    Log.d("HIEU", "shouldOverrideUrlLoading url: $url")
+                    Log.d("PAYME", "shouldOverrideUrlLoading url: $url")
                     return if (url.contains(".pdf")) {
                         val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
                         view?.loadUrl(pdfUrl)
@@ -425,7 +425,7 @@ class MiniAppFragment : Fragment() {
                         view.context.startActivity(intent)
                         true
                     } catch (e: Exception) {
-                        Log.d("HIEU", "shouldOverrideUrlLoading Exception: $e")
+                        Log.d("PAYME", "shouldOverrideUrlLoading Exception: $e")
                         true
                     }
                 }
@@ -435,7 +435,7 @@ class MiniAppFragment : Fragment() {
                     request: WebResourceRequest?
                 ): Boolean {
                     val url = request?.url.toString()
-                    Log.d("HIEU", "shouldOverrideUrlLoading url: $url")
+                    Log.d("PAYME", "shouldOverrideUrlLoading url: $url")
                     return if (url.contains(".pdf")) {
                         val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
                         view?.loadUrl(pdfUrl)
@@ -447,7 +447,7 @@ class MiniAppFragment : Fragment() {
                         view?.context?.startActivity(intent)
                         true
                     } catch (e: Exception) {
-                        Log.d("HIEU", "shouldOverrideUrlLoading Exception: $e")
+                        Log.d("PAYME", "shouldOverrideUrlLoading Exception: $e")
                         true
                     }
                 }
@@ -457,15 +457,15 @@ class MiniAppFragment : Fragment() {
                     request: WebResourceRequest?,
                     errorResponse: WebResourceResponse
                 ) {
-                    Log.d("HIEU", "HTTP error " + errorResponse.statusCode + errorResponse.data)
+                    Log.d("PAYME", "HTTP error " + errorResponse.statusCode + errorResponse.data)
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
-                    Log.d("HIEU", "page started $url")
+                    Log.d("PAYME", "page started $url")
                 }
 
                 override fun onPageFinished(view: WebView?, url: String?) {
-                    Log.d("HIEU", "page finished $url")
+                    Log.d("PAYME", "page finished $url")
                     if (url == loadUrl) {
                         payMEUpdatePatchViewModel.setShowUpdatingUI(false)
                         sendNativeDeviceInfo()
@@ -522,11 +522,11 @@ class MiniAppFragment : Fragment() {
                         stopServer()
                         server = WebServer("localhost", port, www_root)
                         (server as WebServer).start()
-                        Log.d("HIEU", "start server")
+                        Log.d("PAYME", "start server")
                     } catch (e: Exception) {
-                        Log.d("HIEU", "error ${e.message}")
+                        Log.d("PAYME", "error ${e.message}")
                     }
-                    Log.d("HIEU", "error https ${error?.description}")
+                    Log.d("PAYME", "error https ${error?.description}")
                 }
             }
 
@@ -652,13 +652,13 @@ class MiniAppFragment : Fragment() {
             override fun onKey(v: View?, keyCode: Int, event: KeyEvent): Boolean {
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (keyCode == KeyEvent.KEYCODE_BACK) {
-                        Log.d("HIEU", "onBackPressed Called")
+                        Log.d("PAYME", "onBackPressed Called")
                         if (myWebView != null) {
                             if (myWebView!!.canGoBack()) {
                                 val url = myWebView!!.url
                                 val check = (!url.isNullOrEmpty() && url.endsWith("home"))
                                 if (!check) {
-                                    Log.d("HIEU", "webview back")
+                                    Log.d("PAYME", "webview back")
                                     myWebView!!.goBack()
                                 }
                             }
@@ -677,7 +677,7 @@ class MiniAppFragment : Fragment() {
             val json = JSONObject(data)
             MiniAppFragment.onSuccess(MiniAppFragment.openMiniAppData.action, json)
         } catch (e: Exception) {
-            Log.d("HIEU", "miniapp returnSuccess: ${e.message} ")
+            Log.d("PAYME", "miniapp returnSuccess: ${e.message} ")
         }
     }
 
@@ -692,7 +692,7 @@ class MiniAppFragment : Fragment() {
                 closeMiniApp()
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "miniapp returnError: ${e.message} ")
+            Log.d("PAYME", "miniapp returnError: ${e.message} ")
         }
     }
 
@@ -709,14 +709,14 @@ class MiniAppFragment : Fragment() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             when (result.resultCode) {
                 Activity.RESULT_CANCELED -> {
-                    Log.d("HIEU", "RESULT_CANCELED fileChooserLauncher")
+                    Log.d("PAYME", "RESULT_CANCELED fileChooserLauncher")
                     if (fileChooserCallback != null) {
                         fileChooserCallback?.onReceiveValue(null)
                     }
                     fileChooserCallback = null
                 }
                 Activity.RESULT_OK -> {
-                    Log.d("HIEU", "RESULT_OK fileChooserLauncher")
+                    Log.d("PAYME", "RESULT_OK fileChooserLauncher")
                     if (fileChooserCallback == null) return@registerForActivityResult
                     fileChooserCallback?.onReceiveValue(
                         WebChromeClient.FileChooserParams.parseResult(
@@ -740,7 +740,7 @@ class MiniAppFragment : Fragment() {
                 subWebView.show(parentFragmentManager, "SUBWEBVIEW")
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "openWebView exception: ${e.message} ")
+            Log.d("PAYME", "openWebView exception: ${e.message} ")
         }
     }
 
@@ -807,7 +807,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "getContacts exception: ${e.message} ")
+            Log.d("PAYME", "getContacts exception: ${e.message} ")
         }
     }
 
@@ -882,7 +882,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "requestPermission exception: ${e.message} ")
+            Log.d("PAYME", "requestPermission exception: ${e.message} ")
         }
     }
 
@@ -901,7 +901,7 @@ class MiniAppFragment : Fragment() {
                 startActivity(Intent.createChooser(shareIntent, title))
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "share exception: ${e.message} ")
+            Log.d("PAYME", "share exception: ${e.message} ")
         }
     }
 
@@ -944,7 +944,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "startCardKyc exception: ${e.message} ")
+            Log.d("PAYME", "startCardKyc exception: ${e.message} ")
         }
     }
 
@@ -1011,7 +1011,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "startCardKyc exception: ${e.message} ")
+            Log.d("PAYME", "startCardKyc exception: ${e.message} ")
         }
     }
 
@@ -1031,7 +1031,7 @@ class MiniAppFragment : Fragment() {
     private var identityCardLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             when (result.resultCode) {
-                Activity.RESULT_CANCELED -> Log.d("HIEU", "RESULT_CANCELED")
+                Activity.RESULT_CANCELED -> Log.d("PAYME", "RESULT_CANCELED")
                 Activity.RESULT_OK -> {
                     val resultData = result.data
                     val fileName = resultData?.extras?.get("fileName")
@@ -1070,7 +1070,7 @@ class MiniAppFragment : Fragment() {
     private var faceDetectorLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             when (result.resultCode) {
-                Activity.RESULT_CANCELED -> Log.d("HIEU", "RESULT_CANCELED")
+                Activity.RESULT_CANCELED -> Log.d("PAYME", "RESULT_CANCELED")
                 Activity.RESULT_OK -> {
                     val images3 = JSONArray()
                     images3.put("images/kycFace1.jpeg")

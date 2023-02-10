@@ -7,10 +7,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
-import com.payme.sdk.models.ActionOpenMiniApp
-import com.payme.sdk.models.OpenMiniAppData
-import com.payme.sdk.models.OpenMiniAppType
-import com.payme.sdk.models.PayMEError
+import com.payme.sdk.models.*
 import com.payme.sdk.ui.MiniAppActivity
 import com.payme.sdk.ui.MiniAppBottomSheetDialog
 import com.payme.sdk.ui.MiniAppFragment
@@ -21,6 +18,7 @@ class PayMEMiniApp(
     appId: String,
     publicKey: String,
     privateKey : String,
+    env: ENV,
     onOneSignalSendTags: ((String) -> Unit)? = null,
     onOneSignalDeleteTags: ((String) -> Unit)? = null,
 ) {
@@ -30,6 +28,7 @@ class PayMEMiniApp(
         internal lateinit var appId: String
         internal lateinit var publicKey: String
         internal lateinit var privateKey: String
+        internal lateinit var env: ENV
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
     }
@@ -39,6 +38,7 @@ class PayMEMiniApp(
         PayMEMiniApp.appId = appId
         PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\\n", "")
         PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\\n", "")
+        PayMEMiniApp.env = env
         PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
         PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
     }
@@ -75,7 +75,7 @@ class PayMEMiniApp(
                 return
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "ex cast: ${e.message}")
+            Log.d("PAYME", "ex cast: ${e.message}")
         }
     }
 }

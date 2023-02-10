@@ -100,9 +100,9 @@ object Utils {
                 }
             }
             zipStream.close()
-            Log.d("HIEU", "Unzipping complete. path : $destination")
+            Log.d("PAYME", "Unzipping complete. path : $destination")
         } catch (e: java.lang.Exception) {
-            Log.d("HIEU", "Unzipping failed ${e.message}")
+            Log.d("PAYME", "Unzipping failed ${e.message}")
         }
     }
 
@@ -123,7 +123,7 @@ object Utils {
                 }
             }
         } catch (ex: SocketException) {
-            Log.e("HIEU", ex.toString())
+            Log.e("PAYME", ex.toString())
         }
         return "127.0.0.1"
     }
@@ -143,7 +143,7 @@ object Utils {
                 "          true; // note: this is required, or you'll sometimes get silent failures\n"
         activity.runOnUiThread {
             webView.evaluateJavascript("(function() {\n$injectedJS;\n})();", callback)
-            Log.d("HIEU", "[EVALUATE_JS] $functionName  $data")
+            Log.d("PAYME", "[EVALUATE_JS] $functionName  $data")
         }
     }
 
@@ -181,7 +181,7 @@ object Utils {
         return try {
             val socket = ServerSocket(0)
             val port = socket.localPort
-            Log.d("HIEU", "port:$port")
+            Log.d("PAYME", "port:$port")
             socket.close()
             port
         } catch (e: IOException) {
@@ -234,25 +234,25 @@ object Utils {
     fun sendNativePref(context: Context, webView: WebView) {
         val sharedPreference = context.getSharedPreferences("PAYME_NATIVE", Context.MODE_PRIVATE)
         val all = sharedPreference.all
-        Log.d("HIEU", "all $all")
+        Log.d("PAYME", "all $all")
 
         if (all.isNotEmpty()) {
             try {
                 all.forEach { (_, value) ->
                     val json = JSONObject(value.toString())
-                    Log.d("HIEU", "[SEND_NATIVE_PREF]set native pref json $json")
+                    Log.d("PAYME", "[SEND_NATIVE_PREF]set native pref json $json")
                     Utils.evaluateJSWebView(
                         context as Activity, webView, "nativePreferences", json.toString(), null
                     )
                 }
             } catch (e: JSONException) {
-                Log.d("HIEU", "sendNativePref exception: $e")
+                Log.d("PAYME", "sendNativePref exception: $e")
             }
         }
     }
 
     fun setNativePref(context: Context, data: String?) {
-        Log.d("HIEU", "[SET_NATIVE_PREF]set native pref data $data")
+        Log.d("PAYME", "[SET_NATIVE_PREF]set native pref data $data")
         if (data == null) {
             return
         }
@@ -264,7 +264,7 @@ object Utils {
             editor.putString(key, data)
             editor.apply()
         } catch (e: JSONException) {
-            Log.d("HIEU", "setNativePref exception: $e")
+            Log.d("PAYME", "setNativePref exception: $e")
         }
     }
 
@@ -294,7 +294,7 @@ object Utils {
     }
 
     fun biometricAuthenticate(activity: AppCompatActivity, webView: WebView, data: String) {
-        Log.d("HIEU", "vo hàm bio")
+        Log.d("PAYME", "vo hàm bio")
         activity.runOnUiThread {
             try {
                 val jsonData = JSONObject(data)
@@ -314,7 +314,7 @@ object Utils {
                 val callback = object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         super.onAuthenticationError(errorCode, errString)
-                        Log.d("HIEU", "errorcode $errorCode")
+                        Log.d("PAYME", "errorcode $errorCode")
                         val resultAuthen = JSONObject()
                         resultAuthen.put("success", false)
                         resultAuthen.put("error", getErrorCode(errorCode))
@@ -348,7 +348,7 @@ object Utils {
                 val biometricPrompt = BiometricPrompt(activity, executor, callback)
                 biometricPrompt.authenticate(promptInfo)
             } catch (e: JSONException) {
-                Log.d("HIEU", "vo catch ${e.message}")
+                Log.d("PAYME", "vo catch ${e.message}")
 
                 val resultAuthen = JSONObject()
                 resultAuthen.put("success", false)
@@ -408,7 +408,7 @@ object Utils {
     fun handleFaceImageProxy(image: ImageProxy): Bitmap? {
         return try {
             val rotationDegree = image.imageInfo.rotationDegrees
-            Log.d("HIEU", "rotation $rotationDegree")
+            Log.d("PAYME", "rotation $rotationDegree")
             var bitmap = imageProxyToBitmap(image)
             val rotationMatrix = Matrix()
             rotationMatrix.postRotate((rotationDegree).toFloat())
@@ -426,7 +426,7 @@ object Utils {
             }
             bitmap
         } catch (e: Exception) {
-            Log.d("HIEU", "handle image proxy ${e.message}")
+            Log.d("PAYME", "handle image proxy ${e.message}")
             null
         }
     }
@@ -434,7 +434,7 @@ object Utils {
     fun handleImageProxy(context: Context, image: ImageProxy, previewView: View): Bitmap? {
         try {
             val rotationDegree = image.imageInfo.rotationDegrees
-            Log.d("HIEU", "rotation $rotationDegree")
+            Log.d("PAYME", "rotation $rotationDegree")
             var bitmap = imageProxyToBitmap(image)
 
             val rotationMatrix = Matrix()
@@ -462,15 +462,15 @@ object Utils {
             val width = bitmap.width - viewportMargin * 2
             val top = dpToPx(context, 86) * bitmapHeight / windowHeight
             val height = bitmap.width * 0.7
-//    Log.d("HIEU", "x $viewportMargin y $top x $width x $height ")
+//    Log.d("PAYME", "x $viewportMargin y $top x $width x $height ")
             Log.d(
-                "HIEU",
+                "PAYME",
                 "screeheight ${displayMetrics.heightPixels} bitmapHeight $bitmapHeight windowHeight $windowHeight"
             )
             bitmap = Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height.toInt())
             return bitmap
         } catch (e: Exception) {
-            Log.d("HIEU", "handle image proxy ${e.message}")
+            Log.d("PAYME", "handle image proxy ${e.message}")
             return null
         }
     }
@@ -488,7 +488,7 @@ object Utils {
             out.flush()
             out.close()
         } catch (e: Exception) {
-            Log.d("HIEU", "save image exception ${e.message}")
+            Log.d("PAYME", "save image exception ${e.message}")
         }
     }
 
@@ -561,7 +561,7 @@ object Utils {
                 )
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "util get contacts exception ${e.message}")
+            Log.d("PAYME", "util get contacts exception ${e.message}")
         }
 
     }
@@ -572,7 +572,7 @@ object Utils {
                 input.copyTo(output)
             }
         }
-        Log.d("HIEU", "done download")
+        Log.d("PAYME", "done download")
     }
 
     @SuppressLint("SetTextI18n")
@@ -594,10 +594,10 @@ object Utils {
         }
         if (sourceTemp.length() > 0) {
             sourceTemp.copyTo(destSource, true)
-            Log.d("HIEU", "done download")
+            Log.d("PAYME", "done download")
             sourceTemp.delete()
         } else {
-            Log.d("HIEU", "downlaod fail")
+            Log.d("PAYME", "downlaod fail")
         }
     }
 

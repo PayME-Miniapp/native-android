@@ -6,7 +6,6 @@ import org.json.JSONObject
 data class OpenMiniAppData(
     val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME,
     val phone: String,
-    val env: ENV = ENV.PRODUCTION,
     var paymentData: PaymentData? = null
 ) {
     init {
@@ -24,7 +23,7 @@ data class OpenMiniAppData(
         json.put("phone", phone)
         json.put("publicKey", PayMEMiniApp.publicKey)
         json.put("privateKey", PayMEMiniApp.privateKey)
-        json.put("env", env)
+        json.put("env", PayMEMiniApp.env)
         if (action == ActionOpenMiniApp.PAY && paymentData != null) {
             json.put("transactionId", paymentData!!.transactionId)
             json.put("amount", paymentData!!.amount)

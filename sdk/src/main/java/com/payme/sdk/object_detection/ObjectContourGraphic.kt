@@ -67,15 +67,15 @@ class ObjectContourGraphic(
                 abs(activeFrame.boundingBox.bottom - activeFrame.boundingBox.top).toInt()
             )
 
-            //      Log.d("HIEU", "boundingBox ${boundingBox.left}")
-//      Log.d("HIEU", "rectLeft ${rect.left}")
-//      Log.d("HIEU", "activeFrame ${activeFrame.boundingBox.left}")
-//      Log.d("HIEU", "boundingBox top ${boundingBox.top}")
-//      Log.d("HIEU", "rectLeft top ${rect.top}")
-//      Log.d("HIEU", "rect.top ${rect.top}")
-//      Log.d("HIEU", "activeFrame boundingBox top ${activeFrame.boundingBox.top}")
+            //      Log.d("PAYME", "boundingBox ${boundingBox.left}")
+//      Log.d("PAYME", "rectLeft ${rect.left}")
+//      Log.d("PAYME", "activeFrame ${activeFrame.boundingBox.left}")
+//      Log.d("PAYME", "boundingBox top ${boundingBox.top}")
+//      Log.d("PAYME", "rectLeft top ${rect.top}")
+//      Log.d("PAYME", "rect.top ${rect.top}")
+//      Log.d("PAYME", "activeFrame boundingBox top ${activeFrame.boundingBox.top}")
 
-            Log.d("HIEU", "aaaa")
+            Log.d("PAYME", "aaaa")
 
             val condition =
                 (abs(rect.top - activeFrame.boundingBox.top) < 60 || rect.top > activeFrame.boundingBox.top)

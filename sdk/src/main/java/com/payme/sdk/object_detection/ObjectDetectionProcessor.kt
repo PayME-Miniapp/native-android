@@ -49,7 +49,7 @@ class ObjectDetectionProcessor(
         try {
             detector.close()
         } catch (e: IOException) {
-            Log.e("HIEU", "Exception thrown while trying to close Face Detector: $e")
+            Log.e("PAYME", "Exception thrown while trying to close Face Detector: $e")
         }
     }
 
@@ -59,7 +59,7 @@ class ObjectDetectionProcessor(
         rect: Rect
     ) {
         graphicOverlay.clear()
-//    Log.d("HIEU", "onSuccess: ${results.size} $results")
+//    Log.d("PAYME", "onSuccess: ${results.size} $results")
         val filtered = results.filter { Utils.validateListObject(it) }
         if (filtered.size == 1) {
             val objectGraphic =
@@ -83,7 +83,7 @@ class ObjectDetectionProcessor(
     }
 
     override fun onFailure(e: Exception) {
-        Log.d("HIEU", "onFailure: ${e.message}")
+        Log.d("PAYME", "onFailure: ${e.message}")
     }
 
 }

@@ -59,7 +59,7 @@ class SubWebView(
     buttonBack = view.findViewById(R.id.buttonBackHeader)
     loading = view.findViewById(R.id.loading)
     loading.setOnClickListener {
-      Log.d("HIEU", "loading")
+      Log.d("PAYME", "loading")
     }
     buttonBack.setOnClickListener {
       dialog?.dismiss()
@@ -94,7 +94,7 @@ class SubWebView(
           isUserGesture: Boolean,
           resultMsg: Message?
         ): Boolean {
-          Log.d("HIEU", "chay vao oncreate window")
+          Log.d("PAYME", "chay vao oncreate window")
           if (subWebView != null || view == null || resultMsg == null) {
             return true
           }
@@ -133,7 +133,7 @@ class SubWebView(
           resultMsg.sendToTarget()
           newWebView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-              Log.d("HIEU", "shouldOverrideUrlLoading url: $url")
+              Log.d("PAYME", "shouldOverrideUrlLoading url: $url")
               return if (url.contains(".pdf")) {
                 loading.visibility = View.VISIBLE
                 val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
@@ -147,13 +147,13 @@ class SubWebView(
                 view.context.startActivity(intent)
                 true
               } catch (e: Exception) {
-                Log.d("HIEU", "shouldOverrideUrlLoading Exception: $e")
+                Log.d("PAYME", "shouldOverrideUrlLoading Exception: $e")
                 true
               }
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-              Log.d("HIEU", "page start $url")
+              Log.d("PAYME", "page start $url")
               loading.visibility = View.VISIBLE
               if (!url.isNullOrEmpty()) {
                 MiniAppFragment.evaluateJs("nativeWebViewNavigation", "\"$url\"")
@@ -169,7 +169,7 @@ class SubWebView(
               errorResponse: WebResourceResponse
             ) {
               Log.d(
-                "HIEU",
+                "PAYME",
                 "HTTP error " + errorResponse.statusCode + errorResponse.data + errorResponse.reasonPhrase
               )
               super.onReceivedHttpError(view, request, errorResponse)
@@ -181,7 +181,7 @@ class SubWebView(
               error: WebResourceError?
             ) {
               if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Log.d("HIEU", "onReceivedError error " + error?.errorCode)
+                Log.d("PAYME", "onReceivedError error " + error?.errorCode)
               }
               super.onReceivedError(view, request, error)
             }
@@ -198,10 +198,10 @@ class SubWebView(
 
 
             override fun onPageFinished(view: WebView?, url: String?) {
-              Log.d("HIEU", "page finish $url ${view?.progress}")
+              Log.d("PAYME", "page finish $url ${view?.progress}")
               if (url?.contains(".pdf") == true) {
                 if (view?.contentHeight == 0) {
-                  Log.d("HIEU", "chay vao reload")
+                  Log.d("PAYME", "chay vao reload")
                   view.reload()
                   return
                 }
@@ -218,7 +218,7 @@ class SubWebView(
       }
       webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-          Log.d("HIEU", "shouldOverrideUrlLoading url: $url")
+          Log.d("PAYME", "shouldOverrideUrlLoading url: $url")
           return if (url.contains(".pdf")) {
             val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
             view.loadUrl(pdfUrl)
@@ -231,7 +231,7 @@ class SubWebView(
             view.context.startActivity(intent)
             true
           } catch (e: Exception) {
-            Log.d("HIEU", "shouldOverrideUrlLoading Exception: $e")
+            Log.d("PAYME", "shouldOverrideUrlLoading Exception: $e")
             true
           }
         }
@@ -241,7 +241,7 @@ class SubWebView(
           request: WebResourceRequest?
         ): Boolean {
           val url = request?.url.toString()
-          Log.d("HIEU", "shouldOverrideUrlLoading url: $url")
+          Log.d("PAYME", "shouldOverrideUrlLoading url: $url")
           return if (url.contains(".pdf")) {
             val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
             view?.loadUrl(pdfUrl)
@@ -253,7 +253,7 @@ class SubWebView(
             view?.context?.startActivity(intent)
             true
           } catch (e: Exception) {
-            Log.d("HIEU", "shouldOverrideUrlLoading Exception: $e")
+            Log.d("PAYME", "shouldOverrideUrlLoading Exception: $e")
             true
           }
         }
@@ -263,11 +263,11 @@ class SubWebView(
           request: WebResourceRequest?,
           errorResponse: WebResourceResponse
         ) {
-          Log.d("HIEU", "HTTP error " + errorResponse.statusCode + errorResponse.data)
+          Log.d("PAYME", "HTTP error " + errorResponse.statusCode + errorResponse.data)
         }
 
         override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
-          Log.d("HIEU", "page started $url")
+          Log.d("PAYME", "page started $url")
           if (!url.isNullOrEmpty()) {
             MiniAppFragment.evaluateJs("nativeWebViewNavigation", "\"$url\"")
             if (closeInstruction.isNotEmpty() && url.contains(closeInstruction)) {
@@ -277,7 +277,7 @@ class SubWebView(
         }
 
         override fun onPageFinished(view: WebView?, url: String?) {
-          Log.d("HIEU", "page finished $url")
+          Log.d("PAYME", "page finished $url")
           loading.visibility = View.GONE
         }
 
@@ -298,7 +298,7 @@ class SubWebView(
           error: WebResourceError?
         ) {
           super.onReceivedError(view, request, error)
-          Log.d("HIEU", "error https ${error?.description}")
+          Log.d("PAYME", "error https ${error?.description}")
         }
       }
 
@@ -333,7 +333,7 @@ class SubWebView(
   }
 
   private fun handleBack() {
-    Log.d("HIEU", "buttonBackFooter back")
+    Log.d("PAYME", "buttonBackFooter back")
     if (loading.visibility == View.VISIBLE) return
     if (myWebView != null) {
       if (subWebView != null) {
@@ -347,7 +347,7 @@ class SubWebView(
         return
       }
       if (myWebView!!.canGoBack()) {
-        Log.d("HIEU", "webview back")
+        Log.d("PAYME", "webview back")
         myWebView!!.goBack()
       }
     }

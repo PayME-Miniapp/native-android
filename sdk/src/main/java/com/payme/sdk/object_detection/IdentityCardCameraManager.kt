@@ -146,12 +146,12 @@ class IdentityCardCameraManager(
 
                         override fun onError(exception: ImageCaptureException) {
                             val errorType = exception.imageCaptureError
-                            Log.d("HIEU", "error capture image: $errorType")
+                            Log.d("PAYME", "error capture image: $errorType")
                         }
                     })
             }
         } catch (e: Exception) {
-            Log.d("HIEU", "Use case binding failed", e)
+            Log.d("PAYME", "Use case binding failed", e)
         }
     }
 }

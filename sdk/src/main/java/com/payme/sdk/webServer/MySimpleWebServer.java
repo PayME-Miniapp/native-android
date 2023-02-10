@@ -373,7 +373,7 @@ public class MySimpleWebServer extends NanoHTTPD {
             // First look for index files (index.html, index.htm, etc) and if
             // none found, list the directory if readable.
             String indexFile = findIndexFileInDirectory(f);
-            Log.d("HIEU", "CHAY vo day " + indexFile);
+            Log.d("PAYME", "CHAY vo day " + indexFile);
             if (indexFile == null) {
                 if (f.canRead()) {
                     // No index file, list the directory if it is readable

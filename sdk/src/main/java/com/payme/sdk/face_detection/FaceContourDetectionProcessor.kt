@@ -46,7 +46,7 @@ class FaceContourDetectionProcessor(
         try {
             detector.close()
         } catch (e: IOException) {
-            Log.e("HIEU", "Exception thrown while trying to close Face Detector: $e")
+            Log.d("PAYME", "Exception thrown while trying to close Face Detector: $e")
         }
     }
 
@@ -105,6 +105,6 @@ class FaceContourDetectionProcessor(
     }
 
     override fun onFailure(e: Exception) {
-        Log.w("HIEU", "Face Detector failed.${e.message}")
+        Log.d("PAYME", "Face Detector failed.${e.message}")
     }
 }

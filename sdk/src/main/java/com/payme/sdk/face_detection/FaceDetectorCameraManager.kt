@@ -101,7 +101,7 @@ class FaceDetectorCameraManager(
                     if (imageBitmap != null) {
                         Utils.compressBitmapToFile(context, imageBitmap, fileName)
                     }
-                    Log.d("HIEU", "pic taken")
+                    Log.d("PAYME", "pic taken")
                     if (callback != null) {
                         callback()
                     }
@@ -109,7 +109,7 @@ class FaceDetectorCameraManager(
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.d("HIEU", "error capture image face detector: ${exception.message}")
+                    Log.d("PAYME", "error capture image face detector: ${exception.message}")
                 }
             })
     }
@@ -184,7 +184,7 @@ class FaceDetectorCameraManager(
                 finderView.surfaceProvider
             )
         } catch (e: Exception) {
-            Log.e("HIEU", "Use case binding failed", e)
+            Log.e("PAYME", "Use case binding failed", e)
         }
     }
 }

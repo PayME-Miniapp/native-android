@@ -63,8 +63,8 @@ class FaceContourGraphic(
                     (abs(rect.bottom - activeFrame.boundingBox.bottom) < 100 || rect.bottom <= activeFrame.boundingBox.bottom)
                     && rect.left < overlay.width.toFloat() && rect.right > 0
 
-//    Log.d("HIEU", "rectHeight ${rectHeight}")
-//    Log.d("HIEU", "activeHeight ${activeHeight}")
+//    Log.d("PAYME", "rectHeight ${rectHeight}")
+//    Log.d("PAYME", "activeHeight ${activeHeight}")
 
         val condition2 = abs(rectHeight - activeHeight) > 100 && (rectHeight > activeHeight)
         val condition3 = abs(rectHeight - activeHeight) > 100 && (rectHeight < activeHeight)

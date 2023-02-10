@@ -1,9 +1,0 @@
-[
-  {
-    "version": "1.0.9",
-    "patch": 11,
-    "mandatory": true,
-    "url": "https://aws-payme-production.s3.ap-southeast-1.amazonaws.com/frontend/miniapp-patch/miniapp_patch_0011.zip",
-    "latestMandatoryPatch": 11
-  }
-]
