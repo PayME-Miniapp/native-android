@@ -3,12 +3,11 @@ package com.payme.sdk.models
 import com.payme.sdk.PayMEMiniApp
 import org.json.JSONObject
 
-abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME, open val phone: String) {
+abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME) {
     fun toJsonData(): JSONObject {
         val json = JSONObject()
         json.put("action", action)
         json.put("appId", PayMEMiniApp.appId)
-        json.put("phone", phone)
         json.put("publicKey", PayMEMiniApp.publicKey)
         json.put("privateKey", PayMEMiniApp.privateKey)
         json.put("env", PayMEMiniApp.env)
@@ -18,33 +17,34 @@ abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = Ac
 }
 
 data class OpenMiniAppPaymentData (
-    override val phone: String,
+    val phone: String,
     var paymentData: PaymentData
-): OpenMiniAppDataInterface(ActionOpenMiniApp.PAY, phone) {
+): OpenMiniAppDataInterface(ActionOpenMiniApp.PAY) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         jsonObject.put("transactionId", paymentData.transactionId)
         jsonObject.put("amount", paymentData.amount)
+        jsonObject.put("phone", phone)
         jsonObject.put("note", paymentData.note)
         jsonObject.put("ipnUrl", paymentData.ipnUrl)
         return jsonObject
     }
 }
 
+// vi payme
 data class OpenMiniAppPayMEData (
-    override val phone: String,
     var paymentData: PaymentData
-): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME, phone) {
+): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         return jsonObject
     }
 }
 
+// open wallet
 data class OpenMiniAppOpenData (
-    override val action: ActionOpenMiniApp = ActionOpenMiniApp.OPEN,
-    override val phone: String,
-    var paymentData: PaymentData
-): OpenMiniAppDataInterface(ActionOpenMiniApp.OPEN, phone) {
+    val phone: String,
+): OpenMiniAppDataInterface(ActionOpenMiniApp.OPEN) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+        jsonObject.put("phone", phone)
         return jsonObject
     }
 }
