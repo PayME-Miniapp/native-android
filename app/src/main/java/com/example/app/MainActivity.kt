@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
         )
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.screen, OpenMiniAppOpenData("0372823042"),
+                OpenMiniAppType.screen, OpenMiniAppPayMEData(),
                 onSuccess = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
                     Log.d("PAYME", "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
                 },

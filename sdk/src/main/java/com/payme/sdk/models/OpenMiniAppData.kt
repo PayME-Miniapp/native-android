@@ -31,9 +31,7 @@ data class OpenMiniAppPaymentData (
 }
 
 // vi payme
-data class OpenMiniAppPayMEData (
-    var paymentData: PaymentData
-): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME) {
+class OpenMiniAppPayMEData (): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         return jsonObject
     }
