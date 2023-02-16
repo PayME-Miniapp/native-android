@@ -16,6 +16,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.airbnb.lottie.LottieAnimationView
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.utils.Utils
@@ -101,7 +102,7 @@ class FaceDetectorCameraManager(
                     if (imageBitmap != null) {
                         Utils.compressBitmapToFile(context, imageBitmap, fileName)
                     }
-                    Log.d("PAYME", "pic taken")
+                    Log.d(PayMEMiniApp.TAG, "pic taken")
                     if (callback != null) {
                         callback()
                     }
@@ -109,7 +110,7 @@ class FaceDetectorCameraManager(
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.d("PAYME", "error capture image face detector: ${exception.message}")
+                    Log.d(PayMEMiniApp.TAG, "error capture image face detector: ${exception.message}")
                 }
             })
     }
@@ -184,7 +185,7 @@ class FaceDetectorCameraManager(
                 finderView.surfaceProvider
             )
         } catch (e: Exception) {
-            Log.e("PAYME", "Use case binding failed", e)
+            Log.e(PayMEMiniApp.TAG, "Use case binding failed", e)
         }
     }
 }

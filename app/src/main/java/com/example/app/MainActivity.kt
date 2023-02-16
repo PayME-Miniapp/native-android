@@ -1,6 +1,7 @@
 package com.example.app
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -8,7 +9,10 @@ import android.widget.TextView
 import android.widget.Toast
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.*
+import com.payme.sdk.ui.MiniAppFragment
 import org.json.JSONObject
+import org.json.JSONStringer
+import java.net.URLEncoder
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -23,6 +27,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         openSdkButton = findViewById(R.id.open_sdk)
+        val a =
+            "payme://view?data=00020101021226280010A000000775011001021822925204481453037045405100005802VN5904VBAN6005HANOI610610000062710309VbanTopup05210123021611401315946400708II0QWCYU0817Thanh%20toan%20QRCode630401B7&callbackurl=https%3a%2f%2fpay.vnpay.vn%2fqrback.html%3ftoken%3d4033925c9e394817a883591843f471a9/"
+        MiniAppFragment.setDeepLink(a)
         payMEMiniApp = PayMEMiniApp(
             this,
             "250069027220",
@@ -34,7 +41,7 @@ class MainActivity : AppCompatActivity() {
             payMEMiniApp!!.openMiniApp(
                 OpenMiniAppType.screen, OpenMiniAppPayMEData(),
                 onSuccess = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
-                    Log.d("PAYME", "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
+                    Log.d(PayMEMiniApp.TAG, "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
                 },
                 onError = { actionOpenMiniApp: ActionOpenMiniApp, payMEError: PayMEError ->
                     Log.d(

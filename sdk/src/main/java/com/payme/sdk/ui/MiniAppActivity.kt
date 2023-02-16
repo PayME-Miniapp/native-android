@@ -54,14 +54,6 @@ class MiniAppActivity : AppCompatActivity() {
     window.statusBarColor = ContextCompat.getColor(this, android.R.color.transparent)
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_miniapp)
-    val appLinkIntent = intent
-    val appLinkAction = appLinkIntent.action
-    val appLinkData = appLinkIntent.data
-    Log.d("HIEU", "app link data ${appLinkData.toString()}")
-
-    if (Intent.ACTION_VIEW == appLinkAction && appLinkData != null) {
-      MiniAppFragment.setDeepLink(appLinkData.toString())
-    }
   }
 }
 

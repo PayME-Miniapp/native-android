@@ -24,6 +24,7 @@ class PayMEMiniApp(
 ) {
     companion object {
         @SuppressLint("StaticFieldLeak")
+        val TAG = "PAYMELOG"
         internal lateinit var context: Context
         internal lateinit var appId: String
         internal lateinit var publicKey: String
@@ -75,7 +76,7 @@ class PayMEMiniApp(
                 return
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "ex cast: ${e.message}")
+            Log.d(PayMEMiniApp.TAG, "ex cast: ${e.message}")
         }
     }
 }

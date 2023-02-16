@@ -13,6 +13,7 @@ import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.camerax.BaseImageAnalyzer
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.utils.Utils
@@ -49,7 +50,7 @@ class ObjectDetectionProcessor(
         try {
             detector.close()
         } catch (e: IOException) {
-            Log.e("PAYME", "Exception thrown while trying to close Face Detector: $e")
+            Log.e(PayMEMiniApp.TAG, "Exception thrown while trying to close Face Detector: $e")
         }
     }
 
@@ -59,7 +60,7 @@ class ObjectDetectionProcessor(
         rect: Rect
     ) {
         graphicOverlay.clear()
-//    Log.d("PAYME", "onSuccess: ${results.size} $results")
+//    Log.d(PayMEMiniApp.TAG, "onSuccess: ${results.size} $results")
         val filtered = results.filter { Utils.validateListObject(it) }
         if (filtered.size == 1) {
             val objectGraphic =
@@ -83,7 +84,7 @@ class ObjectDetectionProcessor(
     }
 
     override fun onFailure(e: Exception) {
-        Log.d("PAYME", "onFailure: ${e.message}")
+        Log.d(PayMEMiniApp.TAG, "onFailure: ${e.message}")
     }
 
 }

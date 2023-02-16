@@ -17,6 +17,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.utils.Utils
 import com.payme.sdk.viewmodels.IdentityCardViewModel
@@ -146,12 +147,12 @@ class IdentityCardCameraManager(
 
                         override fun onError(exception: ImageCaptureException) {
                             val errorType = exception.imageCaptureError
-                            Log.d("PAYME", "error capture image: $errorType")
+                            Log.d(PayMEMiniApp.TAG, "error capture image: $errorType")
                         }
                     })
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "Use case binding failed", e)
+            Log.d(PayMEMiniApp.TAG, "Use case binding failed", e)
         }
     }
 }

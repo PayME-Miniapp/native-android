@@ -49,19 +49,20 @@ import org.json.JSONObject
 import java.io.File
 import javax.net.ssl.SSLException
 import androidx.activity.OnBackPressedCallback
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.viewmodels.DeepLinkViewModel
 
 
 class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCallback(true) {
     override fun handleOnBackPressed() {
-        Log.d("PAYME", "onBackPressed Called")
+        Log.d(PayMEMiniApp.TAG, "onBackPressed Called")
         val myWebView = fragment.view?.findViewById<WebView>(R.id.webview)
         if (myWebView != null) {
             if (myWebView!!.canGoBack()) {
                 val url = myWebView!!.url
                 val check = (!url.isNullOrEmpty() && url.endsWith("home"))
                 if (!check) {
-                    Log.d("PAYME", "webview back")
+                    Log.d(PayMEMiniApp.TAG, "webview back")
                     myWebView!!.goBack()
                 }
             }
@@ -99,7 +100,7 @@ class MiniAppFragment : Fragment() {
         val filesDir = requireContext().filesDir
         val sourceWeb = File("${filesDir.path}/update", "sdkWebapp3-main.zip")
         if (sourceWeb.exists() && !backgroundDownload && sourceWeb.length() > 0) {
-            Log.d("PAYME", "chay vo copy update")
+            Log.d(PayMEMiniApp.TAG, "chay vo copy update")
             val wwwDirectory = File(filesDir.path, "www")
             wwwDirectory.delete()
             if (!wwwDirectory.exists()) {
@@ -111,7 +112,7 @@ class MiniAppFragment : Fragment() {
             return
         }
 
-        Log.d("PAYME", "chay vo unzip source down san")
+        Log.d(PayMEMiniApp.TAG, "chay vo unzip source down san")
 
         val wwwDirectory = File(filesDir.path, "www")
         if (!wwwDirectory.exists()) {
@@ -136,15 +137,15 @@ class MiniAppFragment : Fragment() {
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
-            Log.d("PAYME", "start server")
+            Log.d(PayMEMiniApp.TAG, "start server")
         } catch (e: Exception) {
-            Log.d("PAYME", "error ${e.message}")
+            Log.d(PayMEMiniApp.TAG, "error ${e.message}")
         }
     }
 
     private fun stopServer() {
         if (server != null) {
-            Log.d("PAYME", "Stopped Server")
+            Log.d(PayMEMiniApp.TAG, "Stopped Server")
             server!!.stop()
             server = null
         }
@@ -238,7 +239,7 @@ class MiniAppFragment : Fragment() {
                     lottieView.requestLayout()
                 }
             }
-            Log.d("PAYME", "source web length ${sourceWeb.length()}")
+            Log.d(PayMEMiniApp.TAG, "source web length ${sourceWeb.length()}")
             if (sourceWeb.length() > 0) {
                 editor.putInt("PAYME_PATCH", patch)
                 editor.apply()
@@ -309,18 +310,18 @@ class MiniAppFragment : Fragment() {
                 val localMandatory = if (localPatch < latestMandatory) true else mandatory
                 val payMEVersion = PayMEVersion(patch, version, localMandatory, url)
                 if (payMEVersion.patch <= localPatch) {
-                    Log.d("PAYME", "do not update")
+                    Log.d(PayMEMiniApp.TAG, "do not update")
                     payMEUpdatePatchViewModel.setDoneUpdate(true)
                     return@Thread
                 }
                 if (!payMEVersion.mandatory) {
-                    Log.d("PAYME", "download ngầm")
+                    Log.d(PayMEMiniApp.TAG, "download ngầm")
                     backgroundDownload = true
                     payMEUpdatePatchViewModel.setDoneUpdate(true)
                     downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
                     return@Thread
                 }
-                Log.d("PAYME", "force update")
+                Log.d(PayMEMiniApp.TAG, "force update")
                 activity?.runOnUiThread {
                     textUpdateLabel.text =
                         "Đang tải dữ liệu (${BuildConfig.SDK_VERSION}.${patch})..."
@@ -328,14 +329,14 @@ class MiniAppFragment : Fragment() {
                 payMEUpdatePatchViewModel.setShowUpdatingUI(true)
                 payMEUpdatePatchViewModel.setIsForceUpdating(true)
                 downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
-                Log.d("PAYME", "downloaded source moi")
+                Log.d(PayMEMiniApp.TAG, "downloaded source moi")
                 payMEUpdatePatchViewModel.setIsForceUpdating(false)
                 payMEUpdatePatchViewModel.setDoneUpdate(true)
             } catch (e: SSLException) {
-                Log.d("PAYME", "SSLException ex ${e}")
+                Log.d(PayMEMiniApp.TAG, "SSLException ex ${e}")
             } catch (e: Exception) {
                 payMEUpdatePatchViewModel.setDoneUpdate(true)
-                Log.d("PAYME", "thread ex ${e}")
+                Log.d(PayMEMiniApp.TAG, "thread ex ${e}")
             }
         }
         versionCheckingTask?.start()
@@ -415,7 +416,7 @@ class MiniAppFragment : Fragment() {
                     filePathCallback: ValueCallback<Array<Uri>>?,
                     fileChooserParams: FileChooserParams?
                 ): Boolean {
-                    Log.d("PAYME", "chay vo on file chooser $filePathCallback")
+                    Log.d(PayMEMiniApp.TAG, "chay vo on file chooser $filePathCallback")
 
                     if (fileChooserCallback != null) {
                         fileChooserCallback?.onReceiveValue(null)
@@ -426,7 +427,7 @@ class MiniAppFragment : Fragment() {
                     try {
                         fileChooserLauncher.launch(intent)
                     } catch (e: Exception) {
-                        Log.d("PAYME", "chay vo catch ${e.message}")
+                        Log.d(PayMEMiniApp.TAG, "chay vo catch ${e.message}")
                         return true
                     }
                     return true
@@ -434,7 +435,7 @@ class MiniAppFragment : Fragment() {
             }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                    Log.d("PAYME", "shouldOverrideUrlLoading url: $url")
+                    Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
                     return if (url.contains(".pdf")) {
                         val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
                         view?.loadUrl(pdfUrl)
@@ -447,7 +448,7 @@ class MiniAppFragment : Fragment() {
                         view.context.startActivity(intent)
                         true
                     } catch (e: Exception) {
-                        Log.d("PAYME", "shouldOverrideUrlLoading Exception: $e")
+                        Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
                         true
                     }
                 }
@@ -457,7 +458,7 @@ class MiniAppFragment : Fragment() {
                     request: WebResourceRequest?
                 ): Boolean {
                     val url = request?.url.toString()
-                    Log.d("PAYME", "shouldOverrideUrlLoading url: $url")
+                    Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
                     return if (url.contains(".pdf")) {
                         val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
                         view?.loadUrl(pdfUrl)
@@ -469,7 +470,7 @@ class MiniAppFragment : Fragment() {
                         view?.context?.startActivity(intent)
                         true
                     } catch (e: Exception) {
-                        Log.d("PAYME", "shouldOverrideUrlLoading Exception: $e")
+                        Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
                         true
                     }
                 }
@@ -479,15 +480,15 @@ class MiniAppFragment : Fragment() {
                     request: WebResourceRequest?,
                     errorResponse: WebResourceResponse
                 ) {
-                    Log.d("PAYME", "HTTP error " + errorResponse.statusCode + errorResponse.data)
+                    Log.d(PayMEMiniApp.TAG, "HTTP error " + errorResponse.statusCode + errorResponse.data)
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
-                    Log.d("PAYME", "page started $url")
+                    Log.d(PayMEMiniApp.TAG, "page started $url")
                 }
 
                 override fun onPageFinished(view: WebView?, url: String?) {
-                    Log.d("PAYME", "page finished $url")
+                    Log.d(PayMEMiniApp.TAG, "page finished $url")
                     if (url == loadUrl) {
                         payMEUpdatePatchViewModel.setShowUpdatingUI(false)
                         sendNativeDeviceInfo()
@@ -523,12 +524,13 @@ class MiniAppFragment : Fragment() {
 
                         val deeplink = deepLinkViewModel.getDeepLinkUrl().value
                         if (!deeplink.isNullOrEmpty()) {
+                            val jsonQuoteString = JSONObject.quote(deeplink)
                             activity?.let {
                                 Utils.evaluateJSWebView(
                                     it,
                                     myWebView!!,
                                     "nativeLinkingOpenedApp",
-                                    deeplink,
+                                    jsonQuoteString,
                                     null
                                 )
                             }
@@ -558,11 +560,11 @@ class MiniAppFragment : Fragment() {
                         stopServer()
                         server = WebServer("localhost", port, www_root)
                         (server as WebServer).start()
-                        Log.d("PAYME", "start server")
+                        Log.d(PayMEMiniApp.TAG, "start server")
                     } catch (e: Exception) {
-                        Log.d("PAYME", "error ${e.message}")
+                        Log.d(PayMEMiniApp.TAG, "error ${e.message}")
                     }
-                    Log.d("PAYME", "error https ${error?.description}")
+                    Log.d(PayMEMiniApp.TAG, "error https ${error?.description}")
                 }
             }
 
@@ -693,7 +695,7 @@ class MiniAppFragment : Fragment() {
             val json = JSONObject(data)
             MiniAppFragment.onSuccess(MiniAppFragment.openMiniAppData.action, json)
         } catch (e: Exception) {
-            Log.d("PAYME", "miniapp returnSuccess: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "miniapp returnSuccess: ${e.message} ")
         }
     }
 
@@ -708,7 +710,7 @@ class MiniAppFragment : Fragment() {
                 closeMiniApp()
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "miniapp returnError: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "miniapp returnError: ${e.message} ")
         }
     }
 
@@ -722,22 +724,26 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun openUrl (data: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data))
-        startActivity(intent)
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data.substring(1, data.length-1)))
+            (requireContext() as Activity).startActivity(intent)
+        } catch (e: Exception) {
+            Log.d(PayMEMiniApp.TAG, "openurl e ${e.message}")
+        }
     }
 
     private var fileChooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             when (result.resultCode) {
                 Activity.RESULT_CANCELED -> {
-                    Log.d("PAYME", "RESULT_CANCELED fileChooserLauncher")
+                    Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED fileChooserLauncher")
                     if (fileChooserCallback != null) {
                         fileChooserCallback?.onReceiveValue(null)
                     }
                     fileChooserCallback = null
                 }
                 Activity.RESULT_OK -> {
-                    Log.d("PAYME", "RESULT_OK fileChooserLauncher")
+                    Log.d(PayMEMiniApp.TAG, "RESULT_OK fileChooserLauncher")
                     if (fileChooserCallback == null) return@registerForActivityResult
                     fileChooserCallback?.onReceiveValue(
                         WebChromeClient.FileChooserParams.parseResult(
@@ -761,7 +767,7 @@ class MiniAppFragment : Fragment() {
                 subWebView.show(parentFragmentManager, "SUBWEBVIEW")
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "openWebView exception: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "openWebView exception: ${e.message} ")
         }
     }
 
@@ -828,7 +834,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "getContacts exception: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "getContacts exception: ${e.message} ")
         }
     }
 
@@ -903,7 +909,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "requestPermission exception: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "requestPermission exception: ${e.message} ")
         }
     }
 
@@ -922,7 +928,7 @@ class MiniAppFragment : Fragment() {
                 startActivity(Intent.createChooser(shareIntent, title))
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "share exception: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "share exception: ${e.message} ")
         }
     }
 
@@ -965,7 +971,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "startCardKyc exception: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
         }
     }
 
@@ -1032,7 +1038,7 @@ class MiniAppFragment : Fragment() {
                 }
             }
         } catch (e: Exception) {
-            Log.d("PAYME", "startCardKyc exception: ${e.message} ")
+            Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
         }
     }
 
@@ -1052,7 +1058,7 @@ class MiniAppFragment : Fragment() {
     private var identityCardLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             when (result.resultCode) {
-                Activity.RESULT_CANCELED -> Log.d("PAYME", "RESULT_CANCELED")
+                Activity.RESULT_CANCELED -> Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
                 Activity.RESULT_OK -> {
                     val resultData = result.data
                     val fileName = resultData?.extras?.get("fileName")
@@ -1091,7 +1097,7 @@ class MiniAppFragment : Fragment() {
     private var faceDetectorLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             when (result.resultCode) {
-                Activity.RESULT_CANCELED -> Log.d("PAYME", "RESULT_CANCELED")
+                Activity.RESULT_CANCELED -> Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
                 Activity.RESULT_OK -> {
                     val images3 = JSONArray()
                     images3.put("images/kycFace1.jpeg")
@@ -1164,7 +1170,7 @@ class MiniAppFragment : Fragment() {
         internal lateinit var onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit
         internal lateinit var onError: (ActionOpenMiniApp, PayMEError) -> Unit
         internal lateinit var openMiniAppData: OpenMiniAppDataInterface
-        internal lateinit var openType: OpenMiniAppType
+        internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
 
         var notificationViewModel: NotificationViewModel = NotificationViewModel()

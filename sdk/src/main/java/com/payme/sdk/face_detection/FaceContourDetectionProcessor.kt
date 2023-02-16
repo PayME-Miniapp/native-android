@@ -8,6 +8,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.camerax.BaseImageAnalyzer
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.viewmodels.FaceDetectorStepViewModel
@@ -46,7 +47,7 @@ class FaceContourDetectionProcessor(
         try {
             detector.close()
         } catch (e: IOException) {
-            Log.d("PAYME", "Exception thrown while trying to close Face Detector: $e")
+            Log.d(PayMEMiniApp.TAG, "Exception thrown while trying to close Face Detector: $e")
         }
     }
 
@@ -105,6 +106,6 @@ class FaceContourDetectionProcessor(
     }
 
     override fun onFailure(e: Exception) {
-        Log.d("PAYME", "Face Detector failed.${e.message}")
+        Log.d(PayMEMiniApp.TAG, "Face Detector failed.${e.message}")
     }
 }

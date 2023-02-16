@@ -8,6 +8,7 @@ import android.graphics.Rect
 import android.util.Log
 import android.view.View
 import com.payme.sdk.BuildConfig
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.utils.Utils
@@ -67,16 +68,13 @@ class ObjectContourGraphic(
                 abs(activeFrame.boundingBox.bottom - activeFrame.boundingBox.top).toInt()
             )
 
-            //      Log.d("PAYME", "boundingBox ${boundingBox.left}")
-//      Log.d("PAYME", "rectLeft ${rect.left}")
-//      Log.d("PAYME", "activeFrame ${activeFrame.boundingBox.left}")
-//      Log.d("PAYME", "boundingBox top ${boundingBox.top}")
-//      Log.d("PAYME", "rectLeft top ${rect.top}")
-//      Log.d("PAYME", "rect.top ${rect.top}")
-//      Log.d("PAYME", "activeFrame boundingBox top ${activeFrame.boundingBox.top}")
-
-            Log.d("PAYME", "aaaa")
-
+            //      Log.d(PayMEMiniApp.TAG, "boundingBox ${boundingBox.left}")
+//      Log.d(PayMEMiniApp.TAG, "rectLeft ${rect.left}")
+//      Log.d(PayMEMiniApp.TAG, "activeFrame ${activeFrame.boundingBox.left}")
+//      Log.d(PayMEMiniApp.TAG, "boundingBox top ${boundingBox.top}")
+//      Log.d(PayMEMiniApp.TAG, "rectLeft top ${rect.top}")
+//      Log.d(PayMEMiniApp.TAG, "rect.top ${rect.top}")
+//      Log.d(PayMEMiniApp.TAG, "activeFrame boundingBox top ${activeFrame.boundingBox.top}")
             val condition =
                 (abs(rect.top - activeFrame.boundingBox.top) < 60 || rect.top > activeFrame.boundingBox.top)
                         &&

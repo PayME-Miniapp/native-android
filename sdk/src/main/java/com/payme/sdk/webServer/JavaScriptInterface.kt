@@ -26,7 +26,7 @@ class JavaScriptInterface(
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
-        Log.d("PAYME", " jspref: $data")
+        Log.d(PayMEMiniApp.TAG, " jspref: $data")
         setNativePreferences(data)
     }
 
@@ -37,66 +37,66 @@ class JavaScriptInterface(
 
     @JavascriptInterface
     public fun jsLog(data: String) {
-        Log.d("PAYME", "jsLog: $data")
+        Log.d(PayMEMiniApp.TAG, "jsLog: $data")
     }
 
     @JavascriptInterface
     public fun jsBiometricAuthentication(data: String) {
-        Log.d("PAYME", " jsBiometricAuthentication: $data")
+        Log.d(PayMEMiniApp.TAG, " jsBiometricAuthentication: $data")
         biometricAuthen(data)
     }
 
     @JavascriptInterface
     public fun jsRequestCardKYC(data: String) {
-        Log.d("PAYME", " jsRequestCardKyc: $data")
+        Log.d(PayMEMiniApp.TAG, " jsRequestCardKyc: $data")
         startCardKyc(data)
     }
 
     @JavascriptInterface
     public fun jsRequestFaceKYC(data: String) {
-        Log.d("PAYME", " jsRequestFaceKyc: $data")
+        Log.d(PayMEMiniApp.TAG, " jsRequestFaceKyc: $data")
         startFaceKyc(data)
     }
 
     @JavascriptInterface
     public fun jsOpenSetting(data: String) {
-        Log.d("PAYME", " jsOpenSetting: $data")
+        Log.d(PayMEMiniApp.TAG, " jsOpenSetting: $data")
         openSettings()
     }
 
     @JavascriptInterface
     public fun jsShare(data: String) {
-        Log.d("PAYME", " jsShare: $data")
+        Log.d(PayMEMiniApp.TAG, " jsShare: $data")
         share(data)
     }
 
     @JavascriptInterface
     public fun jsRequestPermission(data: String) {
-        Log.d("PAYME", " jsRequestPermission: $data")
+        Log.d(PayMEMiniApp.TAG, " jsRequestPermission: $data")
         requestPermission(data)
     }
 
     @JavascriptInterface
     public fun jsRequestDeviceInfo(data: String) {
-        Log.d("PAYME", " jsRequestDeviceInfo: $data")
+        Log.d(PayMEMiniApp.TAG, " jsRequestDeviceInfo: $data")
         sendNativeDeviceInfo()
     }
 
     @JavascriptInterface
     public fun jsRequestContacts(data: String) {
-        Log.d("PAYME", " jsRequestContacts: $data")
+        Log.d(PayMEMiniApp.TAG, " jsRequestContacts: $data")
         getContacts()
     }
 
     @JavascriptInterface
     public fun jsShowKeyboard(data: String) {
-        Log.d("PAYME", " jsShowKeyboard: $data")
+        Log.d(PayMEMiniApp.TAG, " jsShowKeyboard: $data")
         nativeOpenKeyboard()
     }
 
     @JavascriptInterface
     public fun jsOneSignalSendTags(data: String) {
-        Log.d("PAYME", " jsOneSignalSendTags: $data")
+        Log.d(PayMEMiniApp.TAG, " jsOneSignalSendTags: $data")
         try {
             val parseJson = JSONObject(data)
 //            OneSignal.sendTags(parseJson)
@@ -105,13 +105,13 @@ class JavaScriptInterface(
                 PayMEMiniApp.onOneSignalSendTags!!(data)
             }
         } catch (e: IOException) {
-            Log.e("PAYME", "Exception thrown while trying to close Face Detector: $e")
+            Log.e(PayMEMiniApp.TAG, "Exception thrown while trying to close Face Detector: $e")
         }
     }
 
     @JavascriptInterface
     public fun jsOneSignalDeleteTags(data: String) {
-        Log.d("PAYME", " jsOneSignalDeleteTags: $data")
+        Log.d(PayMEMiniApp.TAG, " jsOneSignalDeleteTags: $data")
         if (PayMEMiniApp.onOneSignalDeleteTags != null) {
             PayMEMiniApp.onOneSignalDeleteTags!!(data)
         }
@@ -120,31 +120,31 @@ class JavaScriptInterface(
 
     @JavascriptInterface
     public fun jsOpenWebView(data: String) {
-        Log.d("PAYME", " jsOpenWebView: $data")
+        Log.d(PayMEMiniApp.TAG, " jsOpenWebView: $data")
         openWebView(data)
     }
 
     @JavascriptInterface
     public fun jsError(data: String) {
-        Log.d("PAYME", " jsError: $data")
+        Log.d(PayMEMiniApp.TAG, " jsError: $data")
         onError(data)
     }
 
     @JavascriptInterface
     public fun jsResponse(data: String) {
-        Log.d("PAYME", " jsResponse: $data")
+        Log.d(PayMEMiniApp.TAG, " jsResponse: $data")
         onSuccess(data)
     }
 
     @JavascriptInterface
     public fun jsClose(data: String) {
-        Log.d("PAYME", " jsClose: $data")
+        Log.d(PayMEMiniApp.TAG, " jsClose: $data")
         closeMiniApp()
     }
 
     @JavascriptInterface
     public fun jsOpenUrl(data: String) {
-        Log.d("PAYME", " jsOpenUrl: $data")
+        Log.d(PayMEMiniApp.TAG, " jsOpenUrl: $data")
         openUrl(data)
     }
 }
