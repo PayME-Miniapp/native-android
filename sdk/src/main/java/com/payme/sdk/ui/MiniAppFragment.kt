@@ -49,6 +49,7 @@ import org.json.JSONObject
 import java.io.File
 import javax.net.ssl.SSLException
 import androidx.activity.OnBackPressedCallback
+import com.payme.sdk.viewmodels.DeepLinkViewModel
 
 
 class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCallback(true) {
@@ -121,6 +122,7 @@ class MiniAppFragment : Fragment() {
         if (content == null || content.isEmpty()) {
             Utils.copyDir(requireContext(), path = "www")
             Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
+            port = Utils.findRandomOpenPort() ?: 4646
         }
     }
 
@@ -518,6 +520,20 @@ class MiniAppFragment : Fragment() {
                             }
                             miniappViewModel.setOpenMiniAppData(null)
                         }
+
+                        val deeplink = deepLinkViewModel.getDeepLinkUrl().value
+                        if (!deeplink.isNullOrEmpty()) {
+                            activity?.let {
+                                Utils.evaluateJSWebView(
+                                    it,
+                                    myWebView!!,
+                                    "nativeLinkingOpenedApp",
+                                    deeplink,
+                                    null
+                                )
+                            }
+                            deepLinkViewModel.setDeepLinkUrl("")
+                        }
                     }
                 }
 
@@ -608,7 +624,8 @@ class MiniAppFragment : Fragment() {
                 openWebView = { data: String -> openWebView(data) },
                 onSuccess = {data: String -> returnSuccess(data) },
                 onError = {data: String -> returnError(data) },
-                closeMiniApp = { closeMiniApp() }
+                closeMiniApp = { closeMiniApp() },
+                openUrl = { data: String -> openUrl(data) }
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -702,6 +719,11 @@ class MiniAppFragment : Fragment() {
         } else if (MiniAppFragment.openType == OpenMiniAppType.screen) {
             (requireContext() as Activity).finish()
         }
+    }
+
+    private fun openUrl (data: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data))
+        startActivity(intent)
     }
 
     private var fileChooserLauncher =
@@ -1145,14 +1167,9 @@ class MiniAppFragment : Fragment() {
         internal lateinit var openType: OpenMiniAppType
         internal lateinit var closeMiniApp: () -> Unit
 
-        fun newInstance(action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME) = MiniAppFragment().apply {
-            arguments = Bundle().apply {
-                putString("ACTION", action.toString())
-            }
-        }
-
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
         var miniappViewModel: MiniappViewModel = MiniappViewModel()
+        var deepLinkViewModel: DeepLinkViewModel = DeepLinkViewModel()
 
         fun nativeNotificationOpenedApp(data: JSONObject) {
             notificationViewModel.setNotificationData(data)
@@ -1164,6 +1181,10 @@ class MiniAppFragment : Fragment() {
 
         fun setOpenMiniAppData(data: OpenMiniAppDataInterface) {
             miniappViewModel.setOpenMiniAppData(data)
+        }
+
+        fun setDeepLink(data: String) {
+            deepLinkViewModel.setDeepLinkUrl(data)
         }
     }
 

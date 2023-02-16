@@ -22,6 +22,7 @@ class JavaScriptInterface(
     val onSuccess: (String) -> Unit,
     val onError: (String) -> Unit,
     val closeMiniApp: () -> Unit,
+    val openUrl: (String) -> Unit,
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -139,5 +140,11 @@ class JavaScriptInterface(
     public fun jsClose(data: String) {
         Log.d("PAYME", " jsClose: $data")
         closeMiniApp()
+    }
+
+    @JavascriptInterface
+    public fun jsOpenUrl(data: String) {
+        Log.d("PAYME", " jsOpenUrl: $data")
+        openUrl(data)
     }
 }
