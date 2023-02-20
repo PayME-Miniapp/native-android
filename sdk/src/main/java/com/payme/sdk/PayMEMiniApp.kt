@@ -8,6 +8,9 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.models.*
+import com.payme.sdk.network_requests.NetworkRequest
+import com.payme.sdk.network_requests.NetworkUtils
+import com.payme.sdk.presentation.AccountPresentation
 import com.payme.sdk.ui.MiniAppActivity
 import com.payme.sdk.ui.MiniAppBottomSheetDialog
 import com.payme.sdk.ui.MiniAppFragment
@@ -17,7 +20,7 @@ class PayMEMiniApp(
     context: Context,
     appId: String,
     publicKey: String,
-    privateKey : String,
+    privateKey: String,
     env: ENV,
     onOneSignalSendTags: ((String) -> Unit)? = null,
     onOneSignalDeleteTags: ((String) -> Unit)? = null,
@@ -44,10 +47,18 @@ class PayMEMiniApp(
         PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
     }
 
+    fun getBalance(
+        phone: String,
+        onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit,
+        onError: (ActionOpenMiniApp, PayMEError) -> Unit
+    ) {
+        AccountPresentation.getBalance(PayMEMiniApp.context, phone, onSuccess, onError)
+    }
+
     fun openMiniApp(
         openType: OpenMiniAppType = OpenMiniAppType.screen,
         openMiniAppData: OpenMiniAppDataInterface,
-        onSuccess: (ActionOpenMiniApp ,JSONObject?) -> Unit,
+        onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit,
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
         try {

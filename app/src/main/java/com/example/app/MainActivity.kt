@@ -27,9 +27,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         openSdkButton = findViewById(R.id.open_sdk)
-        val a =
-            "payme://view?data=00020101021226280010A000000775011001021822925204481453037045405100005802VN5904VBAN6005HANOI610610000062710309VbanTopup05210123021611401315946400708II0QWCYU0817Thanh%20toan%20QRCode630401B7&callbackurl=https%3a%2f%2fpay.vnpay.vn%2fqrback.html%3ftoken%3d4033925c9e394817a883591843f471a9/"
-        MiniAppFragment.setDeepLink(a)
+//        val a =
+//            "payme://view?data=00020101021226280010A000000775011001021822925204481453037045405100005802VN5904VBAN6005HANOI610610000062710309VbanTopup05210123021611401315946400708II0QWCYU0817Thanh%20toan%20QRCode630401B7&callbackurl=https%3a%2f%2fpay.vnpay.vn%2fqrback.html%3ftoken%3d4033925c9e394817a883591843f471a9/"
+//        MiniAppFragment.setDeepLink(a)
+
         payMEMiniApp = PayMEMiniApp(
             this,
             "250069027220",
@@ -38,19 +39,31 @@ class MainActivity : AppCompatActivity() {
             ENV.SANDBOX
         )
         openSdkButton.setOnClickListener {
-            payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.screen, OpenMiniAppPayMEData(),
+            payMEMiniApp!!.getBalance("0372823042",
                 onSuccess = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
                     Log.d(PayMEMiniApp.TAG, "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
                 },
                 onError = { actionOpenMiniApp: ActionOpenMiniApp, payMEError: PayMEError ->
                     Log.d(
-                        "PAYME",
+                        PayMEMiniApp.TAG,
                         "onError actionOpenMiniApp: $actionOpenMiniApp payMEError: $payMEError"
                     )
-                    Toast.makeText(this, payMEError.message, Toast.LENGTH_LONG).show()
-                }
-            )
+                    Toast.makeText(this, payMEError.description, Toast.LENGTH_LONG).show()
+                })
+
+//            payMEMiniApp!!.openMiniApp(
+//                OpenMiniAppType.screen, OpenMiniAppPayMEData(),
+//                onSuccess = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
+//                    Log.d(PayMEMiniApp.TAG, "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
+//                },
+//                onError = { actionOpenMiniApp: ActionOpenMiniApp, payMEError: PayMEError ->
+//                    Log.d(
+//                        PayMEMiniApp.TAG,
+//                        "onError actionOpenMiniApp: $actionOpenMiniApp payMEError: $payMEError"
+//                    )
+//                    Toast.makeText(this, payMEError.description, Toast.LENGTH_LONG).show()
+//                }
+//            )
         }
     }
 }

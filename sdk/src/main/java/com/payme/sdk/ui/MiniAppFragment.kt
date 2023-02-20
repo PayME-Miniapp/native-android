@@ -705,7 +705,7 @@ class MiniAppFragment : Fragment() {
             val code = json.optString("code", "")
             val description = json.optString("description", "")
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
-            MiniAppFragment.onError(MiniAppFragment.openMiniAppData.action, PayMEError(code, description))
+            MiniAppFragment.onError(MiniAppFragment.openMiniAppData.action, PayMEError(PayMEErrorType.MiniApp, code, description))
             if (isCloseMiniApp) {
                 closeMiniApp()
             }
