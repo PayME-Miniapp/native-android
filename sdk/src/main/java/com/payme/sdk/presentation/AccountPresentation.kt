@@ -2,6 +2,7 @@ package com.payme.sdk.presentation
 
 import android.content.Context
 import android.provider.Settings
+import android.util.Log
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.PayMEError
@@ -41,27 +42,27 @@ object AccountPresentation {
                     onResponse(ActionOpenMiniApp.GET_BALANCE, json)
                 } else {
                     val paramsBalance: MutableMap<String, Any> = mutableMapOf()
-                    val request = NetworkRequest(
+                    val requestBalance = NetworkRequest(
                         context,
                         NetworkUtils.getApiUrl(PayMEMiniApp.env),
                         "/be/ewallet/sdk/account/balance",
                         accessToken,
                         paramsBalance,
                     )
-                    request.setOnRequest(onError = onError, onSuccess = {
-                        val data = it.optJSONObject("data")
-                        val balance = data?.optInt("balance")
+                    requestBalance.setOnRequest(onError = onError, onSuccess = {
+                        val dataBalance = it.optJSONObject("data")
+                        val balance = dataBalance?.opt("balance") as Number?
+                        val jsonObjectResponse = JSONObject()
+                        Log.d("PAYMELOG", "balance $balance")
                         if (balance == null) {
-                            val json = JSONObject()
-                            json.put("linked", true)
-                            json.put("message", it.optString("message") ?: "Có lỗi xảy ra")
-                            onResponse(ActionOpenMiniApp.GET_BALANCE, json)
+                            jsonObjectResponse.put("linked", true)
+                            jsonObjectResponse.put("message", it.optString("message") ?: "Có lỗi xảy ra")
+                            onResponse(ActionOpenMiniApp.GET_BALANCE, jsonObjectResponse)
                         } else {
-                            val json = JSONObject()
-                            json.put("linked", true)
-                            json.put("balance", balance)
-                            json.put("message", it.optString("message") ?: "Có lỗi xảy ra")
-                            onResponse(ActionOpenMiniApp.GET_BALANCE, json)
+                            jsonObjectResponse.put("linked", true)
+                            jsonObjectResponse.put("balance", balance)
+                            jsonObjectResponse.put("message", it.optString("message") ?: "Có lỗi xảy ra")
+                            onResponse(ActionOpenMiniApp.GET_BALANCE, jsonObjectResponse)
                         }
                     })
                 }
