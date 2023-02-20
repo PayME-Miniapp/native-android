@@ -693,7 +693,7 @@ class MiniAppFragment : Fragment() {
     private fun returnSuccess(data: String) {
         try {
             val json = JSONObject(data)
-            MiniAppFragment.onSuccess(MiniAppFragment.openMiniAppData.action, json)
+            PayMEMiniApp.onResponse(MiniAppFragment.openMiniAppData.action, json)
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "miniapp returnSuccess: ${e.message} ")
         }
@@ -705,7 +705,7 @@ class MiniAppFragment : Fragment() {
             val code = json.optString("code", "")
             val description = json.optString("description", "")
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
-            MiniAppFragment.onError(MiniAppFragment.openMiniAppData.action, PayMEError(PayMEErrorType.MiniApp, code, description))
+            PayMEMiniApp.onError(MiniAppFragment.openMiniAppData.action, PayMEError(PayMEErrorType.MiniApp, code, description))
             if (isCloseMiniApp) {
                 closeMiniApp()
             }
@@ -1167,8 +1167,6 @@ class MiniAppFragment : Fragment() {
     }
 
     companion object {
-        internal lateinit var onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit
-        internal lateinit var onError: (ActionOpenMiniApp, PayMEError) -> Unit
         internal lateinit var openMiniAppData: OpenMiniAppDataInterface
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit

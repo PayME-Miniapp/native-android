@@ -15,7 +15,7 @@ object AccountPresentation {
     fun getBalance(
         context: Context,
         phone: String,
-        onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit,
+        onResponse: (ActionOpenMiniApp, JSONObject?) -> Unit,
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
         try {
@@ -38,7 +38,7 @@ object AccountPresentation {
                     val json = JSONObject()
                     json.put("linked", false)
                     json.put("message", jsonObject.optString("message") ?: "Có lỗi xảy ra")
-                    onSuccess(ActionOpenMiniApp.GET_BALANCE, json)
+                    onResponse(ActionOpenMiniApp.GET_BALANCE, json)
                 } else {
                     val paramsBalance: MutableMap<String, Any> = mutableMapOf()
                     val request = NetworkRequest(
@@ -55,13 +55,13 @@ object AccountPresentation {
                             val json = JSONObject()
                             json.put("linked", true)
                             json.put("message", it.optString("message") ?: "Có lỗi xảy ra")
-                            onSuccess(ActionOpenMiniApp.GET_BALANCE, json)
+                            onResponse(ActionOpenMiniApp.GET_BALANCE, json)
                         } else {
                             val json = JSONObject()
                             json.put("linked", true)
                             json.put("balance", balance)
                             json.put("message", it.optString("message") ?: "Có lỗi xảy ra")
-                            onSuccess(ActionOpenMiniApp.GET_BALANCE, json)
+                            onResponse(ActionOpenMiniApp.GET_BALANCE, json)
                         }
                     })
                 }

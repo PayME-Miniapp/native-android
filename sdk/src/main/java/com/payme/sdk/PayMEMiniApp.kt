@@ -33,6 +33,8 @@ class PayMEMiniApp(
         internal lateinit var publicKey: String
         internal lateinit var privateKey: String
         internal lateinit var env: ENV
+        internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _, _ -> {} }
+        internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> {} }
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
     }
@@ -47,19 +49,24 @@ class PayMEMiniApp(
         PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
     }
 
+    fun setUpListener(onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit)?, onError: ((ActionOpenMiniApp, PayMEError) -> Unit)?) {
+        if (onResponse != null) {
+            PayMEMiniApp.onResponse = onResponse
+        }
+        if (onError != null) {
+            PayMEMiniApp.onError = onError
+        }
+    }
+
     fun getBalance(
         phone: String,
-        onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit,
-        onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
-        AccountPresentation.getBalance(PayMEMiniApp.context, phone, onSuccess, onError)
+        AccountPresentation.getBalance(PayMEMiniApp.context, phone, PayMEMiniApp.onResponse, PayMEMiniApp.onError)
     }
 
     fun openMiniApp(
         openType: OpenMiniAppType = OpenMiniAppType.screen,
         openMiniAppData: OpenMiniAppDataInterface,
-        onSuccess: (ActionOpenMiniApp, JSONObject?) -> Unit,
-        onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
         try {
             if (openType == OpenMiniAppType.modal) {
@@ -67,8 +74,6 @@ class PayMEMiniApp(
                 MiniAppFragment.setOpenMiniAppData(openMiniAppData)
                 MiniAppFragment.openType = openType
                 MiniAppFragment.openMiniAppData = openMiniAppData
-                MiniAppFragment.onSuccess = onSuccess
-                MiniAppFragment.onError = onError
                 MiniAppFragment.closeMiniApp = {
                     modal.dismiss()
                 }
@@ -79,8 +84,6 @@ class PayMEMiniApp(
                 MiniAppFragment.setOpenMiniAppData(openMiniAppData)
                 MiniAppFragment.openType = openType
                 MiniAppFragment.openMiniAppData = openMiniAppData
-                MiniAppFragment.onSuccess = onSuccess
-                MiniAppFragment.onError = onError
                 val intent = Intent(context, MiniAppActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
