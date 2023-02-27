@@ -1162,7 +1162,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stopServer()
+//        stopServer()
         miniappViewModel.getEvaluateJsData().removeObserver(evaluateJsDataObserver)
     }
 
