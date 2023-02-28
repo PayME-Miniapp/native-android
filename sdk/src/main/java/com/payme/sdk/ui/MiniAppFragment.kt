@@ -94,6 +94,7 @@ class MiniAppFragment : Fragment() {
     private lateinit var textUpdateLabel: TextView
     private lateinit var lottieView: LottieAnimationView
     private lateinit var lottieContainerView: LinearLayout
+    private lateinit var loadingView: View
 
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
 
@@ -350,6 +351,7 @@ class MiniAppFragment : Fragment() {
         textUpdateLabel = view.findViewById(R.id.update_label_text)
         lottieView = view.findViewById(R.id.lottieView)
         lottieContainerView = view.findViewById(R.id.lottie_container_view)
+        loadingView = view.findViewById(R.id.loading)
 
         val networkCallback: ConnectivityManager.NetworkCallback =
             object : ConnectivityManager.NetworkCallback() {
@@ -487,10 +489,14 @@ class MiniAppFragment : Fragment() {
 
                 override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
                     Log.d(PayMEMiniApp.TAG, "page started $url")
+                    if (url == loadUrl) {
+                        loadingView.visibility = View.VISIBLE
+                    }
                 }
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     Log.d(PayMEMiniApp.TAG, "page finished $url")
+                    loadingView.visibility = View.GONE
                     if (url == loadUrl) {
                         payMEUpdatePatchViewModel.setShowUpdatingUI(false)
                         sendNativeDeviceInfo()
