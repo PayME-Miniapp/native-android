@@ -4,15 +4,16 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentResolver
+import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
-import android.graphics.Rect
+import android.graphics.*
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.ContactsContract
+import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
@@ -21,6 +22,7 @@ import android.view.WindowInsets
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
@@ -28,6 +30,8 @@ import androidx.biometric.BiometricPrompt
 import androidx.camera.core.ImageProxy
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.objects.DetectedObject
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 import com.payme.sdk.PayMEMiniApp
 import org.json.JSONArray
 import org.json.JSONException
@@ -610,6 +614,80 @@ object Utils {
             context.getSystemService(AppCompatActivity.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(view, 0)
     }
+
+    fun generateQRCode(qrContent: String): Bitmap {
+        val writer = QRCodeWriter()
+        val bitMatrix = writer.encode(qrContent, BarcodeFormat.QR_CODE, 512, 512)
+        val width = bitMatrix.width
+        val height = bitMatrix.height
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bitmap.setPixel(x, y, if (bitMatrix.get(x, y)) Color.BLACK else Color.WHITE)
+            }
+        }
+
+        return bitmap
+    }
+
+    private fun contentValues(): ContentValues {
+        val values = ContentValues()
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+        values.put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+        values.put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
+        return values
+    }
+
+    fun saveImage(bitmap: Bitmap, context: Context, folderName: String, onSuccess: () -> Unit, onError: () -> Unit) {
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                val values = contentValues()
+                values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/$folderName")
+                values.put(MediaStore.Images.Media.IS_PENDING, true)
+
+                val uri: Uri? =
+                    context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                if (uri != null) {
+                    saveImageToStream(bitmap, context.contentResolver.openOutputStream(uri), onSuccess, onError)
+                    values.put(MediaStore.Images.Media.IS_PENDING, false)
+                    context.contentResolver.update(uri, values, null, null)
+                }
+            } else {
+                val directory = File(
+                    context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                        .toString() + File.separator + folderName
+                )
+                if (!directory.exists()) {
+                    directory.mkdirs()
+                }
+                val fileName = System.currentTimeMillis().toString() + ".png"
+                val file = File(directory, fileName)
+                saveImageToStream(bitmap, FileOutputStream(file), onSuccess, onError)
+                val values = contentValues()
+                values.put(MediaStore.Images.Media.DATA, file.absolutePath)
+                context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            }
+        } catch (e: Exception) {
+            Log.d("PAYMELOG", "error save bitmap $e")
+            onError()
+        }
+    }
+
+    private fun saveImageToStream(bitmap: Bitmap, outputStream: OutputStream?, onSuccess: () -> Unit, onError: () -> Unit) {
+        if (outputStream != null) {
+            try {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                outputStream.close()
+                onSuccess()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Log.d("PAYMELOG", "error saveImageToStream $e")
+                onError()
+            }
+        }
+    }
+
 }
 
 fun InputStream.copyTo(out: OutputStream, onCopy: (totalBytesCopied: Long) -> Any): Long {

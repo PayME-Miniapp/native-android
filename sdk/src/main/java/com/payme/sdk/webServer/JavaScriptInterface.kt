@@ -23,6 +23,7 @@ class JavaScriptInterface(
     val onError: (String) -> Unit,
     val closeMiniApp: () -> Unit,
     val openUrl: (String) -> Unit,
+    val saveQR: (String) -> Unit,
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -146,5 +147,11 @@ class JavaScriptInterface(
     public fun jsOpenUrl(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsOpenUrl: $data")
         openUrl(data)
+    }
+
+    @JavascriptInterface
+    public fun jsSaveQR(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsSaveQR: $data")
+        saveQR(data)
     }
 }

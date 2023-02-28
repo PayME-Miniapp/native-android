@@ -82,6 +82,7 @@ class MiniAppFragment : Fragment() {
     private var nativeAppState = "active"
 
     private var paramsKyc: JSONObject? = null
+    private var paramsSaveQr: String? = null
     private var backgroundDownload = false
     private var versionCheckingTask: Thread? = null
 
@@ -131,15 +132,16 @@ class MiniAppFragment : Fragment() {
         if (server != null) {
             return
         }
+        port = Utils.findRandomOpenPort() ?: 4646
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
         loadUrl = "http://localhost" + ":" + port + "/"
 //        loadUrl = "http://10.8.20.39:3000/"
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
-            Log.d(PayMEMiniApp.TAG, "start server")
+            Log.d(PayMEMiniApp.TAG, "start server with port $port")
         } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "error ${e.message}")
+            Log.d(PayMEMiniApp.TAG, "error start server ${e.message}")
         }
     }
 
@@ -627,7 +629,8 @@ class MiniAppFragment : Fragment() {
                 onSuccess = {data: String -> returnSuccess(data) },
                 onError = {data: String -> returnError(data) },
                 closeMiniApp = { closeMiniApp() },
-                openUrl = { data: String -> openUrl(data) }
+                openUrl = { data: String -> openUrl(data) },
+                saveQR = { data: String -> saveQR(data)}
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -690,6 +693,73 @@ class MiniAppFragment : Fragment() {
         return view
     }
 
+    private fun downloadImageQR (data: String) {
+        val bitmap = Utils.generateQRCode(data)
+        Utils.saveImage(bitmap, requireContext(), getString(R.string.app_name), onSuccess = {
+            val response = JSONObject()
+            response.put("succeeded", true)
+            activity?.let {
+                Utils.evaluateJSWebView(
+                    it,
+                    myWebView!!,
+                    "nativeSaveQR",
+                    response.toString(),
+                    null
+                )
+            }
+        }, onError = {
+            val response = JSONObject()
+            response.put("error", "Tải mã QR thất bại")
+            activity?.let {
+                Utils.evaluateJSWebView(
+                    it,
+                    myWebView!!,
+                    "nativeSaveQR",
+                    response.toString(),
+                    null
+                )
+            }
+        })
+    }
+
+    private fun saveQR (data: String) {
+        paramsSaveQr = data
+        when {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "WRITE_EXTERNAL_STORAGE",
+                        "GRANTED"
+                    )
+                }
+                paramsSaveQr?.let { downloadImageQR(it) }
+            }
+            activity?.let {
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    it,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+            } == true -> {
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "WRITE_EXTERNAL_STORAGE",
+                        "BLOCKED"
+                    )
+                }
+            }
+            else -> {
+                requestWriteExternalStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+    }
+
     private fun returnSuccess(data: String) {
         try {
             val json = JSONObject(data)
@@ -713,7 +783,6 @@ class MiniAppFragment : Fragment() {
             Log.d(PayMEMiniApp.TAG, "miniapp returnError: ${e.message} ")
         }
     }
-
 
     private fun closeMiniApp() {
         if (MiniAppFragment.openType == OpenMiniAppType.modal) {
@@ -974,6 +1043,18 @@ class MiniAppFragment : Fragment() {
             Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
         }
     }
+
+    private val requestWriteExternalStoragePermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED") }
+                paramsSaveQr?.let { downloadImageQR(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "DENIED") }
+            }
+        }
 
     private val requestCardKycPermissionLauncher =
         registerForActivityResult(
