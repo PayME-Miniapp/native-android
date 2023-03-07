@@ -9,6 +9,7 @@ class PayMEUpdatePatchViewModel() : ViewModel() {
     private val showUpdatingUI: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     private val isForceUpdating: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     private val lostConnection: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
+    private val webLoaded: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
 
     fun getDoneUpdate(): LiveData<Boolean> {
         return doneUpdate
@@ -40,6 +41,14 @@ class PayMEUpdatePatchViewModel() : ViewModel() {
 
     fun setIsLostConnection(value: Boolean) {
         this.lostConnection.postValue(value)
+    }
+
+    fun getWebLoaded(): LiveData<Boolean> {
+        return webLoaded
+    }
+
+    fun setWebLoaded(value: Boolean) {
+        this.webLoaded.postValue(value)
     }
 
 }

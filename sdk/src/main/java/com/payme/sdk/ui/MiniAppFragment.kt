@@ -110,7 +110,6 @@ class MiniAppFragment : Fragment() {
             }
             Utils.unzipFile("${filesDir.path}/update/sdkWebapp3-main.zip", "${filesDir.path}/www")
             sourceWeb.delete()
-            port = Utils.findRandomOpenPort() ?: 4646
             return
         }
 
@@ -125,7 +124,6 @@ class MiniAppFragment : Fragment() {
         if (content == null || content.isEmpty()) {
             Utils.copyDir(requireContext(), path = "www")
             Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
-            port = Utils.findRandomOpenPort() ?: 4646
         }
     }
 
@@ -376,7 +374,7 @@ class MiniAppFragment : Fragment() {
         }
 
         rootView!!.viewTreeObserver.addOnGlobalLayoutListener {
-            if (payMEUpdatePatchViewModel.getShowUpdatingUI().value == true) {
+            if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
                 return@addOnGlobalLayoutListener
             }
             val r = Rect()
@@ -499,6 +497,7 @@ class MiniAppFragment : Fragment() {
                     loadingView.visibility = View.GONE
                     if (url == loadUrl) {
                         payMEUpdatePatchViewModel.setShowUpdatingUI(false)
+                        payMEUpdatePatchViewModel.setWebLoaded(true)
                         sendNativeDeviceInfo()
                         val notiValue = notificationViewModel.getNotificationJSON().value
                         if (notiValue != null && notiValue.length() > 0) {
@@ -1222,6 +1221,9 @@ class MiniAppFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         nativeAppState = "background"
+        if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
+            return
+        }
         activity?.let {
             Utils.evaluateJSWebView(
                 it,
@@ -1236,6 +1238,9 @@ class MiniAppFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         nativeAppState = "active"
+        if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
+            return
+        }
         activity?.let {
             Utils.evaluateJSWebView(
                 it,
@@ -1249,7 +1254,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-//        stopServer()
+        stopServer()
         miniappViewModel.getEvaluateJsData().removeObserver(evaluateJsDataObserver)
     }
 
