@@ -71,7 +71,6 @@ class PayMEMiniApp(
         try {
             if (openType == OpenMiniAppType.modal) {
                 val modal = MiniAppBottomSheetDialog()
-                MiniAppFragment.setOpenMiniAppData(openMiniAppData)
                 MiniAppFragment.openType = openType
                 MiniAppFragment.openMiniAppData = openMiniAppData
                 MiniAppFragment.closeMiniApp = {
@@ -81,7 +80,6 @@ class PayMEMiniApp(
                 return
             }
             if (openType == OpenMiniAppType.screen) {
-                MiniAppFragment.setOpenMiniAppData(openMiniAppData)
                 MiniAppFragment.openType = openType
                 MiniAppFragment.openMiniAppData = openMiniAppData
                 val intent = Intent(context, MiniAppActivity::class.java)

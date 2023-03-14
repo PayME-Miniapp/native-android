@@ -15,7 +15,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,7 +22,7 @@ import android.webkit.*
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -32,25 +31,23 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
+import com.google.gson.Gson
 import com.payme.sdk.BuildConfig
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.*
 import com.payme.sdk.utils.DeviceTypeResolver
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.Utils
-import com.payme.sdk.viewmodels.MiniappViewModel
-import com.payme.sdk.viewmodels.NotificationViewModel
-import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
+import com.payme.sdk.viewmodels.*
 import com.payme.sdk.webServer.JavaScriptInterface
 import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import javax.net.ssl.SSLException
-import androidx.activity.OnBackPressedCallback
-import com.payme.sdk.PayMEMiniApp
-import com.payme.sdk.viewmodels.DeepLinkViewModel
 
 
 class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCallback(true) {
@@ -87,6 +84,7 @@ class MiniAppFragment : Fragment() {
     private var versionCheckingTask: Thread? = null
 
     private lateinit var payMEUpdatePatchViewModel: PayMEUpdatePatchViewModel
+    private lateinit var miniappViewModel: MiniappViewModel
 
     private lateinit var updatingView: CardView
     private lateinit var progressBar: ProgressBar
@@ -257,16 +255,30 @@ class MiniAppFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requireActivity().onBackPressedDispatcher.addCallback(this, BackPressCallback(this))
+        miniappViewModel = ViewModelProvider(requireActivity())[MiniappViewModel::class.java]
+        if (isOpenMiniAppInit()) {
+            miniappViewModel.openMiniAppData = openMiniAppData
+        }
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val view: View = inflater.inflate(R.layout.fragment_mini_app, container, false)
         payMEUpdatePatchViewModel = PayMEUpdatePatchViewModel()
+        rootView = view.findViewById(R.id.root_view)
+        myWebView = view.findViewById(R.id.webview)
+        updatingView = view.findViewById(R.id.updating_view)
+        progressBar = view.findViewById(R.id.progress)
+        textProgress = view.findViewById(R.id.progress_text)
+        textUpdateLabel = view.findViewById(R.id.update_label_text)
+        lottieView = view.findViewById(R.id.lottieView)
+        lottieContainerView = view.findViewById(R.id.lottie_container_view)
+        loadingView = view.findViewById(R.id.loading)
         versionCheckingTask = Thread {
             try {
+                loadingView.visibility = View.VISIBLE
                 val versionFile = File(requireContext().filesDir.path, "version.json")
                 if (versionFile.exists()) {
                     versionFile.delete()
@@ -341,16 +353,6 @@ class MiniAppFragment : Fragment() {
             }
         }
         versionCheckingTask?.start()
-        rootView = view.findViewById(R.id.root_view)
-        myWebView = view.findViewById(R.id.webview)
-        updatingView = view.findViewById(R.id.updating_view)
-        progressBar = view.findViewById(R.id.progress)
-        textProgress = view.findViewById(R.id.progress_text)
-        textUpdateLabel = view.findViewById(R.id.update_label_text)
-        lottieView = view.findViewById(R.id.lottieView)
-        lottieContainerView = view.findViewById(R.id.lottie_container_view)
-        loadingView = view.findViewById(R.id.loading)
-
         val networkCallback: ConnectivityManager.NetworkCallback =
             object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
@@ -514,7 +516,7 @@ class MiniAppFragment : Fragment() {
                         }
                         activity?.let { Utils.sendNativePref(it, myWebView!!) }
 
-                        val openMiniAppData = miniappViewModel.getOpenMiniAppData().value
+                        val openMiniAppData = miniappViewModel.openMiniAppData
                         if (openMiniAppData != null) {
                             val json = openMiniAppData.toJsonData()
                             activity?.let {
@@ -526,7 +528,6 @@ class MiniAppFragment : Fragment() {
                                     null
                                 )
                             }
-                            miniappViewModel.setOpenMiniAppData(null)
                         }
 
                         val deeplink = deepLinkViewModel.getDeepLinkUrl().value
@@ -659,6 +660,7 @@ class MiniAppFragment : Fragment() {
         payMEUpdatePatchViewModel.getShowUpdatingUI().observe(viewLifecycleOwner) {
             activity?.runOnUiThread {
                 if (it) {
+                    loadingView.visibility = View.GONE
                     updatingView.visibility = View.VISIBLE
                 } else {
                     updatingView.visibility = View.GONE
@@ -693,7 +695,7 @@ class MiniAppFragment : Fragment() {
             }
         }
 
-        miniappViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
+        subWebViewViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
 
         return view
     }
@@ -1254,8 +1256,32 @@ class MiniAppFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        miniappViewModel.openMiniAppData = openMiniAppData
         stopServer()
-        miniappViewModel.getEvaluateJsData().removeObserver(evaluateJsDataObserver)
+        Log.d("PAYMELOG", "on onDestroy " + miniappViewModel.openMiniAppData.toString())
+        subWebViewViewModel.getEvaluateJsData().removeObserver(evaluateJsDataObserver)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        Log.d("PAYMELOG", "on onDestroy view " + miniappViewModel.openMiniAppData.toString())
+        miniappViewModel.openMiniAppData = openMiniAppData
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (miniappViewModel.openMiniAppData != null) {
+            outState.putString("openMiniAppData", Gson().toJson(miniappViewModel.openMiniAppData))
+        }
+        Log.d("PAYMELOG", "on onSaveInstanceState" + miniappViewModel.openMiniAppData.toString())
+    }
+
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+        if (savedInstanceState != null) {
+            Log.d("PAYMELOG", "chay vo recreated")
+            requireActivity().recreate()
+        }
     }
 
     companion object {
@@ -1264,19 +1290,23 @@ class MiniAppFragment : Fragment() {
         internal lateinit var closeMiniApp: () -> Unit
 
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
-        var miniappViewModel: MiniappViewModel = MiniappViewModel()
         var deepLinkViewModel: DeepLinkViewModel = DeepLinkViewModel()
+        var subWebViewViewModel: SubWebViewViewModel = SubWebViewViewModel()
 
         fun nativeNotificationOpenedApp(data: JSONObject) {
             notificationViewModel.setNotificationData(data)
         }
 
         fun evaluateJs(functionName: String, data: String) {
-            miniappViewModel.setEvaluateJsData(Pair(functionName, data))
+            subWebViewViewModel.setEvaluateJsData(Pair(functionName, data))
         }
 
         fun setOpenMiniAppData(data: OpenMiniAppDataInterface) {
-            miniappViewModel.setOpenMiniAppData(data)
+            openMiniAppData = data
+        }
+
+        fun isOpenMiniAppInit(): Boolean {
+            return ::openMiniAppData.isInitialized
         }
 
         fun setDeepLink(data: String) {

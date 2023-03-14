@@ -51,6 +51,9 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, payMEError.description, Toast.LENGTH_LONG).show()
             }
         )
+
+//        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+
         openSdkButton.setOnClickListener {
 //            payMEMiniApp!!.getBalance("0372823042")
 //            payMEMiniApp!!.openMiniApp(
