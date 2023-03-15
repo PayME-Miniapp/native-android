@@ -642,7 +642,8 @@ class MiniAppFragment : Fragment() {
                 onError = {data: String -> returnError(data) },
                 closeMiniApp = { closeMiniApp() },
                 openUrl = { data: String -> openUrl(data) },
-                saveQR = { data: String -> saveQR(data)}
+                saveQR = { data: String -> saveQR(data)},
+                changeEnv = { data: String -> changeEnv(data)}
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -704,6 +705,10 @@ class MiniAppFragment : Fragment() {
         subWebViewViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
 
         return view
+    }
+
+    private fun changeEnv(env: String) {
+        PayMEMiniApp.onChangeEnv?.let { it(env) }
     }
 
     private fun downloadImageQR (data: String) {

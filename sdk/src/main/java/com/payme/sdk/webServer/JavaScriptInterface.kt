@@ -27,6 +27,7 @@ class JavaScriptInterface(
     val closeMiniApp: () -> Unit,
     val openUrl: (String) -> Unit,
     val saveQR: (String) -> Unit,
+    val changeEnv: (String) -> Unit,
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -183,5 +184,11 @@ class JavaScriptInterface(
     public fun jsSaveQR(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsSaveQR: $data")
         saveQR(data)
+    }
+
+    @JavascriptInterface
+    public fun jsChangeEnv(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsChangeEnv: $data")
+        changeEnv(data)
     }
 }

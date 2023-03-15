@@ -18,6 +18,7 @@ class PayMEMiniApp(
     env: ENV,
     onOneSignalSendTags: ((String) -> Unit)? = null,
     onOneSignalDeleteTags: ((String) -> Unit)? = null,
+    onChangeEnv: ((String) -> Unit)? = null,
 ) {
     companion object {
         val TAG = "PAYMELOG"
@@ -30,6 +31,7 @@ class PayMEMiniApp(
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
         internal val mode : MiniAppMode = MiniAppMode.product
+        internal var onChangeEnv: ((String) -> Unit)? = null
     }
 
     init {
@@ -39,6 +41,7 @@ class PayMEMiniApp(
         PayMEMiniApp.env = env
         PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
         PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
+        PayMEMiniApp.onChangeEnv = onChangeEnv
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
     }
 
