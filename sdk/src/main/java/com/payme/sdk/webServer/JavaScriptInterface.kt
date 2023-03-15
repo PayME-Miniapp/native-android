@@ -3,6 +3,9 @@ package com.payme.sdk.webServer
 import android.util.Log
 import android.webkit.JavascriptInterface
 import com.payme.sdk.PayMEMiniApp
+import com.payme.sdk.utils.MixpanelUtil
+import com.payme.sdk.utils.Utils
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
@@ -39,6 +42,33 @@ class JavaScriptInterface(
     @JavascriptInterface
     public fun jsLog(data: String) {
         Log.d(PayMEMiniApp.TAG, "jsLog: $data")
+        try {
+            val json = JSONObject(Utils.formatStringToValidJsonString(data))
+            MixpanelUtil.trackEvent("JSLog", json)
+            if (data.contains("ewallet/sdk/account/getAccountInfo")) {
+                val type = json.optString("type", "")
+                if (type != "REQUEST-PAYME") {
+                    return
+                }
+                val jsonData = json.optJSONObject("data")
+                val apiData = jsonData?.optJSONObject("data")
+                val responseData = apiData?.optJSONObject("data")
+                val accountData = responseData?.optJSONObject("accountInfo")
+                val phone = accountData?.optString("phone", "")
+                val email = accountData?.optString("email", "")
+                val fullname = accountData?.optString("fullname", "")
+                val accountId = accountData?.opt("accountId") as Number?
+                if (phone?.isNotEmpty() == true && email?.isNotEmpty() == true && fullname?.isNotEmpty() == true && accountId!= null) {
+                    MixpanelUtil.setPeople(fullname, phone, email, accountId)
+                }
+            }
+        } catch (jsonE: JSONException) {
+            val properties = JSONObject()
+            properties.put("value", data)
+            MixpanelUtil.trackEvent("JSLog", properties)
+        } catch (e: Exception) {
+            Log.d(PayMEMiniApp.TAG, "jsLog catch error: ${e}")
+        }
     }
 
     @JavascriptInterface

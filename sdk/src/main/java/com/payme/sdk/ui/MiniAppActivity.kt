@@ -33,6 +33,7 @@ import com.payme.sdk.BuildConfig.SDK_VERSION
 import com.payme.sdk.R
 import com.payme.sdk.models.PayMEVersion
 import com.payme.sdk.utils.DeviceTypeResolver
+import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.Utils
 import com.payme.sdk.viewmodels.MiniappViewModel
@@ -55,5 +56,9 @@ class MiniAppActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_miniapp)
   }
-}
+
+  override fun onDestroy() {
+    super.onDestroy()
+    MixpanelUtil.flushEvents()
+  }}
 

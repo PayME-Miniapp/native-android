@@ -40,6 +40,7 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.*
 import com.payme.sdk.utils.DeviceTypeResolver
+import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.Utils
 import com.payme.sdk.viewmodels.*
@@ -1249,6 +1250,7 @@ class MiniAppFragment : Fragment() {
                 null
             )
         }
+        MixpanelUtil.flushEvents()
     }
 
     override fun onResume() {

@@ -688,6 +688,16 @@ object Utils {
         }
     }
 
+    fun formatStringToValidJsonString(dataRaw: String): String {
+        var dataRaw = dataRaw
+        dataRaw = dataRaw.replace("\\r", "")
+        dataRaw = dataRaw.replace("\\n", "")
+        dataRaw = dataRaw.replace("\\\\\"".toRegex(), "\"")
+        dataRaw = dataRaw.replace("\\\\\\\"".toRegex(), "\"")
+        dataRaw = dataRaw.replace("\\\\", "\\")
+        return dataRaw.substring(1, dataRaw.length - 1)
+    }
+
 }
 
 fun InputStream.copyTo(out: OutputStream, onCopy: (totalBytesCopied: Long) -> Any): Long {
