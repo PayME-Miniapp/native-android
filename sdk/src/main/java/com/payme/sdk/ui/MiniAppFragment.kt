@@ -308,10 +308,14 @@ class MiniAppFragment : Fragment() {
                     payMEUpdatePatchViewModel.setDoneUpdate(true)
                     return@Thread
                 }
-                val patch = found.optInt("patch", 0)
-                val mandatory = found.optBoolean("mandatory", false)
-                val latestMandatory = found.optInt("latestMandatoryPatch", 0)
-                val url = found.optString("url")
+                val mode = found.optJSONObject(PayMEMiniApp.mode.toString())
+                if (mode == null) {
+                    payMEUpdatePatchViewModel.setDoneUpdate(true)
+                    return@Thread
+                }
+                val patch = mode.optInt("patch", 0)
+                val latestMandatory = mode.optInt("latestMandatoryPatch", 0)
+                val url = mode.optString("url")
 
                 val sharedPreference =
                     requireContext().getSharedPreferences(
@@ -322,7 +326,7 @@ class MiniAppFragment : Fragment() {
 
                 val localPatch = sharedPreference.getInt("PAYME_PATCH", 0)
 
-                val localMandatory = if (localPatch < latestMandatory) true else mandatory
+                val localMandatory = localPatch < latestMandatory
                 val payMEVersion = PayMEVersion(patch, version, localMandatory, url)
                 if (payMEVersion.patch <= localPatch) {
                     Log.d(PayMEMiniApp.TAG, "do not update")

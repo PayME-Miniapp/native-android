@@ -7,3 +7,7 @@ enum class ActionOpenMiniApp {
 enum class OpenMiniAppType {
     screen, modal
 }
+
+enum class MiniAppMode {
+    product, testing, bank
+}

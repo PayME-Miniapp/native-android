@@ -1,15 +1,11 @@
 package com.payme.sdk
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import androidx.fragment.app.FragmentActivity
-import com.mixpanel.android.mpmetrics.MixpanelAPI
 import com.payme.sdk.models.*
 import com.payme.sdk.presentation.AccountPresentation
 import com.payme.sdk.ui.MiniAppActivity
-import com.payme.sdk.ui.MiniAppBottomSheetDialog
 import com.payme.sdk.ui.MiniAppFragment
 import com.payme.sdk.utils.MixpanelUtil
 import org.json.JSONObject
@@ -33,6 +29,7 @@ class PayMEMiniApp(
         internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> {} }
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
+        internal val mode : MiniAppMode = MiniAppMode.product
     }
 
     init {
