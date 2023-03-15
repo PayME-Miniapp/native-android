@@ -13,6 +13,7 @@ import android.net.*
 import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
@@ -731,6 +732,19 @@ class MiniAppFragment : Fragment() {
 
     private fun saveQR (data: String) {
         paramsSaveQr = data
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity?.let {
+                Utils.nativePermissionStatus(
+                    it,
+                    myWebView!!,
+                    "WRITE_EXTERNAL_STORAGE",
+                    "GRANTED"
+                )
+            }
+            paramsSaveQr?.let { downloadImageQR(it) }
+            return
+        }
+
         when {
             ContextCompat.checkSelfPermission(
                 requireContext(),
