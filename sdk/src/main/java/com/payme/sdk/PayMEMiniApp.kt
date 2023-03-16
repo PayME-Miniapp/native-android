@@ -30,7 +30,7 @@ class PayMEMiniApp(
         internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> {} }
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
-        internal val mode : MiniAppMode = MiniAppMode.bank
+        internal val mode : MiniAppMode = MiniAppMode.product
         internal var onChangeEnv: ((String) -> Unit)? = null
     }
 
