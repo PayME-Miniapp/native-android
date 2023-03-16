@@ -308,6 +308,7 @@ class MiniAppFragment : Fragment() {
                     payMEUpdatePatchViewModel.setDoneUpdate(true)
                     return@Thread
                 }
+                Log.d(PayMEMiniApp.TAG, "mode ${PayMEMiniApp.mode.toString()}")
                 val mode = found.optJSONObject(PayMEMiniApp.mode.toString())
                 if (mode == null) {
                     payMEUpdatePatchViewModel.setDoneUpdate(true)
