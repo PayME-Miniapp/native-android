@@ -15,22 +15,21 @@ class PayMEMiniApp(
     appId: String,
     publicKey: String,
     privateKey: String,
-    env: ENV,
-    onOneSignalSendTags: ((String) -> Unit)? = null,
-    onOneSignalDeleteTags: ((String) -> Unit)? = null,
-    onChangeEnv: ((String) -> Unit)? = null,
+    env: ENV
 ) {
     companion object {
         val TAG = "PAYMELOG"
-        internal lateinit var appId: String
+        internal var appId: String = ""
         internal lateinit var publicKey: String
         internal lateinit var privateKey: String
         internal lateinit var env: ENV
         internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _, _ -> {} }
         internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> {} }
+
+        // only payme wallet
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
-        internal val mode : MiniAppMode = MiniAppMode.product
+        internal var mode: String = "product" // product/testing-SANDBOX/testing-PRODUCTION/bank
         internal var onChangeEnv: ((String) -> Unit)? = null
     }
 
@@ -39,9 +38,6 @@ class PayMEMiniApp(
         PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\\n", "")
         PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\\n", "")
         PayMEMiniApp.env = env
-        PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
-        PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
-        PayMEMiniApp.onChangeEnv = onChangeEnv
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
     }
 
@@ -83,16 +79,57 @@ class PayMEMiniApp(
 //                modal.show((context as FragmentActivity).supportFragmentManager, null)
 //                return
 //            }
-            if (openType == OpenMiniAppType.screen) {
-                MiniAppFragment.openType = openType
-                MiniAppFragment.openMiniAppData = openMiniAppData
-                val intent = Intent(context, MiniAppActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                return
-            }
+//            if (openType == OpenMiniAppType.screen) {
+            MiniAppFragment.openType = openType
+            MiniAppFragment.openMiniAppData = openMiniAppData
+            val intent = Intent(context, MiniAppActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            return
+//            }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "ex cast: ${e.message}")
         }
     }
+
+    fun setMode(mode: String) {
+        if (PayMEMiniApp.appId == "") {
+            error("PayMEMiniApp instance is not initialized")
+        }
+        if (PayMEMiniApp.appId in PayMEEcosystem) {
+            PayMEMiniApp.mode = mode
+        } else {
+            error("You do not have permission to use this function")
+        }
+    }
+
+    fun setChangeEnvFunction(
+        onChangeEnv: ((String) -> Unit)? = null,
+    ) {
+        if (PayMEMiniApp.appId == "") {
+            error("PayMEMiniApp instance is not initialized")
+        }
+        if (PayMEMiniApp.appId in PayMEEcosystem) {
+            PayMEMiniApp.onChangeEnv = onChangeEnv
+        } else {
+            error("You do not have permission to use this function")
+        }
+    }
+
+    fun setOneSignalFunctions(
+        onOneSignalSendTags: ((String) -> Unit)? = null,
+        onOneSignalDeleteTags: ((String) -> Unit)? = null,
+    ) {
+        if (PayMEMiniApp.appId == "") {
+            error("PayMEMiniApp instance is not initialized")
+        }
+        if (PayMEMiniApp.appId in PayMEEcosystem) {
+            PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
+            PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
+        } else {
+            error("You do not have permission to use this function")
+        }
+    }
+
+
 }

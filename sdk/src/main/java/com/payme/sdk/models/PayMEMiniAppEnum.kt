@@ -8,6 +8,4 @@ enum class OpenMiniAppType {
     screen, modal
 }
 
-enum class MiniAppMode {
-    product, testing, bank
-}
+val PayMEEcosystem = arrayOf("app", "264245066910")
