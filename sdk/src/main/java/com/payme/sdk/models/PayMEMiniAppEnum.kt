@@ -8,4 +8,4 @@ enum class OpenMiniAppType {
     screen, modal
 }
 
-val PayMEEcosystem = arrayOf("app", "264245066910")
+val PayMEEcosystem = arrayOf("app", "264245066910", "250069027220")
