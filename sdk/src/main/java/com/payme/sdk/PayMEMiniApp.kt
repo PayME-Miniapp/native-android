@@ -29,7 +29,7 @@ class PayMEMiniApp(
         // only payme wallet
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
-        internal var mode: String = "product" // product/testing-SANDBOX/testing-PRODUCTION/bank
+        internal var mode: String = "miniapp_product" // product/testing-SANDBOX/testing-PRODUCTION/bank
         internal var onChangeEnv: ((String) -> Unit)? = null
     }
 
