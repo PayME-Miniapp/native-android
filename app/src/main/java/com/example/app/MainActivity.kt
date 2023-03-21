@@ -56,10 +56,10 @@ class MainActivity : AppCompatActivity() {
 
         openSdkButton.setOnClickListener {
 //            payMEMiniApp!!.getBalance("0372823042")
-            payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.screen, OpenMiniAppPaymentData("0372823042", PaymentData("14", 100000, "aaaa", "dafds")),
-            )
-//            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+//            payMEMiniApp!!.openMiniApp(
+//                OpenMiniAppType.screen, OpenMiniAppPaymentData("0372823042", PaymentData("14", 100000, "aaaa", "dafds")),
+//            )
+            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
         }
     }
 }
