@@ -52,6 +52,13 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
+        payMEMiniApp!!.setChangeEnvFunction(onChangeEnv = { data: String ->
+            val intent = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        })
+
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
         openSdkButton.setOnClickListener {
