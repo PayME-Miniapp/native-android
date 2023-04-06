@@ -1,11 +1,9 @@
 package com.payme.sdk.ui
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
-import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
 import android.os.Message
@@ -187,17 +185,6 @@ class SubWebView(
               super.onReceivedError(view, request, error)
             }
 
-
-            @SuppressLint("WebViewClientOnReceivedSslError")
-            override fun onReceivedSslError(
-              view: WebView?,
-              handler: SslErrorHandler,
-              error: SslError?
-            ) {
-              handler.proceed()
-            }
-
-
             override fun onPageFinished(view: WebView?, url: String?) {
               Log.d(PayMEMiniApp.TAG, "page finish $url ${view?.progress}")
               if (url?.contains(".pdf") == true) {
@@ -280,16 +267,6 @@ class SubWebView(
         override fun onPageFinished(view: WebView?, url: String?) {
           Log.d(PayMEMiniApp.TAG, "page finished $url")
           loading.visibility = View.GONE
-        }
-
-        @SuppressLint("WebViewClientOnReceivedSslError")
-        override fun onReceivedSslError(
-          view: WebView?,
-          handler: SslErrorHandler?,
-          error: SslError?
-        ) {
-          super.onReceivedSslError(view, handler, error)
-          handler?.proceed()
         }
 
         @RequiresApi(Build.VERSION_CODES.M)

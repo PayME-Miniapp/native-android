@@ -10,10 +10,8 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.*
-import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
@@ -552,16 +550,6 @@ class MiniAppFragment : Fragment() {
                             deepLinkViewModel.setDeepLinkUrl("")
                         }
                     }
-                }
-
-                @SuppressLint("WebViewClientOnReceivedSslError")
-                override fun onReceivedSslError(
-                    view: WebView?,
-                    handler: SslErrorHandler?,
-                    error: SslError?
-                ) {
-                    super.onReceivedSslError(view, handler, error)
-                    handler?.proceed()
                 }
 
                 @RequiresApi(Build.VERSION_CODES.M)
