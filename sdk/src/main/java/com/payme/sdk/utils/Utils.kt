@@ -22,7 +22,6 @@ import android.view.WindowInsets
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
@@ -84,6 +83,17 @@ object Utils {
             val zipStream = ZipInputStream(inputStream)
             var zEntry: ZipEntry? = null
             while (zipStream.nextEntry.also { zEntry = it } != null) {
+                val outputFile = File(destination, zEntry!!.name)
+                val destDirCanonicalPath = File(destination).canonicalPath
+                val outputFileCanonicalPath = outputFile.canonicalPath
+                if (!outputFileCanonicalPath.startsWith(destDirCanonicalPath)) {
+                    throw java.lang.Exception(
+                        java.lang.String.format(
+                            "Found Zip Path Traversal Vulnerability with %s",
+                            outputFileCanonicalPath
+                        )
+                    )
+                }
                 if (zEntry!!.isDirectory) {
                     val f = File(destination + "/" + zEntry!!.name)
                     if (!f.isDirectory) {
@@ -108,6 +118,20 @@ object Utils {
             Log.d(PayMEMiniApp.TAG, "Unzipping complete. path : $destination")
         } catch (e: java.lang.Exception) {
             Log.d(PayMEMiniApp.TAG, "Unzipping failed ${e.message}")
+        }
+    }
+
+    @Throws(java.lang.Exception::class)
+    private fun ensureZipPathSafety(outputFile: File, destDirectory: String) {
+        val destDirCanonicalPath = File(destDirectory).canonicalPath
+        val outputFileCanonicalPath = outputFile.canonicalPath
+        if (!outputFileCanonicalPath.startsWith(destDirCanonicalPath)) {
+            throw java.lang.Exception(
+                java.lang.String.format(
+                    "Found Zip Path Traversal Vulnerability with %s",
+                    outputFileCanonicalPath
+                )
+            )
         }
     }
 
