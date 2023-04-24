@@ -99,10 +99,6 @@ Ví dụ sử dụng:
         Log.d(PayMEMiniApp.TAG, "onSuccess action: $actionOpenMiniApp ${json?.toString()}")
     },
     onError = { actionOpenMiniApp: ActionOpenMiniApp, payMEError: PayMEError ->
-        Log.d(
-            PayMEMiniApp.TAG,
-            "onError actionOpenMiniApp: $actionOpenMiniApp payMEError: $payMEError"
-        )
         Toast.makeText(this, payMEError.description, Toast.LENGTH_LONG).show()
     }
 )
