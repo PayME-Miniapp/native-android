@@ -321,7 +321,7 @@ class MiniAppFragment : Fragment() {
                 val localMode = sharedPreference.getString("PAYME_MODE", "")
                 if (PayMEMiniApp.mode != localMode) {
                     editor.putString("PAYME_MODE", PayMEMiniApp.mode)
-                    editor.putInt("PAYME_PATCH", -1)
+                    editor.putInt("PAYME_PATCH", if (localMode == "") 0 else -1)
                     editor.apply()
                 }
                 val patch = mode.optInt("patch", 0)
