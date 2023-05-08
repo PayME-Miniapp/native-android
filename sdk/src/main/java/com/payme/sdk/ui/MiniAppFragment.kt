@@ -307,22 +307,26 @@ class MiniAppFragment : Fragment() {
                     return@Thread
                 }
                 Log.d("PAYMELOG", "payme miniapp mode ${PayMEMiniApp.mode}")
-                val mode = found.optJSONObject(PayMEMiniApp.mode)
-                if (mode == null) {
-                    payMEUpdatePatchViewModel.setDoneUpdate(true)
-                    return@Thread
-                }
-                val patch = mode.optInt("patch", 0)
-                val latestMandatory = mode.optInt("latestMandatoryPatch", 0)
-                val url = mode.optString("url")
-
                 val sharedPreference =
                     requireContext().getSharedPreferences(
                         "PAYME_NATIVE_UPDATE",
                         Context.MODE_PRIVATE
                     )
                 val editor = sharedPreference.edit()
-
+                val mode = found.optJSONObject(PayMEMiniApp.mode)
+                if (mode == null) {
+                    payMEUpdatePatchViewModel.setDoneUpdate(true)
+                    return@Thread
+                }
+                val localMode = sharedPreference.getString("PAYME_MODE", "")
+                if (PayMEMiniApp.mode != localMode) {
+                    editor.putString("PAYME_MODE", PayMEMiniApp.mode)
+                    editor.putInt("PAYME_PATCH", -1)
+                    editor.apply()
+                }
+                val patch = mode.optInt("patch", 0)
+                val latestMandatory = mode.optInt("latestMandatoryPatch", 0)
+                val url = mode.optString("url")
                 val localPatch = sharedPreference.getInt("PAYME_PATCH", 0)
 
                 val localMandatory = localPatch < latestMandatory
