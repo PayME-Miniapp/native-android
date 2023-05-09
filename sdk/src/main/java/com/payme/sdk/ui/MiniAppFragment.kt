@@ -125,6 +125,17 @@ class MiniAppFragment : Fragment() {
         }
     }
 
+    private fun unzipDefaultSource() {
+        val filesDir = requireContext().filesDir
+        Log.d(PayMEMiniApp.TAG, "chay vo unzipDefaultSource")
+        val wwwDirectory = File(filesDir.path, "www")
+        if (!wwwDirectory.exists()) {
+            wwwDirectory.mkdir()
+        }
+        Utils.copyDir(requireContext(), path = "www")
+        Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
+    }
+
     private fun startServer() {
         if (server != null) {
             return
@@ -329,6 +340,12 @@ class MiniAppFragment : Fragment() {
                 val url = mode.optString("url")
                 val localPatch = sharedPreference.getInt("PAYME_PATCH", 0)
 
+                if (patch == 0 && latestMandatory == 0) {
+                    Log.d(PayMEMiniApp.TAG, "default")
+                    payMEUpdatePatchViewModel.setLoadDefaultSource(true)
+                    payMEUpdatePatchViewModel.setDoneUpdate(true)
+                    return@Thread
+                }
                 val localMandatory = localPatch < latestMandatory
                 val payMEVersion = PayMEVersion(patch, version, localMandatory, url)
                 if (payMEVersion.patch <= localPatch) {
@@ -647,7 +664,11 @@ class MiniAppFragment : Fragment() {
 
         payMEUpdatePatchViewModel.getDoneUpdate().observe(viewLifecycleOwner) {
             if (it) {
-                unzip()
+                if (payMEUpdatePatchViewModel.getLoadDefaultSource().value == true) {
+                    unzipDefaultSource()
+                } else {
+                    unzip()
+                }
                 startServer()
                 if (loadUrl.isNotEmpty()) {
                     activity?.runOnUiThread {

@@ -10,6 +10,7 @@ class PayMEUpdatePatchViewModel() : ViewModel() {
     private val isForceUpdating: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     private val lostConnection: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     private val webLoaded: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
+    private val loadDefaultSource: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
 
     fun getDoneUpdate(): LiveData<Boolean> {
         return doneUpdate
@@ -17,6 +18,14 @@ class PayMEUpdatePatchViewModel() : ViewModel() {
 
     fun setDoneUpdate(done: Boolean) {
         this.doneUpdate.postValue(done)
+    }
+
+    fun getLoadDefaultSource(): LiveData<Boolean> {
+        return loadDefaultSource
+    }
+
+    fun setLoadDefaultSource(done: Boolean) {
+        this.loadDefaultSource.postValue(done)
     }
 
     fun getShowUpdatingUI(): LiveData<Boolean> {
