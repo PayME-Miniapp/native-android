@@ -1319,7 +1319,6 @@ class MiniAppFragment : Fragment() {
         super.onViewStateRestored(savedInstanceState)
         if (savedInstanceState != null) {
             Log.d("PAYMELOG", "chay vo recreated")
-            requireActivity().recreate()
         }
     }
 
