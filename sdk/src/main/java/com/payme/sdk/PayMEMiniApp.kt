@@ -29,7 +29,7 @@ class PayMEMiniApp(
         // only payme wallet
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
-        internal var mode: String = "miniapp_product" // product/testing-SANDBOX/testing-PRODUCTION/bank
+        internal var mode: String = "miniapp_product" //miniapp_product, miniapp_sandbox, miniapp_staging, pm_product, pm_staging, pm_sandbox, bank
         internal var onChangeEnv: ((String) -> Unit)? = null
     }
 
@@ -130,6 +130,4 @@ class PayMEMiniApp(
             error("You do not have permission to use this function")
         }
     }
-
-
 }

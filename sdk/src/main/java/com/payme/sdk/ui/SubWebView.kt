@@ -34,8 +34,6 @@ class SubWebView(
   private lateinit var buttonReload: ImageView
   private lateinit var buttonBackFooter: ImageView
   private lateinit var loading: View
-
-
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     isCancelable = false
