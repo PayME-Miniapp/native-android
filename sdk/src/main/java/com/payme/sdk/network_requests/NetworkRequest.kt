@@ -18,6 +18,7 @@ object NetworkUtils {
         return when(env) {
             ENV.PRODUCTION -> "https://gapi.payme.vn"
             ENV.SANDBOX -> "https://sbx-gapi.payme.vn"
+            ENV.DEV -> "https://dev-gapi.payme.net.vn"
             else -> "https://gapi.payme.vn"
         }
     }
