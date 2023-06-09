@@ -89,14 +89,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        payMEMiniApp!!.setMode("miniapp_sandbox")
+
+
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
         openSdkButton.setOnClickListener {
-            payMEMiniApp!!.getBalance("0372823042")
+//            payMEMiniApp!!.getBalance("0372823042")
 //            payMEMiniApp!!.openMiniApp(
 //                OpenMiniAppType.screen, OpenMiniAppPaymentData("0372823042", PaymentData("14", 100000, "aaaa", "dafds")),
 //            )
 //            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0372823042", "POWE"))
         }
     }
 }
