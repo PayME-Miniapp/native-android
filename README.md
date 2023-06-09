@@ -82,12 +82,17 @@ Chi tiết các kiểu dữ liệu
 | **PAYME**       | Dùng riêng cho app ví PayME                                                                               |                                 
 | **OPEN**        | Nếu chưa kích hoạt tài khoản ví PayME thì kích hoạt, nếu đã kích hoạt thì mở giao diện trang chủ ví PayME |
 | **PAY**         | Mở giao diện thanh toán đơn hàng                                                                          |
-| **GET_BALANCE** | Lấy số dư ví PayME        
+| **GET_BALANCE** | Lấy số dư ví PayME                                                                                        |
+| **SERVICE**     | Mở giao diện thanh toán dịch vụ                                                                           |
+| **DEPOSIT**     | Mở giao diện nạp tiền                                                                                     |
+| **WITHDRAW**    | Mở giao diện rút tiền                                                                                     |
+| **TRANSFER**    | Mở giao diện chuyển tiền                                                                                  |
+| **KYC**         | Mở giao diện kyc                                                                                          |
 
 **PayMEError:**(lỗi trong quá trình thao tác Miniapp)
 | **Thuộc tính**    | **Kiểu dữ liệu**                        | **Giải thích**                                                                |
 |-------------------|-----------------------------------------|-------------------------------------------------------------------------------|
-| **type**          | enum "MiniApp", "UserCancel", "Network" | Nhóm lỗi: lỗi trong Miniapp, người dùng đóng Miniapp hoặc lỗi do kết nối mạng |                                                                            |
+| **type**          | enum "MiniApp", "UserCancel", "Network" | Nhóm lỗi: lỗi trong Miniapp, người dùng đóng Miniapp hoặc lỗi do kết nối mạng |                                                                            
 | **code**          | String                                  | Mã lỗi                                                                        |
 | **description**   | String                                  | Miêu tả lỗi                                                                   |
 
@@ -137,7 +142,36 @@ Chi tiết PaymentData:
 | **transactionId**   | Có           | String           | Mã giao dịch                                                                         |                                                              
 | **amount**          | Có           | Int              | Tổng số tiền giao dịch                                                               |                                                            
 | **note**            | Không        | String           | Ghi chú của giao dịch                                                                |
-| **ipnUrl**          | Không        | String           | Đường dẫn để server PayME ipn đến khi giao dịch có tiến triển (thành công/thất bại)  |                                                               |
+| **ipnUrl**          | Không        | String           | Đường dẫn để server PayME ipn đến khi giao dịch có tiến triển (thành công/thất bại)  |     
+
+**OpenMiniAppDepositData:** đối tác dùng action này khi muốn mở giao diện nạp tiền vào ví PayME
+| **Thuộc tính**      | **Bắt buộc** | **Kiểu dữ liệu**                     | **Giải thích**                   |
+|---------------------|--------------|--------------------------------------|----------------------------------|
+| **phone**           | Có           | String                               | Số điện thoại của tài khoản      |
+| **additionalData**  | Có           | DepositWithdrawTransferData          | Thông tin thêm để phục vụ việc   |
+
+**OpenMiniAppWithDrawData:** đối tác dùng action này khi muốn mở giao diện rút tiền ra ví PayME
+| **Thuộc tính**      | **Bắt buộc** | **Kiểu dữ liệu**                     | **Giải thích**                   |
+|---------------------|--------------|--------------------------------------|----------------------------------|
+| **phone**           | Có           | String                               | Số điện thoại của tài khoản      |
+| **additionalData**  | Có           | DepositWithdrawTransferData          | Thông tin thêm để phục vụ việc   |
+
+**OpenMiniAppTransferData:** đối tác dùng action này khi muốn mở giao diện chuyển tiền
+| **Thuộc tính**      | **Bắt buộc** | **Kiểu dữ liệu**                     | **Giải thích**                   |
+|---------------------|--------------|--------------------------------------|----------------------------------|
+| **phone**           | Có           | String                               | Số điện thoại của tài khoản      |
+| **additionalData**  | Có           | DepositWithdrawTransferData          | Thông tin thêm để phục vụ việc   |
+
+Chi tiết DepositWithdrawTransferData:
+| **Thuộc tính**      | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích**                                        |
+|---------------------|--------------|------------------|-------------------------------------------------------|
+| **description**     | Không        | String           | Miêu tả giao dịch                                     |                                                              
+| **amount**          | Không        | Int              | Tổng số tiền giao dịch                                |    
+
+**OpenMiniAppKYCData:** đối tác dùng action này khi muốn mở giao diện kyc
+| **Thuộc tính**      | **Bắt buộc** | **Kiểu dữ liệu**                     | **Giải thích**                   |
+|---------------------|--------------|--------------------------------------|----------------------------------|
+| **phone**           | Có           | String                               | Số điện thoại của tài khoản      |
 
 ### Hàm getBalance
 Đối tác dùng hàm này để lấy thông tin số dư ví PayME của tài khoản, kết quả sẽ được trả về ở event onResponse, action GET_BALANCE
