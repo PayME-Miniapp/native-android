@@ -23,20 +23,30 @@
     android:elevation="1dp"
     android:focusable="true"
     android:gravity="center"
+    android:orientation="vertical"
     app:layout_constraintBottom_toBottomOf="parent"
     app:layout_constraintLeft_toLeftOf="parent"
     app:layout_constraintRight_toRightOf="parent"
     app:layout_constraintTop_toTopOf="parent">
 
-    <ProgressBar
-      android:layout_width="wrap_content"
+    <com.airbnb.lottie.LottieAnimationView
+      android:id="@+id/lottieLoadingView"
+      android:layout_width="60dp"
+      android:layout_height="60dp"
+      android:scaleType="centerCrop"
+      app:lottie_autoPlay="true"
+      app:lottie_loop="true"
+      app:lottie_rawRes="@raw/loading_anim" />
+
+    <TextView
       android:layout_height="wrap_content"
-      android:minWidth="50dp"
-      android:minHeight="50dp"
-      app:layout_constraintBottom_toTopOf="@+id/footer"
-      app:layout_constraintLeft_toLeftOf="parent"
-      app:layout_constraintRight_toRightOf="parent"
-      app:layout_constraintTop_toBottomOf="@id/header" />
+      android:layout_width="wrap_content"
+      android:layout_gravity="center_horizontal"
+      android:layout_marginTop="8dp"
+      android:text="@string/wait"
+      android:textStyle="bold"
+      android:textColor="@color/black"
+      android:textSize="16sp" />
   </LinearLayout>
 
   <androidx.cardview.widget.CardView

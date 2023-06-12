@@ -11,4 +11,5 @@
   <string name="face_detector_hint3">Cuối cùng hãy cười thật tươi</string>
   <string name="force_updating">Đang tải dữ liệu</string>
   <string name="version_checking">Đang kiểm tra phiên bản</string>
+  <string name="wait">Chờ một chút...</string>
 </resources>
