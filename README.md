@@ -183,4 +183,17 @@ Chi tiết DepositWithdrawTransferData:
 ```
 | **Tham số**         | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích**                                                      |
 |---------------------|--------------|------------------|---------------------------------------------------------------------|
+| **phone**           | Có           | String           | Số điện thoại của tài khoản cần lấy số dư ví (không cần format +84) |   
+
+### Hàm getAccountInfo
+Đối tác dùng hàm này để lấy thông tin tài khoản PayME, kết quả sẽ được trả về ở event onResponse, action GET_ACCOUNT_INFO
+
+```kotlin
+ fun getAccountInfo(
+    phone: String,
+)
+```
+| **Tham số**         | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích**                                                      |
+|---------------------|--------------|------------------|---------------------------------------------------------------------|
 | **phone**           | Có           | String           | Số điện thoại của tài khoản cần lấy số dư ví (không cần format +84) |                           
+

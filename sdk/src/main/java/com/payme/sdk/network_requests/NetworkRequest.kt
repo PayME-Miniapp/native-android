@@ -30,6 +30,7 @@ internal class NetworkRequest(
     private val path: String,
     private val token: String,
     private val params: MutableMap<String, Any>?,
+    private val action: ActionOpenMiniApp
 ) {
     fun setOnRequest(
         onSuccess: (response: JSONObject) -> Unit,
@@ -68,15 +69,15 @@ internal class NetworkRequest(
                 } catch (error: Exception) {
                     Log.d(PayMEMiniApp.TAG, "error ${error.message}")
                     onError(
-                        ActionOpenMiniApp.GET_BALANCE,
+                        action,
                        PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString())
                     )
                 }
             },
             Response.ErrorListener { error ->
-                Log.d(PayMEMiniApp.TAG, "error ${error.message}")
+                Log.d(PayMEMiniApp.TAG, "error ${error.networkResponse.statusCode}")
                 onError(
-                    ActionOpenMiniApp.GET_BALANCE,
+                    action,
                     PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString())
                 )
             }

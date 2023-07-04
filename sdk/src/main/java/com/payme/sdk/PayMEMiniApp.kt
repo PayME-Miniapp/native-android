@@ -64,6 +64,17 @@ class PayMEMiniApp(
         )
     }
 
+    fun getAccountInformation(
+        phone: String,
+    ) {
+        AccountPresentation.getAccountInfo(
+            context,
+            phone,
+            PayMEMiniApp.onResponse,
+            PayMEMiniApp.onError
+        )
+    }
+
     fun openMiniApp(
         openType: OpenMiniAppType = OpenMiniAppType.screen,
         openMiniAppData: OpenMiniAppDataInterface,

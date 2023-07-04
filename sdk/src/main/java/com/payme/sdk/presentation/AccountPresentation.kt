@@ -13,6 +13,47 @@ import com.payme.sdk.network_requests.NetworkUtils
 import org.json.JSONObject
 
 object AccountPresentation {
+
+    fun getAccountInfo(
+        context: Context,
+        phone: String,
+        onResponse: (ActionOpenMiniApp, JSONObject?) -> Unit,
+        onError: (ActionOpenMiniApp, PayMEError) -> Unit
+    ) {
+        try {
+            val params: MutableMap<String, Any> = mutableMapOf()
+            params["phone"] = phone
+            val deviceId =
+                Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+            params["clientId"] = deviceId
+            val request = NetworkRequest(
+                context,
+                NetworkUtils.getApiUrl(PayMEMiniApp.env),
+                "/be/ewallet/sdk/account/getAccountInfo",
+                "",
+                params,
+                ActionOpenMiniApp.GET_ACCOUNT_INFO
+            )
+            request.setOnRequest(onError = onError, onSuccess = { jsonObject ->
+                val data = jsonObject.optJSONObject("data")
+                val accessToken = data?.optString("accessToken", "") ?: ""
+                if (accessToken.isEmpty()) {
+                    val json = JSONObject()
+                    json.put("linked", false)
+                    json.put("message", jsonObject.optString("message") ?: "Có lỗi xảy ra")
+                    onResponse(ActionOpenMiniApp.GET_ACCOUNT_INFO, json)
+                } else {
+                    val accountInfo = data?.optJSONObject("accountInfo")
+                    onResponse(ActionOpenMiniApp.GET_ACCOUNT_INFO, accountInfo)
+                }
+            })
+        } catch (e: Exception) {
+            onError(
+                ActionOpenMiniApp.GET_ACCOUNT_INFO,
+                PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.OTHER.toString())
+            )
+        }
+    }
     fun getBalance(
         context: Context,
         phone: String,
@@ -31,6 +72,7 @@ object AccountPresentation {
                 "/be/ewallet/sdk/account/getAccountInfo",
                 "",
                 params,
+                ActionOpenMiniApp.GET_BALANCE
             )
             request.setOnRequest(onError = onError, onSuccess = { jsonObject ->
                 val data = jsonObject.optJSONObject("data")
@@ -48,6 +90,7 @@ object AccountPresentation {
                         "/be/ewallet/sdk/account/balance",
                         accessToken,
                         paramsBalance,
+                        ActionOpenMiniApp.GET_BALANCE
                     )
                     requestBalance.setOnRequest(onError = onError, onSuccess = {
                         val dataBalance = it.optJSONObject("data")
