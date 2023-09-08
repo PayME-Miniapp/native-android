@@ -106,11 +106,8 @@ class PayMEMiniApp(
     fun setMode(mode: String) {
         if (PayMEMiniApp.appId == "") {
             error("PayMEMiniApp instance is not initialized")
-        }
-        if (PayMEMiniApp.appId in PayMEEcosystem) {
-            PayMEMiniApp.mode = mode
         } else {
-            error("You do not have permission to use this function")
+            PayMEMiniApp.mode = mode
         }
     }
 
@@ -119,11 +116,8 @@ class PayMEMiniApp(
     ) {
         if (PayMEMiniApp.appId == "") {
             error("PayMEMiniApp instance is not initialized")
-        }
-        if (PayMEMiniApp.appId in PayMEEcosystem) {
-            PayMEMiniApp.onChangeEnv = onChangeEnv
         } else {
-            error("You do not have permission to use this function")
+            PayMEMiniApp.onChangeEnv = onChangeEnv
         }
     }
 
@@ -133,12 +127,9 @@ class PayMEMiniApp(
     ) {
         if (PayMEMiniApp.appId == "") {
             error("PayMEMiniApp instance is not initialized")
-        }
-        if (PayMEMiniApp.appId in PayMEEcosystem) {
+        } else {
             PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
             PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
-        } else {
-            error("You do not have permission to use this function")
         }
     }
 }
