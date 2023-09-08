@@ -1,45 +1,33 @@
-# Logs
-logs
-*.log
-
 # Gradle files
-.gradle
+.gradle/
 build/
 
-# Kotlin generated files
-*.class
-*.jar
-*.war
+# Local configuration file (sdk path, etc)
+local.properties
 
-# Android related
+# Log/OS Files
+*.log
+
+# Android Studio generated files and folders
+captures/
+.externalNativeBuild/
+.cxx/
 *.apk
-*.ap_
-*.dex
-*.dpj
-*.aar
-*.idea
+output.json
 
-# Generated IDEA files
-.idea/
+# IntelliJ
 *.iml
-out/
+.idea/
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
 
-# Gradle cache
-.gradle/
+# Keystore files
+*.jks
+*.keystore
 
-# JUnit and TestNG reports
-build/test-results/
-build/reports/
+# Google Services (e.g. APIs or Firebase)
+google-services.json
 
-# Virtual environment
-.env/
-
-# Windows Thumbs db
-Thumbs.db
-
-# OSX files
-.DS_Store
-.AppleDouble
-.LSOverride
-
-*.lock
+# Android Profiling
+*.hprof
