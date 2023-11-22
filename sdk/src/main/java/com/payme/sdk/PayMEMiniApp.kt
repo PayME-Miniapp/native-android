@@ -84,13 +84,12 @@ class PayMEMiniApp(
         try {
            if (openType == OpenMiniAppType.modal) {
                val modal = MiniAppBottomSheetDialog()
-               val fragmentActivity = context as? FragmentActivity
                MiniAppFragment.openType = openType
                MiniAppFragment.openMiniAppData = openMiniAppData
                MiniAppFragment.closeMiniApp = {
                    modal.dismiss()
                }
-               fragmentActivity?.let { modal.show(it.supportFragmentManager, null) }
+               modal.show((context as FragmentActivity).supportFragmentManager, null)
                return
            }
            if (openType == OpenMiniAppType.screen) {
