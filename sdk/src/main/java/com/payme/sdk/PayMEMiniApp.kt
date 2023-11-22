@@ -80,24 +80,24 @@ class PayMEMiniApp(
         openMiniAppData: OpenMiniAppDataInterface,
     ) {
         try {
-//            if (openType == OpenMiniAppType.modal) {
-//                val modal = MiniAppBottomSheetDialog()
-//                MiniAppFragment.openType = openType
-//                MiniAppFragment.openMiniAppData = openMiniAppData
-//                MiniAppFragment.closeMiniApp = {
-//                    modal.dismiss()
-//                }
-//                modal.show((context as FragmentActivity).supportFragmentManager, null)
-//                return
-//            }
-//            if (openType == OpenMiniAppType.screen) {
+           if (openType == OpenMiniAppType.modal) {
+               val modal = MiniAppBottomSheetDialog()
+               MiniAppFragment.openType = openType
+               MiniAppFragment.openMiniAppData = openMiniAppData
+               MiniAppFragment.closeMiniApp = {
+                   modal.dismiss()
+               }
+               modal.show((context as FragmentActivity).supportFragmentManager, null)
+               return
+           }
+           if (openType == OpenMiniAppType.screen) {
             MiniAppFragment.openType = openType
             MiniAppFragment.openMiniAppData = openMiniAppData
             val intent = Intent(context, MiniAppActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
             return
-//            }
+           }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "ex cast: ${e.message}")
         }
