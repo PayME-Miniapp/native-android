@@ -14,7 +14,6 @@ import org.json.JSONObject
 
 class PayMEMiniApp(
     private val context: Context,
-    private val fragment: FragmentActivity,
     appId: String,
     publicKey: String,
     privateKey: String,
@@ -90,7 +89,7 @@ class PayMEMiniApp(
                MiniAppFragment.closeMiniApp = {
                    modal.dismiss()
                }
-               modal.show(fragment.supportFragmentManager, null)
+               modal.show((context as FragmentActivity).supportFragmentManager, null)
                return
            }
            if (openType == OpenMiniAppType.screen) {
