@@ -121,5 +121,5 @@ data class DepositWithdrawTransferData(
 )
 
 enum class ENV {
-    LOCAL, PRODUCTION, SANDBOX, DEV
+    PRODUCTION, SANDBOX
 }
