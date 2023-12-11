@@ -31,7 +31,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
 
     private fun setupFullHeight(bottomSheet: View) {
         val layoutParams = bottomSheet.layoutParams
-        val windowHeight = (resources.displayMetrics.heightPixels * 0.95).toInt()
+        val windowHeight = (resources.displayMetrics.heightPixels * 0.9).toInt()
         layoutParams.height = windowHeight
         bottomSheet.layoutParams = layoutParams
     }
