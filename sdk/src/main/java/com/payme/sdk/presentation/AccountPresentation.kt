@@ -1,5 +1,6 @@
 package com.payme.sdk.presentation
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.provider.Settings
 import android.util.Log
@@ -14,6 +15,7 @@ import org.json.JSONObject
 
 object AccountPresentation {
 
+    @SuppressLint("HardwareIds")
     fun getAccountInfo(
         context: Context,
         phone: String,
@@ -36,8 +38,8 @@ object AccountPresentation {
             )
             request.setOnRequest(onError = onError, onSuccess = { jsonObject ->
                 val data = jsonObject.optJSONObject("data")
-                val accessToken = data?.optString("accessToken", "") ?: ""
-                if (accessToken.isEmpty()) {
+                val accessToken = if (data?.isNull("accessToken") == true) null else data?.optString("accessToken", "")
+                if (accessToken.isNullOrEmpty()) {
                     val json = JSONObject()
                     json.put("linked", false)
                     json.put("message", jsonObject.optString("message") ?: "Có lỗi xảy ra")
@@ -54,6 +56,7 @@ object AccountPresentation {
             )
         }
     }
+    @SuppressLint("HardwareIds")
     fun getBalance(
         context: Context,
         phone: String,
@@ -75,9 +78,10 @@ object AccountPresentation {
                 ActionOpenMiniApp.GET_BALANCE
             )
             request.setOnRequest(onError = onError, onSuccess = { jsonObject ->
+                println(jsonObject)
                 val data = jsonObject.optJSONObject("data")
-                val accessToken = data?.optString("accessToken", "") ?: ""
-                if (accessToken.isEmpty()) {
+                val accessToken = if (data?.isNull("accessToken") == true) null else data?.optString("accessToken", "")
+                if (accessToken.isNullOrEmpty()) {
                     val json = JSONObject()
                     json.put("linked", false)
                     json.put("message", jsonObject.optString("message") ?: "Có lỗi xảy ra")
