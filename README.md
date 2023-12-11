@@ -41,9 +41,9 @@ dependencies {
 | **env**        | Có           | "PRODUCTION","SANDBOX" |
 
 Chú thích:
-_ appId: mỗi đối tác tích hợp PayME Miniapp sẽ được cấp 1 appId riêng biệt
-_ publicKey, privateKey: cặp key được gen khi đăng ký đối tác với PayME
-\_ env: môi trường miniapp mà đối tác muốn sử dụng
+- appId: mỗi đối tác tích hợp PayME Miniapp sẽ được cấp 1 appId riêng biệt
+- publicKey, privateKey: cặp key được gen khi đăng ký đối tác với PayME
+- env: môi trường miniapp mà đối tác muốn sử dụng
 
 ```kotlin
 import com.payme.sdk.PayMEMiniApp
@@ -73,12 +73,12 @@ Sử dụng hàm này để thiết lập việc hứng các events onResponse h
 | **onError**    | Không        | (ActionOpenMiniApp, PayMEError?) -> Unit |
 
 Chú thích:
-_ onResponse: event onResponse được bắn khi kết thúc 1 action thao tác Miniapp (ví dụ: thanh toán thành công), event này được bắn kèm action tạo ra event này và 1 JSONObject chứa các dữ liệu thêm
-_ onError: event onError được bắn khi có lỗi xảy ra trong quá trình thao tác với Miniapp, event này được bắn kèm action đang thao tác và 1 PayMEError chứa thông tin thêm về lỗi
+- onResponse: event onResponse được bắn khi kết thúc 1 action thao tác Miniapp (ví dụ: thanh toán thành công), event này được bắn kèm action tạo ra event này và 1 JSONObject chứa các dữ liệu thêm
+- onError: event onError được bắn khi có lỗi xảy ra trong quá trình thao tác với Miniapp, event này được bắn kèm action đang thao tác và 1 PayMEError chứa thông tin thêm về lỗi
 
 Chi tiết các kiểu dữ liệu
 
-**ActionOpenMiniApp:**(action thao tác Miniapp) enum "PAYME" | "OPEN" | "PAY" | "GET_BALANCE"
+**ActionOpenMiniApp:** (action thao tác Miniapp) enum "PAYME" | "OPEN" | "PAY" | "GET_BALANCE"
 | **Giá trị** | **Giải thích** |
 |-----------------|-----------------------------------------------------------------------------------------------------------|
 | **PAYME** | Dùng riêng cho app ví PayME |  
@@ -91,7 +91,7 @@ Chi tiết các kiểu dữ liệu
 | **TRANSFER** | Mở giao diện chuyển tiền |
 | **KYC** | Mở giao diện kyc |
 
-**PayMEError:**(lỗi trong quá trình thao tác Miniapp)
+**PayMEError:** (lỗi trong quá trình thao tác Miniapp)
 | **Thuộc tính** | **Kiểu dữ liệu** | **Giải thích** |
 |-------------------|-----------------------------------------|-------------------------------------------------------------------------------|
 | **type** | enum "MiniApp", "UserCancel", "Network" | Nhóm lỗi: lỗi trong Miniapp, người dùng đóng Miniapp hoặc lỗi do kết nối mạng |  
