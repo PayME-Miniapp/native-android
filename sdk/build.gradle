@@ -5,7 +5,7 @@ plugins {
 }
 
 def sdk_version = "1.0.16"
-def version_code = 663
+def version_code = 664
 
 android {
     compileSdk 33
@@ -81,7 +81,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.0.74'
+                version = '0.0.75'
             }
         }
     }

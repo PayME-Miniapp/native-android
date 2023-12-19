@@ -55,15 +55,15 @@ object AccountPresentation {
                     )
                     request.setOnRequest(onError = onError, onSuccess = { jsonObjectAccount ->
                         val data = jsonObjectAccount.optJSONObject("data")
-                        val accessToken = if (data?.isNull("accessToken") == true) null else data?.optString("accessToken", "")
-                        if (accessToken.isNullOrEmpty()) {
-                            val json = JSONObject()
-                            json.put("linked", false)
-                            json.put("message", jsonObjectAccount.optString("message") ?: "Có lỗi xảy ra")
-                            onResponse(ActionOpenMiniApp.GET_ACCOUNT_INFO, json)
+                        val accountInfoObject = data?.optJSONObject("accountInfo")
+                        val accountId = accountInfoObject?.optInt("accountId", -1)
+                        if (accountId != -1) {
+                            onResponse(ActionOpenMiniApp.GET_ACCOUNT_INFO, accountInfoObject)
                         } else {
-                            val accountInfo = data?.optJSONObject("accountInfo")
-                            onResponse(ActionOpenMiniApp.GET_ACCOUNT_INFO, accountInfo)
+                            onError(
+                                ActionOpenMiniApp.GET_ACCOUNT_INFO,
+                                PayMEError(PayMEErrorType.MiniApp, PayMENetworkErrorCode.OTHER.toString(), "Không lấy được thông tin tài khoản")
+                            )
                         }
                     })
                 } else {
