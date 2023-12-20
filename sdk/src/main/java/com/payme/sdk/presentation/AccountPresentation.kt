@@ -69,14 +69,14 @@ object AccountPresentation {
                 } else {
                     onError(
                         ActionOpenMiniApp.GET_ACCOUNT_INFO,
-                        PayMEError(PayMEErrorType.MiniApp, PayMENetworkErrorCode.OTHER.toString())
+                        PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString())
                     )
                 }
             })
         } catch (e: Exception) {
             onError(
                 ActionOpenMiniApp.GET_ACCOUNT_INFO,
-                PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.OTHER.toString())
+                PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString())
             )
         }
     }
@@ -125,7 +125,7 @@ object AccountPresentation {
                         if (accessToken.isNullOrEmpty()) {
                             val json = JSONObject()
                             json.put("linked", false)
-                            json.put("message", jsonObject.optString("message") ?: "Có lỗi xảy ra")
+                            json.put("message", "Tài khoản chưa được liên kết")
                             onResponse(ActionOpenMiniApp.GET_BALANCE, json)
                         } else {
                             val paramsBalance: MutableMap<String, Any> = mutableMapOf()
@@ -144,6 +144,7 @@ object AccountPresentation {
                                 Log.d("PAYMELOG", "balance $balance")
                                 if (balance == null) {
                                     jsonObjectResponse.put("linked", true)
+                                    jsonObjectResponse.put("balance", 0)
                                     jsonObjectResponse.put("message", it.optString("message") ?: "Có lỗi xảy ra")
                                     onResponse(ActionOpenMiniApp.GET_BALANCE, jsonObjectResponse)
                                 } else {
@@ -158,14 +159,14 @@ object AccountPresentation {
                 } else {
                     onError(
                         ActionOpenMiniApp.GET_BALANCE,
-                        PayMEError(PayMEErrorType.MiniApp, PayMENetworkErrorCode.OTHER.toString())
+                        PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString())
                     )
                 }
             })
         } catch (e: Exception) {
             onError(
                 ActionOpenMiniApp.GET_BALANCE,
-                PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.OTHER.toString())
+                PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString())
             )
         }
     }
