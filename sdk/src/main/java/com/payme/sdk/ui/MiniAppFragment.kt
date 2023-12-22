@@ -142,8 +142,8 @@ class MiniAppFragment : Fragment() {
         }
         port = Utils.findRandomOpenPort() ?: 4646
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
-        loadUrl = "http://localhost" + ":" + port + "/"
-//        loadUrl = "http://10.8.20.39:3000/"
+//        loadUrl = "http://localhost" + ":" + port + "/"
+        loadUrl = "https://35f5-115-79-192-144.ngrok-free.app/"
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
@@ -653,7 +653,8 @@ class MiniAppFragment : Fragment() {
                 closeMiniApp = { closeMiniApp() },
                 openUrl = { data: String -> openUrl(data) },
                 saveQR = { data: String -> saveQR(data)},
-                changeEnv = { data: String -> changeEnv(data)}
+                changeEnv = { data: String -> changeEnv(data)},
+                changeLocale = { data: String -> changeLocale(data)}
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -723,6 +724,10 @@ class MiniAppFragment : Fragment() {
 
     private fun changeEnv(env: String) {
         PayMEMiniApp.onChangeEnv?.let { it(env) }
+    }
+
+    private fun changeLocale(locale: String) {
+        PayMEMiniApp.onChangeLocale?.let { it(locale) }
     }
 
     private fun downloadImageQR (data: String) {

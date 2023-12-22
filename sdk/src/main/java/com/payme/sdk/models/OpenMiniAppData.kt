@@ -123,3 +123,7 @@ data class DepositWithdrawTransferData(
 enum class ENV {
     PRODUCTION, SANDBOX
 }
+
+enum class Locale {
+    vi, en
+}

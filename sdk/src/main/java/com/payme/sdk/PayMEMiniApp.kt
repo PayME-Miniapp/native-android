@@ -20,11 +20,12 @@ class PayMEMiniApp(
     env: ENV
 ) {
     companion object {
-        val TAG = "PAYMELOG"
+        const val TAG = "PAYMELOG"
         internal var appId: String = ""
         internal lateinit var publicKey: String
         internal lateinit var privateKey: String
         internal lateinit var env: ENV
+        internal lateinit var locale: Locale
         internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _, _ -> {} }
         internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> {} }
 
@@ -34,6 +35,7 @@ class PayMEMiniApp(
         internal var mode: String =
             "miniapp_product" //miniapp_product, miniapp_sandbox, miniapp_staging, pm_product, pm_staging, pm_sandbox, bank
         internal var onChangeEnv: ((String) -> Unit)? = null
+        internal var onChangeLocale: ((String) -> Unit)? = null
     }
 
     init {
@@ -62,8 +64,8 @@ class PayMEMiniApp(
         AccountPresentation.getBalance(
             context,
             phone,
-            PayMEMiniApp.onResponse,
-            PayMEMiniApp.onError
+            onResponse,
+            onError
         )
     }
 
@@ -73,8 +75,8 @@ class PayMEMiniApp(
         AccountPresentation.getAccountInfo(
             context,
             phone,
-            PayMEMiniApp.onResponse,
-            PayMEMiniApp.onError
+            onResponse,
+            onError
         )
     }
 
@@ -102,25 +104,43 @@ class PayMEMiniApp(
                 return
             }
         } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "ex cast: ${e.message}")
+            Log.d(TAG, "ex cast: ${e.message}")
         }
     }
 
     fun setMode(mode: String) {
-        if (PayMEMiniApp.appId == "") {
+        if (appId == "") {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.mode = mode
         }
     }
 
+    fun setLanguage(lang: Locale) {
+        if (appId == "") {
+            error("PayMEMiniApp instance is not initialized")
+        } else {
+            locale = lang
+        }
+    }
+
     fun setChangeEnvFunction(
         onChangeEnv: ((String) -> Unit)? = null,
     ) {
-        if (PayMEMiniApp.appId == "") {
+        if (appId == "") {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onChangeEnv = onChangeEnv
+        }
+    }
+
+    fun setChangeLocaleFunction(
+        onChangeLocale: ((String) -> Unit)? = null,
+    ) {
+        if (appId == "") {
+            error("PayMEMiniApp instance is not initialized")
+        } else {
+            PayMEMiniApp.onChangeLocale = onChangeLocale
         }
     }
 
@@ -128,7 +148,7 @@ class PayMEMiniApp(
         onOneSignalSendTags: ((String) -> Unit)? = null,
         onOneSignalDeleteTags: ((String) -> Unit)? = null,
     ) {
-        if (PayMEMiniApp.appId == "") {
+        if (appId == "") {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
