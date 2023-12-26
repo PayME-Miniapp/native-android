@@ -17,7 +17,8 @@ class PayMEMiniApp(
     appId: String,
     publicKey: String,
     privateKey: String,
-    env: ENV
+    env: ENV ?= ENV.PRODUCTION,
+    locale: Locale ?= Locale.vi
 ) {
     companion object {
         const val TAG = "PAYMELOG"
@@ -42,7 +43,12 @@ class PayMEMiniApp(
         PayMEMiniApp.appId = appId
         PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\\n", "")
         PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\\n", "")
-        PayMEMiniApp.env = env
+        if (env != null) {
+            PayMEMiniApp.env = env
+        }
+        if (locale != null) {
+            PayMEMiniApp.locale = locale
+        }
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
     }
 
