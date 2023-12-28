@@ -77,7 +77,7 @@ data class OpenMiniAppTransferData (
     }
 }
 
-// payment
+// payment có chọn method
 data class OpenMiniAppPaymentData (
     val phone: String,
     var paymentData: PaymentData
@@ -88,6 +88,17 @@ data class OpenMiniAppPaymentData (
         jsonObject.put("phone", phone)
         jsonObject.put("note", paymentData.note)
         jsonObject.put("ipnUrl", paymentData.ipnUrl)
+        return jsonObject
+    }
+}
+
+// payment ko chọn method
+data class OpenMiniAppPaymentDirectData (
+    val phone: String,
+    var paymentDirectData: PaymentDirectData
+): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYMENT) {
+    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+        jsonObject.put("transaction", paymentDirectData.transaction)
         return jsonObject
     }
 }
@@ -115,6 +126,11 @@ data class PaymentData(
     val note: String?,
     val ipnUrl: String?
 )
+
+data class PaymentDirectData(
+    val transaction: String
+)
+
 data class DepositWithdrawTransferData(
     val description: String?,
     val amount: Int?,
