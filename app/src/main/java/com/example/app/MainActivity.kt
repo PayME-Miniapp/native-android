@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity() {
             payMEMiniApp!!.getBalance("0795550300")
             payMEMiniApp!!.getAccountInformation("0795550300")
             payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.screen, OpenMiniAppPaymentDirectData("", PaymentDirectData("155762501569")),
+                OpenMiniAppType.screen, OpenMiniAppServiceData("0917900100", ServiceData("POWE", true)),
             )
             // payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppOpenData("0795550300"))
             //            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0372823042", "POWE"))

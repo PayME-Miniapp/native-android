@@ -19,10 +19,11 @@ abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = Ac
 // service
 data class OpenMiniAppServiceData (
     val phone: String,
-    val service: String,
+    var additionalData: ServiceData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.SERVICE) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("service", service)
+        jsonObject.put("service", additionalData.service)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         jsonObject.put("phone", phone)
         return jsonObject
     }
@@ -47,6 +48,7 @@ data class OpenMiniAppDepositData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         return jsonObject
     }
 }
@@ -60,6 +62,7 @@ data class OpenMiniAppWithdrawData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         return jsonObject
     }
 }
@@ -73,6 +76,7 @@ data class OpenMiniAppTransferData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         return jsonObject
     }
 }
@@ -134,6 +138,12 @@ data class PaymentDirectData(
 data class DepositWithdrawTransferData(
     val description: String?,
     val amount: Int?,
+    val isBackToApp: Boolean?
+)
+
+data class ServiceData(
+    val service: String,
+    val isBackToApp: Boolean?
 )
 
 enum class ENV {

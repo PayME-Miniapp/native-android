@@ -62,8 +62,8 @@ class PayMEMiniApp(
         AccountPresentation.getBalance(
             context,
             phone,
-            PayMEMiniApp.onResponse,
-            PayMEMiniApp.onError
+            onResponse,
+            onError
         )
     }
 
@@ -73,8 +73,8 @@ class PayMEMiniApp(
         AccountPresentation.getAccountInfo(
             context,
             phone,
-            PayMEMiniApp.onResponse,
-            PayMEMiniApp.onError
+            onResponse,
+            onError
         )
     }
 
@@ -102,12 +102,12 @@ class PayMEMiniApp(
                 return
             }
         } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "ex cast: ${e.message}")
+            Log.d(TAG, "ex cast: ${e.message}")
         }
     }
 
     fun setMode(mode: String) {
-        if (PayMEMiniApp.appId == "") {
+        if (appId == "") {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.mode = mode
@@ -117,7 +117,7 @@ class PayMEMiniApp(
     fun setChangeEnvFunction(
         onChangeEnv: ((String) -> Unit)? = null,
     ) {
-        if (PayMEMiniApp.appId == "") {
+        if (appId == "") {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onChangeEnv = onChangeEnv
@@ -128,7 +128,7 @@ class PayMEMiniApp(
         onOneSignalSendTags: ((String) -> Unit)? = null,
         onOneSignalDeleteTags: ((String) -> Unit)? = null,
     ) {
-        if (PayMEMiniApp.appId == "") {
+        if (appId == "") {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
