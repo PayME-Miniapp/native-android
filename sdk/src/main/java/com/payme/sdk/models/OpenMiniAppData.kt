@@ -103,6 +103,7 @@ data class OpenMiniAppPaymentDirectData (
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYMENT) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         jsonObject.put("transaction", paymentDirectData.transaction)
+        jsonObject.put("phone", phone)
         return jsonObject
     }
 }
