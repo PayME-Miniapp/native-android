@@ -55,12 +55,12 @@ class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCa
         Log.d(PayMEMiniApp.TAG, "onBackPressed Called")
         val myWebView = fragment.view?.findViewById<WebView>(R.id.webview)
         if (myWebView != null) {
-            if (myWebView!!.canGoBack()) {
-                val url = myWebView!!.url
+            if (myWebView.canGoBack()) {
+                val url = myWebView.url
                 val check = (!url.isNullOrEmpty() && url.endsWith("home"))
                 if (!check) {
                     Log.d(PayMEMiniApp.TAG, "webview back")
-                    myWebView!!.goBack()
+                    myWebView.goBack()
                 }
             }
         }
@@ -142,8 +142,8 @@ class MiniAppFragment : Fragment() {
         }
         port = Utils.findRandomOpenPort() ?: 4646
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
-//        loadUrl = "http://localhost" + ":" + port + "/"
-        loadUrl = "https://273c-2a09-bac5-d46b-e6-00-17-124.ngrok-free.app/"
+        loadUrl = "http://localhost:$port/"
+//        loadUrl = "http://10.8.20.39:3000/"
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
@@ -167,7 +167,7 @@ class MiniAppFragment : Fragment() {
         val statusHeight = activity?.let {
             Utils.getStatusBarHeight(it)
         }
-        if (MiniAppFragment.openType == OpenMiniAppType.screen) {
+        if (openType == OpenMiniAppType.screen) {
             insets.put("top", statusHeight?.let { Utils.pxToDp(requireContext(), it) })
         }
         val bottom = Utils.getRootWindowInsetsCompat(rootView!!) ?: 0
@@ -468,7 +468,7 @@ class MiniAppFragment : Fragment() {
                     Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
                     return if (url.contains(".pdf")) {
                         val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
-                        view?.loadUrl(pdfUrl)
+                        view.loadUrl(pdfUrl)
                         false
                     } else if (url.startsWith("http://") || url.startsWith("https://")) {
                         view.loadUrl(url)
@@ -835,9 +835,9 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun closeMiniApp() {
-        if (MiniAppFragment.openType == OpenMiniAppType.modal) {
+        if (openType == OpenMiniAppType.modal) {
             MiniAppFragment.closeMiniApp()
-        } else if (MiniAppFragment.openType == OpenMiniAppType.screen) {
+        } else if (openType == OpenMiniAppType.screen) {
             (requireContext() as Activity).finish()
         }
     }

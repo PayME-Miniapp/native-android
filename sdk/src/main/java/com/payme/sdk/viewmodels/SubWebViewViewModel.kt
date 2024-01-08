@@ -3,8 +3,6 @@ package com.payme.sdk.viewmodels
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.payme.sdk.models.OpenMiniAppDataInterface
-import com.payme.sdk.models.OpenMiniAppPayMEData
 
 class SubWebViewViewModel() : ViewModel() {
   private val evaluateJsData: MutableLiveData<Pair<String, String>> =

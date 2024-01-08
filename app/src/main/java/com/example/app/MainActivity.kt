@@ -10,7 +10,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.*
+<<<<<<< HEAD
 import com.payme.sdk.models.Locale
+=======
+>>>>>>> dev
 import org.json.JSONObject
 import java.util.*
 
@@ -93,7 +96,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         payMEMiniApp!!.setChangeEnvFunction(onChangeEnv = { data: String ->
-            val sharedPreference = getSharedPreferences("PAYME_WALLET", Context.MODE_PRIVATE)
             val editor = sharedPreference.edit()
             editor.putString("PAYME_WALLET_ENV", data.replace("\"", "").uppercase())
             editor.apply()
@@ -134,14 +136,16 @@ class MainActivity : AppCompatActivity() {
 
         payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
-//        openSdkButton.setOnClickListener {
-//            payMEMiniApp!!.getBalance("0795550300")
-//            payMEMiniApp!!.getAccountInformation("0795550300")
-//            // payMEMiniApp!!.openMiniApp(
-//            //     OpenMiniAppType.screen, OpenMiniAppPaymentData("0366332032", PaymentData("14", 100000, "aaaa", "dafds")),
-//            // )
-//            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData("0795550300"))
-//            //            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0372823042", "POWE"))
-//        }
+//        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+
+        openSdkButton.setOnClickListener {
+            payMEMiniApp!!.getBalance("0795550300")
+            payMEMiniApp!!.getAccountInformation("0795550300")
+            payMEMiniApp!!.openMiniApp(
+                OpenMiniAppType.screen, OpenMiniAppOpenData("0795550300"),
+            )
+            // payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppOpenData("0795550300"))
+            //            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0372823042", "POWE"))
+        }
     }
 }

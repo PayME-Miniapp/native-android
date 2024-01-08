@@ -124,8 +124,8 @@ class SubWebView(
             ViewGroup.LayoutParams.MATCH_PARENT
           )
           newWebView.setBackgroundColor(Color.TRANSPARENT)
-          view!!.addView(newWebView)
-          val transport = resultMsg!!.obj as WebViewTransport
+          view.addView(newWebView)
+          val transport = resultMsg.obj as WebViewTransport
           transport.webView = newWebView
           resultMsg.sendToTarget()
           newWebView.webViewClient = object : WebViewClient() {

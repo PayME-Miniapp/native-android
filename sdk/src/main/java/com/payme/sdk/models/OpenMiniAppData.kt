@@ -20,10 +20,11 @@ abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = Ac
 // service
 data class OpenMiniAppServiceData (
     val phone: String,
-    val service: String,
+    var additionalData: ServiceData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.SERVICE) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("service", service)
+        jsonObject.put("service", additionalData.service)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         jsonObject.put("phone", phone)
         return jsonObject
     }
@@ -48,6 +49,7 @@ data class OpenMiniAppDepositData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         return jsonObject
     }
 }
@@ -61,6 +63,7 @@ data class OpenMiniAppWithdrawData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         return jsonObject
     }
 }
@@ -74,11 +77,12 @@ data class OpenMiniAppTransferData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("isBackToApp", additionalData.isBackToApp)
         return jsonObject
     }
 }
 
-// payment
+// payment có chọn method
 data class OpenMiniAppPaymentData (
     val phone: String,
     var paymentData: PaymentData
@@ -89,6 +93,18 @@ data class OpenMiniAppPaymentData (
         jsonObject.put("phone", phone)
         jsonObject.put("note", paymentData.note)
         jsonObject.put("ipnUrl", paymentData.ipnUrl)
+        return jsonObject
+    }
+}
+
+// payment ko chọn method
+data class OpenMiniAppPaymentDirectData (
+    val phone: String,
+    var paymentDirectData: PaymentDirectData
+): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYMENT) {
+    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+        jsonObject.put("transaction", paymentDirectData.transaction)
+        jsonObject.put("phone", phone)
         return jsonObject
     }
 }
@@ -116,9 +132,20 @@ data class PaymentData(
     val note: String?,
     val ipnUrl: String?
 )
+
+data class PaymentDirectData(
+    val transaction: String
+)
+
 data class DepositWithdrawTransferData(
     val description: String?,
     val amount: Int?,
+    val isBackToApp: Boolean?
+)
+
+data class ServiceData(
+    val service: String,
+    val isBackToApp: Boolean?
 )
 
 enum class ENV {
