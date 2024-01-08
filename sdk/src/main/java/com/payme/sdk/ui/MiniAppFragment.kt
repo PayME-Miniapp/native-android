@@ -142,8 +142,8 @@ class MiniAppFragment : Fragment() {
         }
         port = Utils.findRandomOpenPort() ?: 4646
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
-//        loadUrl = "http://localhost:$port/"
-        loadUrl = "https://3eda-115-79-192-144.ngrok-free.app/"
+        loadUrl = "http://localhost:$port/"
+//        loadUrl = "http://10.8.20.39:3000/"
         try {
             server = WebServer("localhost", port, www_root)
             (server as WebServer).start()
