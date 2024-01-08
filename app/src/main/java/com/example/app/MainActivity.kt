@@ -3,17 +3,14 @@ package com.example.app
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.*
-import com.payme.sdk.ui.MiniAppFragment
 import org.json.JSONObject
-import org.json.JSONStringer
-import java.net.URLEncoder
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -37,7 +34,7 @@ class MainActivity : AppCompatActivity() {
         val savedEnv = sharedPreference.getString("PAYME_WALLET_ENV", "PRODUCTION") ?: "PRODUCTION"
 
         val env = try {
-            ENV.valueOf(savedEnv.replace("\"", "").toUpperCase())
+            ENV.valueOf(savedEnv.replace("\"", "").uppercase())
         } catch (e: Exception) {
             ENV.PRODUCTION
         }
@@ -87,9 +84,8 @@ class MainActivity : AppCompatActivity() {
         )
 
         payMEMiniApp!!.setChangeEnvFunction(onChangeEnv = { data: String ->
-            val sharedPreference = getSharedPreferences("PAYME_WALLET", Context.MODE_PRIVATE)
             val editor = sharedPreference.edit()
-            editor.putString("PAYME_WALLET_ENV", data.replace("\"", "").toUpperCase())
+            editor.putString("PAYME_WALLET_ENV", data.replace("\"", "").uppercase())
             editor.apply()
             val intent = Intent(applicationContext, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -121,7 +117,7 @@ class MainActivity : AppCompatActivity() {
             payMEMiniApp!!.getBalance("0795550300")
             payMEMiniApp!!.getAccountInformation("0795550300")
             payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.screen, OpenMiniAppPaymentDirectData("0795550300", PaymentDirectData("155762501569")),
+                OpenMiniAppType.screen, OpenMiniAppOpenData("0795550300"),
             )
             // payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppOpenData("0795550300"))
             //            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0372823042", "POWE"))

@@ -1,8 +1,10 @@
 package com.payme.sdk
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.webkit.WebView
 import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.models.*
 import com.payme.sdk.presentation.AccountPresentation
@@ -20,7 +22,7 @@ class PayMEMiniApp(
     env: ENV
 ) {
     companion object {
-        val TAG = "PAYMELOG"
+        var TAG: String = "PAYMELOG"
         internal var appId: String = ""
         internal lateinit var publicKey: String
         internal lateinit var privateKey: String
@@ -76,6 +78,10 @@ class PayMEMiniApp(
             onResponse,
             onError
         )
+    }
+
+    fun close() {
+        MiniAppFragment.closeMiniApp()
     }
 
     fun openMiniApp(
