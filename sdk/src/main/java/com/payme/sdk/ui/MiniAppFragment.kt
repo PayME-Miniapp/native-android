@@ -47,6 +47,7 @@ import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.net.URL
 import javax.net.ssl.SSLException
 
 
@@ -57,7 +58,8 @@ class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCa
         if (myWebView != null) {
             if (myWebView.canGoBack()) {
                 val url = myWebView.url
-                val check = (!url.isNullOrEmpty() && url.endsWith("home"))
+                val parts = URL(url)
+                val check = (!url.isNullOrEmpty() && (parts.path == "/home" || parts.path == "/salary-advance-info" || parts.path == "/salary-advance-result"))
                 if (!check) {
                     Log.d(PayMEMiniApp.TAG, "webview back")
                     myWebView.goBack()
