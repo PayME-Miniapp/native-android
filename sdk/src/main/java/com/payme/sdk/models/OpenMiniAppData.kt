@@ -25,6 +25,7 @@ data class OpenMiniAppServiceData (
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         jsonObject.put("service", additionalData.service)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
+        jsonObject.put("isShowResult", additionalData.isShowResult)
         jsonObject.put("phone", phone)
         return jsonObject
     }
@@ -50,6 +51,7 @@ data class OpenMiniAppDepositData (
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
+        jsonObject.put("isShowResult", additionalData.isShowResult)
         return jsonObject
     }
 }
@@ -64,6 +66,7 @@ data class OpenMiniAppWithdrawData (
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
+        jsonObject.put("isShowResult", additionalData.isShowResult)
         return jsonObject
     }
 }
@@ -78,6 +81,7 @@ data class OpenMiniAppTransferData (
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
+        jsonObject.put("isShowResult", additionalData.isShowResult)
         return jsonObject
     }
 }
@@ -93,6 +97,7 @@ data class OpenMiniAppPaymentData (
         jsonObject.put("phone", phone)
         jsonObject.put("note", paymentData.note)
         jsonObject.put("ipnUrl", paymentData.ipnUrl)
+        jsonObject.put("isShowResult", paymentData.isShowResult)
         return jsonObject
     }
 }
@@ -104,6 +109,7 @@ data class OpenMiniAppPaymentDirectData (
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYMENT) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         jsonObject.put("transaction", paymentDirectData.transaction)
+        jsonObject.put("isShowResult", paymentDirectData.isShowResult)
         jsonObject.put("phone", phone)
         return jsonObject
     }
@@ -130,22 +136,26 @@ data class PaymentData(
     val transactionId: String,
     val amount: Int,
     val note: String?,
-    val ipnUrl: String?
+    val ipnUrl: String?,
+    val isShowResult: Boolean?
 )
 
 data class PaymentDirectData(
-    val transaction: String
+    val transaction: String,
+    val isShowResult: Boolean?
 )
 
 data class DepositWithdrawTransferData(
     val description: String?,
     val amount: Int?,
-    val isBackToApp: Boolean?
+    val isBackToApp: Boolean?,
+    val isShowResult: Boolean?
 )
 
 data class ServiceData(
     val service: String,
-    val isBackToApp: Boolean?
+    val isBackToApp: Boolean?,
+    val isShowResult: Boolean?
 )
 
 enum class ENV {
