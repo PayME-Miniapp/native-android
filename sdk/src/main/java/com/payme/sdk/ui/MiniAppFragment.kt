@@ -75,7 +75,6 @@ class MiniAppFragment : Fragment() {
     private var www_root: File? = null
     private var server: com.payme.sdk.webServer.MySimpleWebServer? = null
 
-    private var loadUrl = ""
     private var port = 4646
     private var permissionType = ""
     private var nativeAppState = "active"
@@ -144,7 +143,10 @@ class MiniAppFragment : Fragment() {
         }
         port = Utils.findRandomOpenPort() ?: 4646
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
-        loadUrl = "http://localhost:$port/"
+        if (loadUrl.isNullOrEmpty()) {
+            loadUrl = "http://localhost:$port/"
+        }
+
 //        loadUrl = "http://10.8.20.39:3000/"
         try {
             server = WebServer("localhost", port, www_root)
@@ -1328,6 +1330,8 @@ class MiniAppFragment : Fragment() {
         internal lateinit var openMiniAppData: OpenMiniAppDataInterface
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
+        internal var loadUrl = ""
+
 
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
         var deepLinkViewModel: DeepLinkViewModel = DeepLinkViewModel()
@@ -1352,6 +1356,11 @@ class MiniAppFragment : Fragment() {
         fun setDeepLink(data: String) {
             deepLinkViewModel.setDeepLinkUrl(data)
         }
+
+        fun setLoadUrl(data: String) {
+            loadUrl = data
+        }
+
     }
 
 }
