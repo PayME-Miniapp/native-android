@@ -2,9 +2,11 @@ package com.payme.sdk.webServer
 
 import android.util.Log
 import android.webkit.JavascriptInterface
+import com.google.gson.JsonParser
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.Utils
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
@@ -28,6 +30,7 @@ class JavaScriptInterface(
     val openUrl: (String) -> Unit,
     val saveQR: (String) -> Unit,
     val changeEnv: (String) -> Unit,
+    val setListScreenBackBlocked: (JSONArray) -> Unit,
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -88,6 +91,14 @@ class JavaScriptInterface(
     public fun jsRequestFaceKYC(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsRequestFaceKyc: $data")
         startFaceKyc(data)
+    }
+
+    @JavascriptInterface
+    public fun jsListScreensSwipeBlocked(data: String) {
+        val parseJson = JSONObject(data)
+        Log.d(PayMEMiniApp.TAG, " jsListScreensSwipeBlocked: $parseJson")
+        val list = parseJson.optJSONArray("list") ?: JSONArray()
+        setListScreenBackBlocked(list)
     }
 
     @JavascriptInterface

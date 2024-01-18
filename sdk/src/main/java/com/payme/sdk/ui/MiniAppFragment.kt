@@ -50,8 +50,18 @@ import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
 
+fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
+    for (i in 0 until jsonArray.length()) {
+        val item = jsonArray.getString(i)
+        if (item == targetString) {
+            return true
+        }
+    }
+    return false
+}
 
-class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCallback(true) {
+class BackPressCallback(private val fragment: MiniAppFragment) :
+    OnBackPressedCallback(true) {
     override fun handleOnBackPressed() {
         Log.d(PayMEMiniApp.TAG, "onBackPressed Called")
         val myWebView = fragment.view?.findViewById<WebView>(R.id.webview)
@@ -59,7 +69,9 @@ class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCa
             if (myWebView.canGoBack()) {
                 val url = myWebView.url
                 val parts = URL(url)
-                val check = (!url.isNullOrEmpty() && (parts.path == "/home" || parts.path == "/salary-advance-info" || parts.path == "/salary-advance-result"))
+                val listPath = fragment.getListScreenBackBlocked()
+                val check = (url.isNullOrEmpty() || isStringInJsonArray(listPath, parts.path))
+
                 if (!check) {
                     Log.d(PayMEMiniApp.TAG, "webview back")
                     myWebView.goBack()
@@ -78,6 +90,7 @@ class MiniAppFragment : Fragment() {
     private var port = 4646
     private var permissionType = ""
     private var nativeAppState = "active"
+    private var listScreenBackBlocked = JSONArray()
 
     private var paramsKyc: JSONObject? = null
     private var paramsSaveQr: String? = null
@@ -143,7 +156,7 @@ class MiniAppFragment : Fragment() {
         }
         port = Utils.findRandomOpenPort() ?: 4646
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
-        if (loadUrl.isNullOrEmpty()) {
+        if (loadUrl.isEmpty()) {
             loadUrl = "http://localhost:$port/"
         }
 
@@ -656,8 +669,9 @@ class MiniAppFragment : Fragment() {
                 onError = {data: String -> returnError(data) },
                 closeMiniApp = { closeMiniApp() },
                 openUrl = { data: String -> openUrl(data) },
-                saveQR = { data: String -> saveQR(data)},
-                changeEnv = { data: String -> changeEnv(data)}
+                saveQR = { data: String -> saveQR(data) },
+                changeEnv = { data: String -> changeEnv(data) },
+                setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) }
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -729,7 +743,15 @@ class MiniAppFragment : Fragment() {
         PayMEMiniApp.onChangeEnv?.let { it(env) }
     }
 
-    private fun downloadImageQR (data: String) {
+    private fun setListScreenBackBlocked(data: JSONArray?) {
+        listScreenBackBlocked = data ?: JSONArray()
+    }
+
+    fun getListScreenBackBlocked(): JSONArray {
+        return listScreenBackBlocked
+    }
+
+    private fun downloadImageQR(data: String) {
         val bitmap = Utils.generateQRCode(data)
         Utils.saveImage(bitmap, requireContext(), getString(R.string.app_name), onSuccess = {
             val response = JSONObject()
