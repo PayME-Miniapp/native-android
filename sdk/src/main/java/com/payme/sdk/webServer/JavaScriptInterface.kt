@@ -30,6 +30,7 @@ class JavaScriptInterface(
     val openUrl: (String) -> Unit,
     val saveQR: (String) -> Unit,
     val changeEnv: (String) -> Unit,
+    val changeLocale: (String) -> Unit,
     val setListScreenBackBlocked: (JSONArray) -> Unit,
 ) {
     @JavascriptInterface
@@ -201,5 +202,11 @@ class JavaScriptInterface(
     public fun jsChangeEnv(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsChangeEnv: $data")
         changeEnv(data)
+    }
+
+    @JavascriptInterface
+    public fun jsChangeLocale(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsChangeLocale: $data")
+        changeLocale(data)
     }
 }

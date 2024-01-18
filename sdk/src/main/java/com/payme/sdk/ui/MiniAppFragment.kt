@@ -671,6 +671,7 @@ class MiniAppFragment : Fragment() {
                 openUrl = { data: String -> openUrl(data) },
                 saveQR = { data: String -> saveQR(data) },
                 changeEnv = { data: String -> changeEnv(data) },
+                changeLocale = { data: String -> changeLocale(data)},
                 setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) }
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
@@ -741,6 +742,10 @@ class MiniAppFragment : Fragment() {
 
     private fun changeEnv(env: String) {
         PayMEMiniApp.onChangeEnv?.let { it(env) }
+    }
+
+    private fun changeLocale(locale: String) {
+        PayMEMiniApp.onChangeLocale?.let { it(locale) }
     }
 
     private fun setListScreenBackBlocked(data: JSONArray?) {

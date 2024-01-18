@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.*
+import com.payme.sdk.models.Locale
 import org.json.JSONObject
 import java.util.*
 
@@ -32,11 +33,18 @@ class MainActivity : AppCompatActivity() {
         val sharedPreference = getSharedPreferences("PAYME_WALLET", Context.MODE_PRIVATE)
 
         val savedEnv = sharedPreference.getString("PAYME_WALLET_ENV", "PRODUCTION") ?: "PRODUCTION"
+        val savedLocale = sharedPreference.getString("PAYME_WALLET_LOCALE", "vi") ?: "vi"
 
         val env = try {
             ENV.valueOf(savedEnv.replace("\"", "").uppercase())
         } catch (e: Exception) {
             ENV.PRODUCTION
+        }
+
+        val locale = try {
+            Locale.valueOf(savedLocale.replace("\"", ""))
+        } catch (e: Exception) {
+            Locale.vi
         }
 
 //        payMEMiniApp = PayMEMiniApp(
@@ -55,13 +63,13 @@ class MainActivity : AppCompatActivity() {
            ENV.SANDBOX,
        )
 
-        // payMEMiniApp = PayMEMiniApp(
-        //     this,
-        //     "523388220210",
-        //     """-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIzrDm+HZ+a73vq2lInP0/xjOU0qwfKw\n8vvbZ3B//0kmwX3Fhni21fq+sWWcezio48uSdPfmMsRmS8ux640pla8CAwEAAQ==\n-----END PUBLIC KEY-----""",
-        //     """-----BEGIN RSA PRIVATE KEY-----\nMIIBOwIBAAJBAIiFLoyPAhko6wHAVlUueZZO/W6YzZY1AfpNLsPn5HbYxLf6cWHs\nNQGp4O5oba9Kveel/NohCYuwHBSviQl6NZECAwEAAQJAZihLAfFNn6gn20KjF9DU\nOS7YpDcBuIHn/fZdpUlUg71tinAIBjRhHFdGgbs0J4DjmbpypLmKBId/hvhLjyde\nQQIhANWPPediBshtZ34PngJjKa7OPfP9x457PAFaCxq7QfdJAiEAo6aYieeGzB6I\nekL4uOK1Y2FO3yasNJDwXShsImMQZAkCIQCTc72oPxSz2mY0sg/FUjZ7jcdU6gqZ\nJBmATW2RXW3kkQIgNsNqKkPTJP1WuGsu5lffUUlf5mb/m3uhI9uCDCPQeVkCIQC8\nGzSSCFond0HtETumAldK3UPPdq3nmBCkyOwIbg0tZQ==\n-----END RSA PRIVATE KEY-----""",
-        //     ENV.SANDBOX,
-        // )
+        //  payMEMiniApp = PayMEMiniApp(
+        //      this,
+        //      "523388220210",
+        //      """-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIzrDm+HZ+a73vq2lInP0/xjOU0qwfKw\n8vvbZ3B//0kmwX3Fhni21fq+sWWcezio48uSdPfmMsRmS8ux640pla8CAwEAAQ==\n-----END PUBLIC KEY-----""",
+        //      """-----BEGIN RSA PRIVATE KEY-----\nMIIBOwIBAAJBAIiFLoyPAhko6wHAVlUueZZO/W6YzZY1AfpNLsPn5HbYxLf6cWHs\nNQGp4O5oba9Kveel/NohCYuwHBSviQl6NZECAwEAAQJAZihLAfFNn6gn20KjF9DU\nOS7YpDcBuIHn/fZdpUlUg71tinAIBjRhHFdGgbs0J4DjmbpypLmKBId/hvhLjyde\nQQIhANWPPediBshtZ34PngJjKa7OPfP9x457PAFaCxq7QfdJAiEAo6aYieeGzB6I\nekL4uOK1Y2FO3yasNJDwXShsImMQZAkCIQCTc72oPxSz2mY0sg/FUjZ7jcdU6gqZ\nJBmATW2RXW3kkQIgNsNqKkPTJP1WuGsu5lffUUlf5mb/m3uhI9uCDCPQeVkCIQC8\nGzSSCFond0HtETumAldK3UPPdq3nmBCkyOwIbg0tZQ==\n-----END RSA PRIVATE KEY-----""",
+        //      ENV.SANDBOX,
+        //  )
 
 //         payMEMiniApp = PayMEMiniApp(
 //             this,
@@ -94,6 +102,17 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         })
 
+        payMEMiniApp!!.setChangeLocaleFunction(onChangeLocale = { data: String ->
+            val sharedPreference = getSharedPreferences("PAYME_WALLET", Context.MODE_PRIVATE)
+            val editor = sharedPreference.edit()
+            editor.putString("PAYME_WALLET_LOCALE", data.replace("\"", ""))
+            editor.apply()
+//            val intent = Intent(applicationContext, MainActivity::class.java).apply {
+//                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+//            }
+//            startActivity(intent)
+        })
+
         when (savedEnv) {
             "PRODUCTION" -> {
                 payMEMiniApp!!.setMode("pm_product")
@@ -110,7 +129,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         payMEMiniApp!!.setMode("miniapp_sandbox")
+//        payMEMiniApp!!.setLanguage(locale)
 
+//        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
@@ -125,7 +146,7 @@ class MainActivity : AppCompatActivity() {
                 ),
             )
             // payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppOpenData("0795550300"))
-            //            payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0372823042", "POWE"))
+//                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0795550300", ServiceData("POWE", true)))
         }
     }
 }

@@ -19,7 +19,8 @@ class PayMEMiniApp(
     appId: String,
     publicKey: String,
     privateKey: String,
-    env: ENV
+    env: ENV ?= ENV.PRODUCTION,
+    locale: Locale ?= Locale.vi
 ) {
     companion object {
         var TAG: String = "PAYMELOG"
@@ -27,6 +28,7 @@ class PayMEMiniApp(
         internal lateinit var publicKey: String
         internal lateinit var privateKey: String
         internal lateinit var env: ENV
+        internal lateinit var locale: Locale
         internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _, _ -> {} }
         internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> {} }
 
@@ -36,13 +38,19 @@ class PayMEMiniApp(
         internal var mode: String =
             "miniapp_product" //miniapp_product, miniapp_sandbox, miniapp_staging, pm_product, pm_staging, pm_sandbox, bank
         internal var onChangeEnv: ((String) -> Unit)? = null
+        internal var onChangeLocale: ((String) -> Unit)? = null
     }
 
     init {
         PayMEMiniApp.appId = appId
         PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\\n", "")
         PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\\n", "")
-        PayMEMiniApp.env = env
+        if (env != null) {
+            PayMEMiniApp.env = env
+        }
+        if (locale != null) {
+            PayMEMiniApp.locale = locale
+        }
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
     }
 
@@ -120,6 +128,14 @@ class PayMEMiniApp(
         }
     }
 
+    fun setLanguage(lang: Locale) {
+        if (appId == "") {
+            error("PayMEMiniApp instance is not initialized")
+        } else {
+            locale = lang
+        }
+    }
+
     fun setChangeEnvFunction(
         onChangeEnv: ((String) -> Unit)? = null,
     ) {
@@ -127,6 +143,16 @@ class PayMEMiniApp(
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onChangeEnv = onChangeEnv
+        }
+    }
+
+    fun setChangeLocaleFunction(
+        onChangeLocale: ((String) -> Unit)? = null,
+    ) {
+        if (appId == "") {
+            error("PayMEMiniApp instance is not initialized")
+        } else {
+            PayMEMiniApp.onChangeLocale = onChangeLocale
         }
     }
 

@@ -11,6 +11,7 @@ abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = Ac
         json.put("publicKey", PayMEMiniApp.publicKey)
         json.put("privateKey", PayMEMiniApp.privateKey)
         json.put("env", PayMEMiniApp.env)
+        json.put("locale", PayMEMiniApp.locale)
         return appendAdditionalData(json)
     }
     abstract fun appendAdditionalData(jsonObject: JSONObject): JSONObject
@@ -159,4 +160,8 @@ data class ServiceData(
 
 enum class ENV {
     PRODUCTION, SANDBOX
+}
+
+enum class Locale {
+    vi, en
 }
