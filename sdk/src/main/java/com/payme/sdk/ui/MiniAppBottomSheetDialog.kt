@@ -14,6 +14,7 @@ import com.payme.sdk.R
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = BottomSheetDialog(requireContext(), theme)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.parseColor("#80000000")))
         dialog.setOnShowListener {
             val bottomSheetDialog = it as BottomSheetDialog
             val parentLayout =
