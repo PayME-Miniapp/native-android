@@ -175,6 +175,7 @@ class MiniAppFragment : Fragment() {
             Log.d(PayMEMiniApp.TAG, "Stopped Server")
             server!!.stop()
             server = null
+            loadUrl = ""
         }
     }
 
