@@ -32,6 +32,7 @@ class JavaScriptInterface(
     val changeEnv: (String) -> Unit,
     val changeLocale: (String) -> Unit,
     val setListScreenBackBlocked: (JSONArray) -> Unit,
+    val setModalHeight: (Int) -> Unit
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -100,6 +101,14 @@ class JavaScriptInterface(
         Log.d(PayMEMiniApp.TAG, " jsListScreensSwipeBlocked: $parseJson")
         val list = parseJson.optJSONArray("list") ?: JSONArray()
         setListScreenBackBlocked(list)
+    }
+
+    @JavascriptInterface
+    public fun jsPostModalHeight(data: String) {
+        val parseJson = JSONObject(data)
+        Log.d(PayMEMiniApp.TAG, " jsPostModalHeight: $parseJson")
+        val height = parseJson?.optInt("height") ?: 0
+        setModalHeight(height)
     }
 
     @JavascriptInterface

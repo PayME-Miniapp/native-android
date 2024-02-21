@@ -139,11 +139,7 @@ class MainActivity : AppCompatActivity() {
             payMEMiniApp!!.getBalance("0795550300")
             payMEMiniApp!!.getAccountInformation("0795550300")
             payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.screen, OpenMiniAppDepositData("0795550300", DepositWithdrawTransferData("", 0,
-                    isBackToApp = true,
-                    isShowResult = true
-                )
-                ),
+                OpenMiniAppType.modal,  OpenMiniAppPaymentData("0347665645",PaymentData("23",123, "","", true))
             )
             // payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppOpenData("0795550300"))
 //                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0795550300", ServiceData("POWE", true)))

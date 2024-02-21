@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -23,20 +22,36 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
             parentLayout?.let { it ->
                 val behaviour = BottomSheetBehavior.from(it)
-                setupFullHeight(it)
+                it.layoutParams.height = convertContentHeight(MiniAppFragment.modalHeight)
+                MiniAppFragment.onSetModalHeight = { ot ->
+                    setupModalHeight(it, ot)
+                }
                 behaviour.state = BottomSheetBehavior.STATE_EXPANDED
                 behaviour.skipCollapsed = true
+                behaviour.isHideable = false
+                behaviour.isDraggable = false
                 it.clipToOutline = true
             }
         }
         return dialog
     }
 
-    private fun setupFullHeight(bottomSheet: View) {
-        val layoutParams = bottomSheet.layoutParams
-        val windowHeight = (resources.displayMetrics.heightPixels * 0.9).toInt()
-        layoutParams.height = windowHeight
-        bottomSheet.layoutParams = layoutParams
+    private fun convertContentHeight(contentHeight: Int): Int {
+        val scale: Float = resources.displayMetrics.density
+        val defaultHeight = (resources.displayMetrics.heightPixels * 0.4).toInt()
+        return if (contentHeight == 0) defaultHeight else ((contentHeight + 10) * scale).toInt()
+    }
+
+    private fun setupModalHeight(bottomSheet: View, contentHeight: Int?) {
+        if (contentHeight == null || contentHeight == 0) {
+            return
+        }
+
+        val windowHeight = convertContentHeight(contentHeight)
+        bottomSheet.layoutParams.height = windowHeight
+        bottomSheet.post {
+            bottomSheet.requestLayout()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

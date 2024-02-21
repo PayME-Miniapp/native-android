@@ -156,7 +156,7 @@ class MiniAppFragment : Fragment() {
         }
         port = Utils.findRandomOpenPort() ?: 4646
         www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
-        if (loadUrl.isEmpty()) {
+        if (loadUrl.contains("http://localhost") || loadUrl.isEmpty()) {
             loadUrl = "http://localhost:$port/"
         }
 
@@ -175,7 +175,6 @@ class MiniAppFragment : Fragment() {
             Log.d(PayMEMiniApp.TAG, "Stopped Server")
             server!!.stop()
             server = null
-            loadUrl = ""
         }
     }
 
@@ -563,12 +562,20 @@ class MiniAppFragment : Fragment() {
                         val openMiniAppData = miniappViewModel.openMiniAppData
                         if (openMiniAppData != null) {
                             val json = openMiniAppData.toJsonData()
+                            val jsonOpenTypeString = JSONObject.quote(openType.toString())
                             activity?.let {
                                 Utils.evaluateJSWebView(
                                     it,
                                     myWebView!!,
                                     "openMiniApp",
                                     json.toString(),
+                                    null
+                                )
+                                Utils.evaluateJSWebView(
+                                    it,
+                                    myWebView!!,
+                                    "openType",
+                                    jsonOpenTypeString,
                                     null
                                 )
                             }
@@ -666,14 +673,15 @@ class MiniAppFragment : Fragment() {
                     }
                 },
                 openWebView = { data: String -> openWebView(data) },
-                onSuccess = {data: String -> returnSuccess(data) },
-                onError = {data: String -> returnError(data) },
+                onSuccess = { data: String -> returnSuccess(data) },
+                onError = { data: String -> returnError(data) },
                 closeMiniApp = { closeMiniApp() },
                 openUrl = { data: String -> openUrl(data) },
                 saveQR = { data: String -> saveQR(data) },
                 changeEnv = { data: String -> changeEnv(data) },
-                changeLocale = { data: String -> changeLocale(data)},
-                setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) }
+                changeLocale = { data: String -> changeLocale(data) },
+                setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) },
+                setModalHeight = { data: Int -> setModalHeight(data) }
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -697,7 +705,6 @@ class MiniAppFragment : Fragment() {
                 }
             }
         }
-
         payMEUpdatePatchViewModel.getShowUpdatingUI().observe(viewLifecycleOwner) {
             activity?.runOnUiThread {
                 if (it) {
@@ -757,6 +764,15 @@ class MiniAppFragment : Fragment() {
         return listScreenBackBlocked
     }
 
+    private fun setModalHeight(height: Int) {
+        height.let {
+            if (it != 0 && it != modalHeight) {
+                modalHeight = it
+                onSetModalHeight(it)
+            }
+        }
+    }
+
     private fun downloadImageQR(data: String) {
         val bitmap = Utils.generateQRCode(data)
         Utils.saveImage(bitmap, requireContext(), getString(R.string.app_name), onSuccess = {
@@ -786,7 +802,7 @@ class MiniAppFragment : Fragment() {
         })
     }
 
-    private fun saveQR (data: String) {
+    private fun saveQR(data: String) {
         paramsSaveQr = data
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             activity?.let {
@@ -816,6 +832,7 @@ class MiniAppFragment : Fragment() {
                 }
                 paramsSaveQr?.let { downloadImageQR(it) }
             }
+
             activity?.let {
                 ActivityCompat.shouldShowRequestPermissionRationale(
                     it,
@@ -831,6 +848,7 @@ class MiniAppFragment : Fragment() {
                     )
                 }
             }
+
             else -> {
                 requestWriteExternalStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
@@ -852,7 +870,10 @@ class MiniAppFragment : Fragment() {
             val code = json.optString("code", "")
             val description = json.optString("description", "")
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
-            PayMEMiniApp.onError(MiniAppFragment.openMiniAppData.action, PayMEError(PayMEErrorType.MiniApp, code, description))
+            PayMEMiniApp.onError(
+                MiniAppFragment.openMiniAppData.action,
+                PayMEError(PayMEErrorType.MiniApp, code, description)
+            )
             if (isCloseMiniApp) {
                 closeMiniApp()
             }
@@ -869,9 +890,9 @@ class MiniAppFragment : Fragment() {
         }
     }
 
-    private fun openUrl (data: String) {
+    private fun openUrl(data: String) {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data.substring(1, data.length-1)))
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data.substring(1, data.length - 1)))
             (requireContext() as Activity).startActivity(intent)
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "openurl e ${e.message}")
@@ -888,6 +909,7 @@ class MiniAppFragment : Fragment() {
                     }
                     fileChooserCallback = null
                 }
+
                 Activity.RESULT_OK -> {
                     Log.d(PayMEMiniApp.TAG, "RESULT_OK fileChooserLauncher")
                     if (fileChooserCallback == null) return@registerForActivityResult
@@ -960,6 +982,7 @@ class MiniAppFragment : Fragment() {
                     }
                     Utils.getContacts(requireContext(), myWebView!!)
                 }
+
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
                         it,
@@ -975,6 +998,7 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 }
+
                 else -> {
                     requestContactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
                 }
@@ -1028,6 +1052,7 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 }
+
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
                         it,
@@ -1043,6 +1068,7 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 }
+
                 else -> {
                     if (permissionType == "CAMERA") {
                         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -1097,6 +1123,7 @@ class MiniAppFragment : Fragment() {
                     }
                     startIdentityCardActivity(json)
                 }
+
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
                         it,
@@ -1112,6 +1139,7 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 }
+
                 else -> {
                     requestCardKycPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
@@ -1126,10 +1154,24 @@ class MiniAppFragment : Fragment() {
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED") }
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "WRITE_EXTERNAL_STORAGE",
+                        "GRANTED"
+                    )
+                }
                 paramsSaveQr?.let { downloadImageQR(it) }
             } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "DENIED") }
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "WRITE_EXTERNAL_STORAGE",
+                        "DENIED"
+                    )
+                }
             }
         }
 
@@ -1176,6 +1218,7 @@ class MiniAppFragment : Fragment() {
                     }
                     startFaceDetectorActivity(json)
                 }
+
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
                         it,
@@ -1191,6 +1234,7 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 }
+
                 else -> {
                     requestFaceKycPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
@@ -1359,6 +1403,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var loadUrl = ""
+        internal var modalHeight: Int = 0
 
 
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
@@ -1389,6 +1434,7 @@ class MiniAppFragment : Fragment() {
             loadUrl = data
         }
 
+        internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
     }
 
 }
