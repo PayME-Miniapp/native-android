@@ -1405,7 +1405,6 @@ class MiniAppFragment : Fragment() {
         internal var loadUrl = ""
         internal var modalHeight: Int = 0
 
-
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
         var deepLinkViewModel: DeepLinkViewModel = DeepLinkViewModel()
         var subWebViewViewModel: SubWebViewViewModel = SubWebViewViewModel()

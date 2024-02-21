@@ -11,6 +11,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.payme.sdk.R
+import com.payme.sdk.models.ActionOpenMiniApp
+import org.json.JSONObject
 
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -36,9 +38,32 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         return dialog
     }
 
+    private fun getMiniAppAction(): ActionOpenMiniApp {
+        val json = MiniAppFragment.openMiniAppData.toJsonData()
+        val jsonObject = JSONObject(json.toString())
+        val actionString = jsonObject?.getString("action")
+
+        return try {
+            ActionOpenMiniApp.valueOf(((actionString ?: ActionOpenMiniApp.PAYME).toString()))
+        } catch (e: IllegalArgumentException) {
+            ActionOpenMiniApp.PAYME
+        }
+    }
+
+    private fun isFullHeightModal(): Boolean {
+        val action = getMiniAppAction()
+        return action != ActionOpenMiniApp.PAY &&
+                action != ActionOpenMiniApp.SERVICE &&
+                action != ActionOpenMiniApp.PAYMENT
+    }
+
     private fun convertContentHeight(contentHeight: Int): Int {
+        if (isFullHeightModal()) {
+            return (resources.displayMetrics.heightPixels * 0.9).toInt()
+        }
         val scale: Float = resources.displayMetrics.density
-        val defaultHeight = (resources.displayMetrics.heightPixels * 0.4).toInt()
+        val defaultHeight =
+            (resources.displayMetrics.heightPixels * 0.4).toInt()
         return if (contentHeight == 0) defaultHeight else ((contentHeight + 10) * scale).toInt()
     }
 
@@ -59,8 +84,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view: View = inflater.inflate(R.layout.bottom_sheet_dialog_miniapp, container, false)
         return view
