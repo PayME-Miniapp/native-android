@@ -12,6 +12,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
+import com.payme.sdk.utils.Utils
 import org.json.JSONObject
 
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
@@ -38,33 +39,28 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         return dialog
     }
 
-    private fun getMiniAppAction(): ActionOpenMiniApp {
-        val json = MiniAppFragment.openMiniAppData.toJsonData()
-        val jsonObject = JSONObject(json.toString())
-        val actionString = jsonObject?.getString("action")
-
-        return try {
-            ActionOpenMiniApp.valueOf(((actionString ?: ActionOpenMiniApp.PAYME).toString()))
-        } catch (e: IllegalArgumentException) {
-            ActionOpenMiniApp.PAYME
-        }
-    }
-
     private fun isFullHeightModal(): Boolean {
-        val action = getMiniAppAction()
+        val action = MiniAppFragment.getMiniAppAction()
         return action != ActionOpenMiniApp.PAY &&
                 action != ActionOpenMiniApp.SERVICE &&
                 action != ActionOpenMiniApp.PAYMENT
+        //khác các action này thì để max height default
     }
 
     private fun convertContentHeight(contentHeight: Int): Int {
+        val maxHeight = (resources.displayMetrics.heightPixels * 0.9).toInt()
+        val minHeight = (resources.displayMetrics.heightPixels * 0.4).toInt()
+
         if (isFullHeightModal()) {
-            return (resources.displayMetrics.heightPixels * 0.9).toInt()
+            return maxHeight
         }
-        val scale: Float = resources.displayMetrics.density
-        val defaultHeight =
-            (resources.displayMetrics.heightPixels * 0.4).toInt()
-        return if (contentHeight == 0) defaultHeight else ((contentHeight + 10) * scale).toInt()
+
+        return if (contentHeight == 0) minHeight
+        else {
+            val convertHeight = context?.let { Utils.dpToPx(it, contentHeight + 10) }
+            if (convertHeight!! > maxHeight) // giới hạn ở 90% màn hình
+                return maxHeight else return convertHeight!!
+        }
     }
 
     private fun setupModalHeight(bottomSheet: View, contentHeight: Int?) {

@@ -284,6 +284,7 @@ class MiniAppFragment : Fragment() {
         super.onCreate(savedInstanceState)
         requireActivity().onBackPressedDispatcher.addCallback(this, BackPressCallback(this))
         miniappViewModel = ViewModelProvider(requireActivity())[MiniappViewModel::class.java]
+
         if (isOpenMiniAppInit()) {
             miniappViewModel.openMiniAppData = openMiniAppData
         }
@@ -454,6 +455,11 @@ class MiniAppFragment : Fragment() {
 
         myWebView?.apply {
             webChromeClient = object : WebChromeClient() {
+                override fun onProgressChanged(view: WebView, newProgress: Int) {
+                    val url = URL(view?.url).toString().removePrefix(loadUrl)
+                    onSetWebViewUrlPart(url)
+                }
+
                 override fun onPermissionRequest(request: PermissionRequest?) {
                     request?.grant(request.resources)
                 }
@@ -480,6 +486,7 @@ class MiniAppFragment : Fragment() {
                     return true
                 }
             }
+
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                     Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
@@ -770,6 +777,29 @@ class MiniAppFragment : Fragment() {
                 modalHeight = it
                 onSetModalHeight(it)
             }
+        }
+    }
+
+    private fun onSetWebViewUrlPart(url: String) {
+        val action = getMiniAppAction()
+        if (action != ActionOpenMiniApp.PAY &&
+            action != ActionOpenMiniApp.SERVICE &&
+            action != ActionOpenMiniApp.PAYMENT
+        ) return
+
+        url.let {
+            if (it != webViewUrl) {
+                onChangeModalHeight(it)
+                webViewUrl = url
+            }
+        }
+    }
+
+    private fun onChangeModalHeight(url: String) {
+        Log.d(PayMEMiniApp.TAG, "vccz $url")
+        val maxHeight = 999
+        if (url.contains("mini-app/link-merchant")) {
+            setModalHeight(maxHeight)
         }
     }
 
@@ -1402,7 +1432,9 @@ class MiniAppFragment : Fragment() {
         internal lateinit var openMiniAppData: OpenMiniAppDataInterface
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
+        internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
         internal var loadUrl = ""
+        internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
@@ -1433,7 +1465,17 @@ class MiniAppFragment : Fragment() {
             loadUrl = data
         }
 
-        internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
+        fun getMiniAppAction(): ActionOpenMiniApp {
+            val json = openMiniAppData.toJsonData()
+            val jsonObject = JSONObject(json.toString())
+            val actionString = jsonObject?.getString("action")
+
+            return try {
+                ActionOpenMiniApp.valueOf(((actionString ?: ActionOpenMiniApp.PAYME).toString()))
+            } catch (e: IllegalArgumentException) {
+                ActionOpenMiniApp.PAYME
+            }
+        }
     }
 
 }
