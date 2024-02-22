@@ -425,7 +425,10 @@ class MiniAppFragment : Fragment() {
             }
             val r = Rect()
             rootView!!.getWindowVisibleDisplayFrame(r)
-            val screenHeight: Int = rootView!!.rootView.height
+            val modalHeightDifference =
+                if (openType === OpenMiniAppType.modal) (resources.displayMetrics.heightPixels * 0.05).toInt()
+                else 0
+            val screenHeight: Int = rootView!!.rootView.height + modalHeightDifference
             val heightDiff: Int = screenHeight - r.bottom
 
             val height = Utils.pxToDp(requireContext(), heightDiff)
@@ -534,7 +537,10 @@ class MiniAppFragment : Fragment() {
                     request: WebResourceRequest?,
                     errorResponse: WebResourceResponse
                 ) {
-                    Log.d(PayMEMiniApp.TAG, "HTTP error " + errorResponse.statusCode + errorResponse.data)
+                    Log.d(
+                        PayMEMiniApp.TAG,
+                        "HTTP error " + errorResponse.statusCode + errorResponse.data
+                    )
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
@@ -796,7 +802,7 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun onChangeModalHeight(url: String) {
-        Log.d(PayMEMiniApp.TAG, "vccz $url")
+        Log.d(PayMEMiniApp.TAG, "webview url change $url")
         val maxHeight = 999
         if (url.contains("mini-app/link-merchant")) {
             setModalHeight(maxHeight)
