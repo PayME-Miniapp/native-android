@@ -159,7 +159,7 @@ data class ServiceData(
 )
 
 enum class ENV {
-    PRODUCTION, SANDBOX
+    PRODUCTION, STAGING, SANDBOX, DEV, LOCAL
 }
 
 enum class Locale {
