@@ -16,8 +16,9 @@ import kotlin.random.Random
 object NetworkUtils {
     fun getApiUrl(env: ENV): String {
         return when(env) {
-            ENV.PRODUCTION -> "https://gapi.payme.vn"
+            ENV.PRODUCTION, ENV.STAGING -> "https://gapi.payme.vn"
             ENV.SANDBOX -> "https://sbx-gapi.payme.vn"
+            ENV.DEV, ENV.LOCAL -> "http://vula.mecorp.local:3000"
             else -> "https://gapi.payme.vn"
         }
     }
