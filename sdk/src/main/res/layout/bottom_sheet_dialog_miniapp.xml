@@ -13,6 +13,7 @@
     android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:backgroundTint="@color/back_drop"
     android:background="@color/back_drop">
 
     <androidx.cardview.widget.CardView
@@ -20,7 +21,6 @@
         android:layout_height="match_parent"
         android:layout_marginBottom="-16dp"
         android:background="@drawable/rounded_dialog"
-        app:cardBackgroundColor="@color/black"
         app:cardCornerRadius="16dp">
 
         <androidx.fragment.app.FragmentContainerView
