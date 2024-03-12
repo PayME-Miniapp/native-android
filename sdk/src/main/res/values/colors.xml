@@ -12,6 +12,6 @@
     <color name="background_text_error">#80121212</color>
     <color name="disabled">#E8E9EB</color>
     <color name="grey_text">#6E6E6E</color>
-    <color name="transparent">#00000000</color>
-    <color name="back_drop">#80000000</color>
+    <color name="transparent">#40FFFFFF</color>
+    <color name="back_drop">#6f6f6f</color>
 </resources>
