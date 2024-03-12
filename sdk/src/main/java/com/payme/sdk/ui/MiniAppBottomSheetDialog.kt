@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -15,7 +14,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.utils.Utils
-import org.json.JSONObject
 
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
