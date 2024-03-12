@@ -13,8 +13,8 @@
     android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="@color/back_drop"
-    android:background="@color/back_drop">
+    android:backgroundTint="@color/transparent"
+    android:background="@color/transparent">
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
