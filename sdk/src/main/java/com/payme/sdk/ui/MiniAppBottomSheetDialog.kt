@@ -7,6 +7,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.DrawableRes
+import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -25,6 +27,9 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
             parentLayout?.let { it ->
                 val behaviour = BottomSheetBehavior.from(it)
+                val backgroundDrawable = context?.let { it1 -> ContextCompat.getDrawable(it1, R.drawable.rounded_dialog) }
+                it.background = backgroundDrawable
+
                 it.layoutParams.height = convertContentHeight(MiniAppFragment.modalHeight)
                 MiniAppFragment.onSetModalHeight = { ot ->
                     setupModalHeight(it, ot)
