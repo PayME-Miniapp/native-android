@@ -13,22 +13,20 @@
     android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="@color/back_drop"
-    android:background="@color/back_drop">
+    android:background="@drawable/rounded_dialog">
+
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="-16dp"
-        android:background="@drawable/rounded_dialog"
-        app:cardCornerRadius="16dp">
+        app:cardBackgroundColor="@color/black"
+        android:background="@drawable/rounded_dialog">
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/fragment_container_view"
             android:name="com.payme.sdk.ui.MiniAppFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginBottom="16dp"
             android:background="@drawable/rounded_dialog" />
 
     </androidx.cardview.widget.CardView>
