@@ -13,7 +13,7 @@
     android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/rounded_dialog">
+    android:background="@color/back_drop">
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
