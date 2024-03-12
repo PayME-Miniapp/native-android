@@ -13,7 +13,9 @@
     android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/rounded_dialog">
+    android:layout_marginBottom="-16dp"
+    app:layout_goneMarginBottom="-16dp"
+    android:background="@color/transparent">
 
 
     <androidx.cardview.widget.CardView
