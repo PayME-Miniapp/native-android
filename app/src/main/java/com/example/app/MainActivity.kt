@@ -55,21 +55,21 @@ class MainActivity : AppCompatActivity() {
 //            ENV.DEV,
 //        )
 
-//       payMEMiniApp = PayMEMiniApp(
-//           this,
-//           "250069027220",
-//           """-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCp\nGMGpOd6fc/dFkqIkNBDHoTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQ==\n-----END PUBLIC KEY-----""",
-//           """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCpGMGpOd6fc/dFkqIkNBDH\noTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQJAUlyxGfjnJBqZvRPTQ77y\n9cWWJjr/mxtr6HJwy7uSnvgNRY1zfpRLccR4NvMS7LtgK47sx1vJmCOgtVCGwCVU\nUQIhALlGTGM1Q4E5L2xCX0SfCY6vdKOdwvD5NyaUSP7ZJVf/AiEAsYXYoEApSorj\ntLg4JjLJhpE8H8Lf6o1AFpX9g83aNbkCICRY1zmLRIAAcP5DEx+KN7zHTRGgLJNL\nwPcPljZw8TOPAiEAg1P0XSD6KwYyzEgYadHamm2pIAoHorpaNhtCEBbinikCIFtk\n7by4tboFtUkXf7X+/Y1jX1owrT4xDO2sBKrUs/9F\n-----END RSA PRIVATE KEY-----""",
-//           ENV.SANDBOX,
-//       )
+       payMEMiniApp = PayMEMiniApp(
+           this,
+           "250069027220",
+           """-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCp\nGMGpOd6fc/dFkqIkNBDHoTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQ==\n-----END PUBLIC KEY-----""",
+           """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCpGMGpOd6fc/dFkqIkNBDH\noTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQJAUlyxGfjnJBqZvRPTQ77y\n9cWWJjr/mxtr6HJwy7uSnvgNRY1zfpRLccR4NvMS7LtgK47sx1vJmCOgtVCGwCVU\nUQIhALlGTGM1Q4E5L2xCX0SfCY6vdKOdwvD5NyaUSP7ZJVf/AiEAsYXYoEApSorj\ntLg4JjLJhpE8H8Lf6o1AFpX9g83aNbkCICRY1zmLRIAAcP5DEx+KN7zHTRGgLJNL\nwPcPljZw8TOPAiEAg1P0XSD6KwYyzEgYadHamm2pIAoHorpaNhtCEBbinikCIFtk\n7by4tboFtUkXf7X+/Y1jX1owrT4xDO2sBKrUs/9F\n-----END RSA PRIVATE KEY-----""",
+           ENV.SANDBOX,
+       )
 
-          payMEMiniApp = PayMEMiniApp(
-              this,
-              "264245066910",
-              """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJoxQCA/D1qx2aUC65SxP+ZsCo/+YYVnV5pTeLgwCjgkZa1mac2q0vgWXvCamT9jjPBOhyuIX+wdHOGufwqtZQ8CAwEAAQ==-----END PUBLIC KEY-----""",
-              """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBAJtl/BFoCHwGCwfgiNKEJXkIQIpBnworMkX1I56UlcLkWhgug+KdxGPoTObufx8IHbBTQIl748uIDUpMjIPSL68CAwEAAQJAdZGoLsclvCeaSuBew97Etxg+NBvHpprd0z3PMBg8YhDQWIIo2kaqq7AfDmJU2Cb+SaTGIPCFZWP2lK60abiKIQIhAN6BCYNCu8kQ1rZ1FhGU5Ri9pvN3RSSnUpzE+h7GJsG/AiEAssrMYGxBLwU3S3l2zwlMc1tP/exEZWMjsboWRKlRLhECIQCJIZACVPO1VOpv4zOpvFGB8QjfDogPsgwJUKEyrD8gswIgGe+nVDl//zUvf0hgfsonh/hwEzLJ/Tczf12yS0WQnDECIH7Xew2RJwXInrPIaV0USQfY1GC14X+GedJBRru4HWwN-----END RSA PRIVATE KEY-----""",
-              ENV.STAGING,
-          )
+//          payMEMiniApp = PayMEMiniApp(
+//              this,
+//              "264245066910",
+//              """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJoxQCA/D1qx2aUC65SxP+ZsCo/+YYVnV5pTeLgwCjgkZa1mac2q0vgWXvCamT9jjPBOhyuIX+wdHOGufwqtZQ8CAwEAAQ==-----END PUBLIC KEY-----""",
+//              """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBAJtl/BFoCHwGCwfgiNKEJXkIQIpBnworMkX1I56UlcLkWhgug+KdxGPoTObufx8IHbBTQIl748uIDUpMjIPSL68CAwEAAQJAdZGoLsclvCeaSuBew97Etxg+NBvHpprd0z3PMBg8YhDQWIIo2kaqq7AfDmJU2Cb+SaTGIPCFZWP2lK60abiKIQIhAN6BCYNCu8kQ1rZ1FhGU5Ri9pvN3RSSnUpzE+h7GJsG/AiEAssrMYGxBLwU3S3l2zwlMc1tP/exEZWMjsboWRKlRLhECIQCJIZACVPO1VOpv4zOpvFGB8QjfDogPsgwJUKEyrD8gswIgGe+nVDl//zUvf0hgfsonh/hwEzLJ/Tczf12yS0WQnDECIH7Xew2RJwXInrPIaV0USQfY1GC14X+GedJBRru4HWwN-----END RSA PRIVATE KEY-----""",
+//              ENV.STAGING,
+//          )
 
 //         payMEMiniApp = PayMEMiniApp(
 //             this,
@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        payMEMiniApp!!.setMode("pm_staging")
+        payMEMiniApp!!.setMode("pm_sandbox")
 //        payMEMiniApp!!.setLanguage(locale)
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
@@ -137,11 +137,19 @@ class MainActivity : AppCompatActivity() {
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.getBalance("0795550300")
             payMEMiniApp!!.getAccountInformation("0795550300")
+            payMEMiniApp!!.openMiniApp(
+                OpenMiniAppType.modal,  OpenMiniAppPaymentDirectData("0795550301",
+                    PaymentDirectData("348115135612",true)
+                )
+            )
+
 //            payMEMiniApp!!.openMiniApp(
-//                OpenMiniAppType.modal,  OpenMiniAppPaymentData("0795550300",PaymentData("23",123, "","", true))
+//                OpenMiniAppType.modal,  OpenMiniAppPaymentData("0795550301",
+//                    PaymentData("348115135612", 10000, "", "", true)
+//                )
 //            )
-             payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayMEData())
-//                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppServiceData("0795550300", ServiceData("POWE", true)))
+//             payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayMEData())
+//                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppServiceData("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }
 }
