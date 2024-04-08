@@ -115,6 +115,23 @@ data class OpenMiniAppPaymentDirectData (
     }
 }
 
+// quét QR chuyển tiền
+data class OpenMiniAppTransferQRData (
+    val phone: String,
+    var transferQRData: TransferQRData
+): OpenMiniAppDataInterface(ActionOpenMiniApp.TRANSFER_QR) {
+    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+        jsonObject.put("amount", transferQRData.amount)
+        jsonObject.put("bankNumber", transferQRData.bankNumber)
+        jsonObject.put("swiftCode", transferQRData.swiftCode)
+        jsonObject.put("cardHolder", transferQRData.cardHolder)
+        jsonObject.put("note", transferQRData.note)
+        jsonObject.put("isShowResult", transferQRData.isShowResult)
+        jsonObject.put("phone", phone)
+        return jsonObject
+    }
+}
+
 // vi payme
 class OpenMiniAppPayMEData (): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
@@ -142,6 +159,15 @@ data class PaymentData(
 
 data class PaymentDirectData(
     val transaction: String,
+    val isShowResult: Boolean?
+)
+
+data class TransferQRData(
+    val amount: Int,
+    val bankNumber: String,
+    val swiftCode: String,
+    val cardHolder: String,
+    val note: String?,
     val isShowResult: Boolean?
 )
 

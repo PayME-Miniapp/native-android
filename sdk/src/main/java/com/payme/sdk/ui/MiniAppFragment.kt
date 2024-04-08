@@ -789,7 +789,8 @@ class MiniAppFragment : Fragment() {
         val action = getMiniAppAction()
         if (action != ActionOpenMiniApp.PAY &&
             action != ActionOpenMiniApp.SERVICE &&
-            action != ActionOpenMiniApp.PAYMENT
+            action != ActionOpenMiniApp.PAYMENT &&
+            action != ActionOpenMiniApp.TRANSFER_QR
         ) return
 
         url.let {

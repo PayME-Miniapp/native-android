@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        payMEMiniApp!!.setMode("pm_sandbox")
+        payMEMiniApp!!.setMode("miniapp_sandbox")
 //        payMEMiniApp!!.setLanguage(locale)
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
@@ -137,9 +137,15 @@ class MainActivity : AppCompatActivity() {
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.getBalance("0795550300")
             payMEMiniApp!!.getAccountInformation("0795550300")
+//            payMEMiniApp!!.openMiniApp(
+//                OpenMiniAppType.modal,  OpenMiniAppPaymentDirectData("0795550301",
+//                    PaymentDirectData("348115135612",true)
+//                )
+//            )
+
             payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.modal,  OpenMiniAppPaymentDirectData("0795550301",
-                    PaymentDirectData("348115135612",true)
+                OpenMiniAppType.modal,  OpenMiniAppTransferQRData("0795550300",
+                    TransferQRData(amount = 20000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", isShowResult = true)
                 )
             )
 

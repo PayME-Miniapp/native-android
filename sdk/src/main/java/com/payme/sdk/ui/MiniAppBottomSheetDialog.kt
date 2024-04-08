@@ -46,7 +46,8 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         val action = MiniAppFragment.getMiniAppAction()
         return action != ActionOpenMiniApp.PAY &&
                 action != ActionOpenMiniApp.SERVICE &&
-                action != ActionOpenMiniApp.PAYMENT
+                action != ActionOpenMiniApp.PAYMENT &&
+                action != ActionOpenMiniApp.TRANSFER_QR
         //khác các action này thì để max height default
     }
 
