@@ -922,15 +922,22 @@ class MiniAppFragment : Fragment() {
                 PayMEError(PayMEErrorType.MiniApp, code, description)
             )
             if (isCloseMiniApp) {
-                closeMiniApp()
+                closeMiniApp("ERROR_CANCEL", description)
             }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "miniapp returnError: ${e.message} ")
         }
     }
 
-    private fun closeMiniApp() {
+    private fun closeMiniApp(
+        code: String = "USER_CANCEL",
+        description: String = "User đóng PayMEMiniApp"
+    ) {
         if (openType == OpenMiniAppType.modal) {
+            PayMEMiniApp.onError(
+                ActionOpenMiniApp.OPEN,
+                PayMEError(PayMEErrorType.UserCancel, code, description)
+            )
             MiniAppFragment.closeMiniApp()
         } else if (openType == OpenMiniAppType.screen) {
             (requireContext() as Activity).finish()

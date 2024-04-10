@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,8 +12,11 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
+import com.payme.sdk.models.PayMEError
+import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.utils.Utils
 
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
@@ -21,17 +25,28 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.parseColor("#80000000")))
         dialog.setOnShowListener {
             val bottomSheetDialog = it as BottomSheetDialog
+            bottomSheetDialog.setOnDismissListener {
+                Log.d(PayMEMiniApp.TAG, "lụm")
+                val action = MiniAppFragment.getMiniAppAction()
+                PayMEMiniApp.onError(action, PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", "User đóng PayMEMiniApp"))
+            }
             val parentLayout =
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
             parentLayout?.let { it ->
                 val behaviour = BottomSheetBehavior.from(it)
-                val backgroundDrawable = context?.let { it1 -> ContextCompat.getDrawable(it1, R.drawable.rounded_dialog) }
+                val backgroundDrawable = context?.let { it1 ->
+                    ContextCompat.getDrawable(
+                        it1,
+                        R.drawable.rounded_dialog
+                    )
+                }
                 it.background = backgroundDrawable
 
                 it.layoutParams.height = convertContentHeight(MiniAppFragment.modalHeight)
                 MiniAppFragment.onSetModalHeight = { ot ->
                     setupModalHeight(it, ot)
                 }
+
                 behaviour.state = BottomSheetBehavior.STATE_EXPANDED
                 behaviour.skipCollapsed = true
                 behaviour.isHideable = false
