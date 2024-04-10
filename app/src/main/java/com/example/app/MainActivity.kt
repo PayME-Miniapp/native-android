@@ -9,10 +9,14 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.payme.sdk.PayMEMiniApp
-import com.payme.sdk.models.*
+import com.payme.sdk.models.ActionOpenMiniApp
+import com.payme.sdk.models.ENV
 import com.payme.sdk.models.Locale
+import com.payme.sdk.models.OpenMiniAppTransferQRData
+import com.payme.sdk.models.OpenMiniAppType
+import com.payme.sdk.models.PayMEError
+import com.payme.sdk.models.TransferQRData
 import org.json.JSONObject
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private lateinit var openSdkButton: TextView

@@ -1,21 +1,24 @@
 package com.payme.sdk.models
 
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.payme.sdk.PayMEMiniApp
 import org.json.JSONObject
 
 abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME) {
-    fun toJsonData(): JSONObject {
-        val json = JSONObject()
-        json.put("action", action)
-        json.put("appId", PayMEMiniApp.appId)
-        json.put("publicKey", PayMEMiniApp.publicKey)
-        json.put("privateKey", PayMEMiniApp.privateKey)
-        json.put("env", PayMEMiniApp.env)
-        json.put("locale", PayMEMiniApp.locale)
+    fun toJsonData(): JsonObject {
+        val json = JsonObject()
+        json.addProperty("action", action.toString())
+        json.addProperty("appId", PayMEMiniApp.appId)
+        json.addProperty("publicKey", PayMEMiniApp.publicKey)
+        json.addProperty("privateKey", PayMEMiniApp.privateKey)
+        json.addProperty("env", PayMEMiniApp.env.toString())
+        json.addProperty("locale", PayMEMiniApp.locale.toString())
         return appendAdditionalData(json)
     }
-    abstract fun appendAdditionalData(jsonObject: JSONObject): JSONObject
+
+    abstract fun appendAdditionalData(jsonObject: JsonObject): JsonObject
 }
 
 // service
@@ -23,17 +26,12 @@ data class OpenMiniAppServiceData (
     val phone: String,
     var additionalData: ServiceData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.SERVICE) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("service", additionalData.service)
-
-        val extraDataJson = additionalData.extraData?.let { extraDataMap ->
-            JSONObject(extraDataMap)
-        }
-        jsonObject.put("extraData", extraDataJson)
-        jsonObject.put("extraData", additionalData.extraData)
-        jsonObject.put("isBackToApp", additionalData.isBackToApp)
-        jsonObject.put("isShowResult", additionalData.isShowResult)
-        jsonObject.put("phone", phone)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("service", additionalData.service)
+        additionalData.extraData?.let { addExtraData(jsonObject, it) }
+        jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
+        jsonObject.addProperty("isShowResult", additionalData.isShowResult)
+        jsonObject.addProperty("phone", phone)
         return jsonObject
     }
 }
@@ -42,8 +40,8 @@ data class OpenMiniAppServiceData (
 data class OpenMiniAppKYCData (
     val phone: String,
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.KYC) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("phone", phone)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("phone", phone)
         return jsonObject
     }
 }
@@ -53,13 +51,13 @@ data class OpenMiniAppDepositData (
     val phone: String,
     var additionalData: DepositWithdrawTransferData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.DEPOSIT) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("description", additionalData.description)
-        jsonObject.put("amount", additionalData.amount)
-        jsonObject.put("phone", phone)
-        jsonObject.put("extraData", additionalData.extraData)
-        jsonObject.put("isBackToApp", additionalData.isBackToApp)
-        jsonObject.put("isShowResult", additionalData.isShowResult)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("description", additionalData.description)
+        jsonObject.addProperty("amount", additionalData.amount)
+        jsonObject.addProperty("phone", phone)
+        additionalData.extraData?.let { addExtraData(jsonObject, it) }
+        jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
+        jsonObject.addProperty("isShowResult", additionalData.isShowResult)
         return jsonObject
     }
 }
@@ -69,13 +67,13 @@ data class OpenMiniAppWithdrawData (
     val phone: String,
     var additionalData: DepositWithdrawTransferData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.WITHDRAW) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("description", additionalData.description)
-        jsonObject.put("amount", additionalData.amount)
-        jsonObject.put("phone", phone)
-        jsonObject.put("extraData", additionalData.extraData)
-        jsonObject.put("isBackToApp", additionalData.isBackToApp)
-        jsonObject.put("isShowResult", additionalData.isShowResult)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("description", additionalData.description)
+        jsonObject.addProperty("amount", additionalData.amount)
+        jsonObject.addProperty("phone", phone)
+        additionalData.extraData?.let { addExtraData(jsonObject, it) }
+        jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
+        jsonObject.addProperty("isShowResult", additionalData.isShowResult)
         return jsonObject
     }
 }
@@ -85,13 +83,13 @@ data class OpenMiniAppTransferData (
     val phone: String,
     var additionalData: DepositWithdrawTransferData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.TRANSFER) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("description", additionalData.description)
-        jsonObject.put("amount", additionalData.amount)
-        jsonObject.put("phone", phone)
-        jsonObject.put("extraData", additionalData.extraData)
-        jsonObject.put("isBackToApp", additionalData.isBackToApp)
-        jsonObject.put("isShowResult", additionalData.isShowResult)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("description", additionalData.description)
+        jsonObject.addProperty("amount", additionalData.amount)
+        jsonObject.addProperty("phone", phone)
+        additionalData.extraData?.let { addExtraData(jsonObject, it) }
+        jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
+        jsonObject.addProperty("isShowResult", additionalData.isShowResult)
         return jsonObject
     }
 }
@@ -101,14 +99,14 @@ data class OpenMiniAppPaymentData (
     val phone: String,
     var paymentData: PaymentData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.PAY) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("transactionId", paymentData.transactionId)
-        jsonObject.put("amount", paymentData.amount)
-        jsonObject.put("phone", phone)
-        jsonObject.put("note", paymentData.note)
-        jsonObject.put("ipnUrl", paymentData.ipnUrl)
-        jsonObject.put("extraData", paymentData.extraData)
-        jsonObject.put("isShowResult", paymentData.isShowResult)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("transactionId", paymentData.transactionId)
+        jsonObject.addProperty("amount", paymentData.amount)
+        jsonObject.addProperty("phone", phone)
+        jsonObject.addProperty("note", paymentData.note)
+        jsonObject.addProperty("ipnUrl", paymentData.ipnUrl)
+        jsonObject.addProperty("isShowResult", paymentData.isShowResult)
+        paymentData.extraData?.let { addExtraData(jsonObject, it) }
         return jsonObject
     }
 }
@@ -118,11 +116,11 @@ data class OpenMiniAppPaymentDirectData (
     val phone: String,
     var paymentDirectData: PaymentDirectData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYMENT) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("transaction", paymentDirectData.transaction)
-        jsonObject.put("extraData", paymentDirectData.extraData)
-        jsonObject.put("isShowResult", paymentDirectData.isShowResult)
-        jsonObject.put("phone", phone)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("transaction", paymentDirectData.transaction)
+        paymentDirectData.extraData?.let { addExtraData(jsonObject, it) }
+        jsonObject.addProperty("isShowResult", paymentDirectData.isShowResult)
+        jsonObject.addProperty("phone", phone)
         return jsonObject
     }
 }
@@ -132,28 +130,22 @@ data class OpenMiniAppTransferQRData (
     val phone: String,
     var transferQRData: TransferQRData
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.TRANSFER_QR) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("amount", transferQRData.amount)
-        jsonObject.put("bankNumber", transferQRData.bankNumber)
-        jsonObject.put("swiftCode", transferQRData.swiftCode)
-        jsonObject.put("cardHolder", transferQRData.cardHolder)
-        jsonObject.put("note", transferQRData.note)
-        val extraDataJson = transferQRData.extraData?.let { extraDataMap ->
-            JSONObject(extraDataMap)
-        }
-        Log.d("transferQRData", transferQRData.extraData.toString())
-        Log.d("extraDataJson", extraDataJson.toString())
-        jsonObject.put("extraData", extraDataJson)
-        jsonObject.put("extraData", transferQRData.extraData)
-        jsonObject.put("isShowResult", transferQRData.isShowResult)
-        jsonObject.put("phone", phone)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("amount", transferQRData.amount)
+        jsonObject.addProperty("bankNumber", transferQRData.bankNumber)
+        jsonObject.addProperty("swiftCode", transferQRData.swiftCode)
+        jsonObject.addProperty("cardHolder", transferQRData.cardHolder)
+        jsonObject.addProperty("note", transferQRData.note)
+        transferQRData.extraData?.let { addExtraData(jsonObject, it) }
+        jsonObject.addProperty("isShowResult", transferQRData.isShowResult)
+        jsonObject.addProperty("phone", phone)
         return jsonObject
     }
 }
 
 // vi payme
 class OpenMiniAppPayMEData (): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
         return jsonObject
     }
 }
@@ -162,8 +154,8 @@ class OpenMiniAppPayMEData (): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME)
 data class OpenMiniAppOpenData (
     val phone: String,
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.OPEN) {
-    override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
-        jsonObject.put("phone", phone)
+    override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
+        jsonObject.addProperty("phone", phone)
         return jsonObject
     }
 }
@@ -214,4 +206,22 @@ enum class ENV {
 
 enum class Locale {
     vi, en
+}
+
+private fun addExtraData(jsonObject: JsonObject, extraData: Map<String, Any>) {
+    val extraDataObject = JsonObject().apply {
+        extraData.forEach { (key, value) ->
+            when (value) {
+                is Int -> addProperty(key, value)
+                is String -> addProperty(key, value.toString())
+                is Map<*, *> -> add(key, JsonObject().apply {
+                    value.forEach { (nestedKey, nestedValue) ->
+                        addProperty(nestedKey.toString(), nestedValue.toString())
+                    }
+                })
+                else -> addProperty(key, value.toString())
+            }
+        }
+    }
+    jsonObject.add("extraData", extraDataObject)
 }

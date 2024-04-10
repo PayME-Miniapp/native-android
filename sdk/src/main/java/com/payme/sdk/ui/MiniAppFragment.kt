@@ -33,7 +33,8 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
@@ -50,6 +51,15 @@ import org.json.JSONObject
 import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
+
+fun JSONObject.toGsonJsonObject():JsonObject{
+    return JsonParser().parse(this.toString()) as JsonObject
+}
+fun convertJsonObject(orgJsonObject: JSONObject): JsonObject {
+    val gson = Gson()
+    val jsonString = orgJsonObject.toString()
+    return gson.fromJson(jsonString, JsonObject::class.java)
+}
 
 fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
     for (i in 0 until jsonArray.length()) {
@@ -574,35 +584,14 @@ class MiniAppFragment : Fragment() {
 
                         val openMiniAppData = miniappViewModel.openMiniAppData
                         if (openMiniAppData != null) {
-                            Log.d("openMiniAppData11111",
-                                openMiniAppData.toString()
-                            )
-                            val json1: String = Gson().toJson(openMiniAppData)
-                            Log.d("json00000",
-                                json1
-                            )
-
                             val json = openMiniAppData.toJsonData()
-                            val json2 = Gson().toJson(json)
-
-                            if (json2.has("nameValuePairs")) {
-                                // If "nameValuePairs" key is present, remove it
-                                json2.remove("nameValuePairs");
-                            }
-
-                            Log.d("json222222",
-                                Gson().toJson(json).toString()
-                            )
-                            Log.d("json11111",
-                                json.toString()
-                            )
                             val jsonOpenTypeString = JSONObject.quote(openType.toString())
                             activity?.let {
                                 Utils.evaluateJSWebView(
                                     it,
                                     myWebView!!,
                                     "openMiniApp",
-                                    json2.toString(),
+                                    Gson().toJson(json).toString(),
                                     null
                                 )
                                 Utils.evaluateJSWebView(
