@@ -33,6 +33,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
@@ -573,14 +574,35 @@ class MiniAppFragment : Fragment() {
 
                         val openMiniAppData = miniappViewModel.openMiniAppData
                         if (openMiniAppData != null) {
+                            Log.d("openMiniAppData11111",
+                                openMiniAppData.toString()
+                            )
+                            val json1: String = Gson().toJson(openMiniAppData)
+                            Log.d("json00000",
+                                json1
+                            )
+
                             val json = openMiniAppData.toJsonData()
+                            val json2 = Gson().toJson(json)
+
+                            if (json2.has("nameValuePairs")) {
+                                // If "nameValuePairs" key is present, remove it
+                                json2.remove("nameValuePairs");
+                            }
+
+                            Log.d("json222222",
+                                Gson().toJson(json).toString()
+                            )
+                            Log.d("json11111",
+                                json.toString()
+                            )
                             val jsonOpenTypeString = JSONObject.quote(openType.toString())
                             activity?.let {
                                 Utils.evaluateJSWebView(
                                     it,
                                     myWebView!!,
                                     "openMiniApp",
-                                    json.toString(),
+                                    json2.toString(),
                                     null
                                 )
                                 Utils.evaluateJSWebView(
@@ -1422,6 +1444,13 @@ class MiniAppFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         if (miniappViewModel.openMiniAppData != null) {
+//            miniappViewModel.openMiniAppData?.let { openMiniAppData ->
+//                val gson = Gson()
+//                val jsonData = gson.toJson(openMiniAppData.toJsonData())
+//                outState.putString("openMiniAppData", jsonData)
+//            }
+//
+            Log.d("ViewOpenMiniAppData", miniappViewModel.openMiniAppData.toString())
             outState.putString("openMiniAppData", Gson().toJson(miniappViewModel.openMiniAppData))
         }
         Log.d("PAYMELOG", "on onSaveInstanceState" + miniappViewModel.openMiniAppData.toString())
@@ -1439,7 +1468,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
-        internal var loadUrl = ""
+        internal var loadUrl = "https://bd2c-115-79-192-144.ngrok-free.app/"
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 
@@ -1474,7 +1503,7 @@ class MiniAppFragment : Fragment() {
         fun getMiniAppAction(): ActionOpenMiniApp {
             val json = openMiniAppData.toJsonData()
             val jsonObject = JSONObject(json.toString())
-            val actionString = jsonObject?.getString("action")
+            val actionString = jsonObject.getString("action")
 
             return try {
                 ActionOpenMiniApp.valueOf(((actionString ?: ActionOpenMiniApp.PAYME).toString()))

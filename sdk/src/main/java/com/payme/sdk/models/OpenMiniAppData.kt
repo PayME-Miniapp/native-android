@@ -1,5 +1,6 @@
 package com.payme.sdk.models
 
+import android.util.Log
 import com.payme.sdk.PayMEMiniApp
 import org.json.JSONObject
 
@@ -24,6 +25,12 @@ data class OpenMiniAppServiceData (
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.SERVICE) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         jsonObject.put("service", additionalData.service)
+
+        val extraDataJson = additionalData.extraData?.let { extraDataMap ->
+            JSONObject(extraDataMap)
+        }
+        jsonObject.put("extraData", extraDataJson)
+        jsonObject.put("extraData", additionalData.extraData)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
         jsonObject.put("isShowResult", additionalData.isShowResult)
         jsonObject.put("phone", phone)
@@ -50,6 +57,7 @@ data class OpenMiniAppDepositData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("extraData", additionalData.extraData)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
         jsonObject.put("isShowResult", additionalData.isShowResult)
         return jsonObject
@@ -65,6 +73,7 @@ data class OpenMiniAppWithdrawData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("extraData", additionalData.extraData)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
         jsonObject.put("isShowResult", additionalData.isShowResult)
         return jsonObject
@@ -80,6 +89,7 @@ data class OpenMiniAppTransferData (
         jsonObject.put("description", additionalData.description)
         jsonObject.put("amount", additionalData.amount)
         jsonObject.put("phone", phone)
+        jsonObject.put("extraData", additionalData.extraData)
         jsonObject.put("isBackToApp", additionalData.isBackToApp)
         jsonObject.put("isShowResult", additionalData.isShowResult)
         return jsonObject
@@ -97,6 +107,7 @@ data class OpenMiniAppPaymentData (
         jsonObject.put("phone", phone)
         jsonObject.put("note", paymentData.note)
         jsonObject.put("ipnUrl", paymentData.ipnUrl)
+        jsonObject.put("extraData", paymentData.extraData)
         jsonObject.put("isShowResult", paymentData.isShowResult)
         return jsonObject
     }
@@ -109,6 +120,7 @@ data class OpenMiniAppPaymentDirectData (
 ): OpenMiniAppDataInterface(ActionOpenMiniApp.PAYMENT) {
     override fun appendAdditionalData(jsonObject: JSONObject): JSONObject {
         jsonObject.put("transaction", paymentDirectData.transaction)
+        jsonObject.put("extraData", paymentDirectData.extraData)
         jsonObject.put("isShowResult", paymentDirectData.isShowResult)
         jsonObject.put("phone", phone)
         return jsonObject
@@ -126,6 +138,13 @@ data class OpenMiniAppTransferQRData (
         jsonObject.put("swiftCode", transferQRData.swiftCode)
         jsonObject.put("cardHolder", transferQRData.cardHolder)
         jsonObject.put("note", transferQRData.note)
+        val extraDataJson = transferQRData.extraData?.let { extraDataMap ->
+            JSONObject(extraDataMap)
+        }
+        Log.d("transferQRData", transferQRData.extraData.toString())
+        Log.d("extraDataJson", extraDataJson.toString())
+        jsonObject.put("extraData", extraDataJson)
+        jsonObject.put("extraData", transferQRData.extraData)
         jsonObject.put("isShowResult", transferQRData.isShowResult)
         jsonObject.put("phone", phone)
         return jsonObject
@@ -154,11 +173,13 @@ data class PaymentData(
     val amount: Int,
     val note: String?,
     val ipnUrl: String?,
+    val extraData: Map<String, Any>?,
     val isShowResult: Boolean?
 )
 
 data class PaymentDirectData(
     val transaction: String,
+    val extraData: Map<String, Any>?,
     val isShowResult: Boolean?
 )
 
@@ -168,18 +189,21 @@ data class TransferQRData(
     val swiftCode: String,
     val cardHolder: String,
     val note: String?,
+    val extraData: Map<String, Any>?,
     val isShowResult: Boolean?
 )
 
 data class DepositWithdrawTransferData(
     val description: String?,
     val amount: Int?,
+    val extraData: Map<String, Any>?,
     val isBackToApp: Boolean?,
     val isShowResult: Boolean?
 )
 
 data class ServiceData(
     val service: String,
+    val extraData: Map<String, Any>?,
     val isBackToApp: Boolean?,
     val isShowResult: Boolean?
 )
