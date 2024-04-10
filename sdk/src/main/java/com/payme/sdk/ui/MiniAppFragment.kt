@@ -9,7 +9,11 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Rect
-import android.net.*
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -17,7 +21,16 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.*
+import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
+import android.webkit.WebStorage
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -33,17 +46,24 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
-import com.payme.sdk.models.*
+import com.payme.sdk.models.ActionOpenMiniApp
+import com.payme.sdk.models.OpenMiniAppDataInterface
+import com.payme.sdk.models.OpenMiniAppType
+import com.payme.sdk.models.PayMEError
+import com.payme.sdk.models.PayMEErrorType
+import com.payme.sdk.models.PayMEVersion
 import com.payme.sdk.utils.DeviceTypeResolver
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.Utils
-import com.payme.sdk.viewmodels.*
+import com.payme.sdk.viewmodels.DeepLinkViewModel
+import com.payme.sdk.viewmodels.MiniappViewModel
+import com.payme.sdk.viewmodels.NotificationViewModel
+import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
+import com.payme.sdk.viewmodels.SubWebViewViewModel
 import com.payme.sdk.webServer.JavaScriptInterface
 import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
@@ -51,15 +71,6 @@ import org.json.JSONObject
 import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
-
-fun JSONObject.toGsonJsonObject():JsonObject{
-    return JsonParser().parse(this.toString()) as JsonObject
-}
-fun convertJsonObject(orgJsonObject: JSONObject): JsonObject {
-    val gson = Gson()
-    val jsonString = orgJsonObject.toString()
-    return gson.fromJson(jsonString, JsonObject::class.java)
-}
 
 fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
     for (i in 0 until jsonArray.length()) {
@@ -1440,13 +1451,6 @@ class MiniAppFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         if (miniappViewModel.openMiniAppData != null) {
-//            miniappViewModel.openMiniAppData?.let { openMiniAppData ->
-//                val gson = Gson()
-//                val jsonData = gson.toJson(openMiniAppData.toJsonData())
-//                outState.putString("openMiniAppData", jsonData)
-//            }
-//
-            Log.d("ViewOpenMiniAppData", miniappViewModel.openMiniAppData.toString())
             outState.putString("openMiniAppData", Gson().toJson(miniappViewModel.openMiniAppData))
         }
         Log.d("PAYMELOG", "on onSaveInstanceState" + miniappViewModel.openMiniAppData.toString())
