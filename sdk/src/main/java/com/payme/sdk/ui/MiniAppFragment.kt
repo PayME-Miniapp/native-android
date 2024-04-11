@@ -1468,7 +1468,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
-        internal var loadUrl = "https://bd2c-115-79-192-144.ngrok-free.app/"
+        internal var loadUrl = ""
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 
