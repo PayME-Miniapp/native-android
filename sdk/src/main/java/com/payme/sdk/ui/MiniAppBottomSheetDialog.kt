@@ -26,7 +26,6 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         dialog.setOnShowListener {
             val bottomSheetDialog = it as BottomSheetDialog
             bottomSheetDialog.setOnDismissListener {
-                Log.d(PayMEMiniApp.TAG, "lụm")
                 val action = MiniAppFragment.getMiniAppAction()
                 PayMEMiniApp.onError(action, PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", "User đóng PayMEMiniApp"))
             }

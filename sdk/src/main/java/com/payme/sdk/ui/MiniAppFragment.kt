@@ -709,7 +709,7 @@ class MiniAppFragment : Fragment() {
                 openWebView = { data: String -> openWebView(data) },
                 onSuccess = { data: String -> returnSuccess(data) },
                 onError = { data: String -> returnError(data) },
-                closeMiniApp = { closeMiniApp() },
+                closeMiniApp = { forceCloseMiniApp() },
                 openUrl = { data: String -> openUrl(data) },
                 saveQR = { data: String -> saveQR(data) },
                 changeEnv = { data: String -> changeEnv(data) },
@@ -916,7 +916,11 @@ class MiniAppFragment : Fragment() {
     private fun returnSuccess(data: String) {
         try {
             val json = JSONObject(data)
-            PayMEMiniApp.onResponse(MiniAppFragment.openMiniAppData.action, json)
+            PayMEMiniApp.onResponse(openMiniAppData.action, json)
+            val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
+            if (isCloseMiniApp) {
+                closeMiniApp()
+            }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "miniapp returnSuccess: ${e.message} ")
         }
@@ -929,26 +933,31 @@ class MiniAppFragment : Fragment() {
             val description = json.optString("description", "")
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
             PayMEMiniApp.onError(
-                MiniAppFragment.openMiniAppData.action,
+                openMiniAppData.action,
                 PayMEError(PayMEErrorType.MiniApp, code, description)
             )
             if (isCloseMiniApp) {
-                closeMiniApp("ERROR_CANCEL", description)
+                closeMiniApp()
             }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "miniapp returnError: ${e.message} ")
         }
     }
 
-    private fun closeMiniApp(
-        code: String = "USER_CANCEL",
-        description: String = "User đóng PayMEMiniApp"
-    ) {
+    private fun closeMiniApp() {
         if (openType == OpenMiniAppType.modal) {
-            PayMEMiniApp.onError(
-                ActionOpenMiniApp.OPEN,
-                PayMEError(PayMEErrorType.UserCancel, code, description)
-            )
+            MiniAppFragment.closeMiniApp()
+        } else if (openType == OpenMiniAppType.screen) {
+            (requireContext() as Activity).finish()
+        }
+    }
+
+    private fun forceCloseMiniApp() {
+        PayMEMiniApp.onError(
+            openMiniAppData.action,
+            PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", "User đóng PayMEMiniApp")
+        )
+        if (openType == OpenMiniAppType.modal) {
             MiniAppFragment.closeMiniApp()
         } else if (openType == OpenMiniAppType.screen) {
             (requireContext() as Activity).finish()
@@ -1468,7 +1477,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
-        internal var loadUrl = "https://bd2c-115-79-192-144.ngrok-free.app/"
+        internal var loadUrl = ""
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 
