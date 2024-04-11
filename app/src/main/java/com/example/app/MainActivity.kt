@@ -12,9 +12,11 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.ENV
 import com.payme.sdk.models.Locale
+import com.payme.sdk.models.OpenMiniAppPaymentData
 import com.payme.sdk.models.OpenMiniAppTransferQRData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
+import com.payme.sdk.models.PaymentData
 import com.payme.sdk.models.TransferQRData
 import org.json.JSONObject
 
@@ -136,8 +138,6 @@ class MainActivity : AppCompatActivity() {
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
-//        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
-
         openSdkButton.setOnClickListener {
             payMEMiniApp!!.getBalance("0795550300")
             payMEMiniApp!!.getAccountInformation("0795550300")
@@ -147,21 +147,23 @@ class MainActivity : AppCompatActivity() {
 //                )
 //            )
 
-            payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.modal,  OpenMiniAppTransferQRData("0795550300",
-                    TransferQRData(amount = 20000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", extraData = mapOf(
-                        "key1" to "value1",
-                        "key2" to 123,
-                        "key3" to mapOf("street" to "123 Main St",
-                            "city" to "New York",
-                            "country" to "USA",
-                            "abc" to mapOf(
-                                "aa" to "1111"
-                            )
-                        )
-                    ), isShowResult = true)
-                )
-            )
+//            payMEMiniApp!!.openMiniApp(
+//                OpenMiniAppType.modal,  OpenMiniAppTransferQRData("0795550300",
+//                    TransferQRData(amount = 20000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", extraData = mapOf(
+//                        "key1" to "value1",
+//                        "key2" to 123,
+//                        "key3" to mapOf("street" to "123 Main St",
+//                            "city" to "New York",
+//                            "country" to "USA",
+//                            "abc" to mapOf(
+//                                "aa" to "1111"
+//                            )
+//                        )
+//                    ), isShowResult = true)
+//                )
+//            )
+
+//            payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPaymentData(phone = "0347665645", PaymentData("23423423", 20000,"","",null,true)))
 
 //            payMEMiniApp!!.openMiniApp(
 //                OpenMiniAppType.modal,  OpenMiniAppPaymentData("0795550301",
