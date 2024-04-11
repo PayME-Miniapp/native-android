@@ -1,10 +1,7 @@
 package com.payme.sdk.models
 
-import android.util.Log
-import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.payme.sdk.PayMEMiniApp
-import org.json.JSONObject
 
 abstract class OpenMiniAppDataInterface (open val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME) {
     fun toJsonData(): JsonObject {
@@ -211,17 +208,25 @@ enum class Locale {
 private fun addExtraData(jsonObject: JsonObject, extraData: Map<String, Any>) {
     val extraDataObject = JsonObject().apply {
         extraData.forEach { (key, value) ->
-            when (value) {
-                is Int -> addProperty(key, value)
-                is String -> addProperty(key, value.toString())
-                is Map<*, *> -> add(key, JsonObject().apply {
-                    value.forEach { (nestedKey, nestedValue) ->
-                        addProperty(nestedKey.toString(), nestedValue.toString())
-                    }
-                })
-                else -> addProperty(key, value.toString())
-            }
+            addPropertyRecursively(this, key, value)
         }
     }
     jsonObject.add("extraData", extraDataObject)
+}
+private fun addPropertyRecursively(jsonObject: JsonObject, key: String, value: Any) {
+    when (value) {
+        is Boolean -> jsonObject.addProperty(key, value)
+        is Int -> jsonObject.addProperty(key, value)
+        is String -> jsonObject.addProperty(key, value)
+        is Map<*, *> -> {
+            val nestedObject = JsonObject()
+            value.forEach { (nestedKey, nestedValue) ->
+                if (nestedKey is String && nestedValue != null) {
+                    addPropertyRecursively(nestedObject, nestedKey, nestedValue)
+                }
+            }
+            jsonObject.add(key, nestedObject)
+        }
+        else -> jsonObject.addProperty(key, value.toString())
+    }
 }

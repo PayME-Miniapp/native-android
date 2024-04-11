@@ -12,9 +12,11 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.ENV
 import com.payme.sdk.models.Locale
+import com.payme.sdk.models.OpenMiniAppPaymentData
 import com.payme.sdk.models.OpenMiniAppTransferQRData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
+import com.payme.sdk.models.PaymentData
 import com.payme.sdk.models.TransferQRData
 import org.json.JSONObject
 
@@ -133,8 +135,6 @@ class MainActivity : AppCompatActivity() {
 
         payMEMiniApp!!.setMode("miniapp_sandbox")
 //        payMEMiniApp!!.setLanguage(locale)
-
-//        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
