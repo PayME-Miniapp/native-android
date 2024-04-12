@@ -934,7 +934,7 @@ class MiniAppFragment : Fragment() {
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
             PayMEMiniApp.onError(
                 openMiniAppData.action,
-                PayMEError(PayMEErrorType.MiniApp, code, description)
+                PayMEError(PayMEErrorType.MiniApp, code, description, isCloseMiniApp)
             )
             if (isCloseMiniApp) {
                 closeMiniApp()
@@ -1477,7 +1477,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
-        internal var loadUrl = ""
+        internal var loadUrl = "https://3486-113-161-36-155.ngrok-free.app/"
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 

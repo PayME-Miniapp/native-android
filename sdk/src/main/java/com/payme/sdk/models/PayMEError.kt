@@ -1,21 +1,25 @@
 package com.payme.sdk.models
 
-class PayMEError(type: PayMEErrorType, code: String, description: String = "Có lỗi xảy ra") {
+class PayMEError(type: PayMEErrorType, code: String, description: String = "Có lỗi xảy ra", isCloseMiniApp: Boolean = false) {
     val code: String
     val description: String
+    val isCloseMiniApp: Boolean
     init {
         when (type) {
             PayMEErrorType.MiniApp -> {
                 this.code = code
                 this.description = description
+                this.isCloseMiniApp = isCloseMiniApp
             }
             PayMEErrorType.UserCancel -> {
                 this.code = "USER_CANCEL"
                 this.description = "Người dùng đóng PayMEMiniApp"
+                this.isCloseMiniApp = isCloseMiniApp
             }
             PayMEErrorType.Network -> {
                 this.code = code
                 this.description = getPayMENetworkErrorDescription(code)
+                this.isCloseMiniApp = isCloseMiniApp
             }
         }
     }
