@@ -149,7 +149,7 @@ class MainActivity : AppCompatActivity() {
 
             payMEMiniApp!!.openMiniApp(
                 OpenMiniAppType.modal,  OpenMiniAppTransferQRData("0795550300",
-                    TransferQRData(amount = 2000000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", extraData = mapOf(
+                    TransferQRData(amount = 2000000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", partnerTransaction = "123456", extraData = mapOf(
                         "key1" to "value1",
                         "key2" to 123,
                         "key3" to mapOf("street" to "123 Main St",

@@ -133,6 +133,7 @@ data class OpenMiniAppTransferQRData (
         jsonObject.addProperty("swiftCode", transferQRData.swiftCode)
         jsonObject.addProperty("cardHolder", transferQRData.cardHolder)
         jsonObject.addProperty("note", transferQRData.note)
+        jsonObject.addProperty("partnerTransaction", transferQRData.partnerTransaction)
         transferQRData.extraData?.let { addExtraData(jsonObject, it) }
         jsonObject.addProperty("isShowResult", transferQRData.isShowResult)
         jsonObject.addProperty("phone", phone)
@@ -178,6 +179,7 @@ data class TransferQRData(
     val swiftCode: String,
     val cardHolder: String,
     val note: String?,
+    val partnerTransaction: String?,
     val extraData: Map<String, Any>?,
     val isShowResult: Boolean?
 )
