@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,7 +26,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
             val bottomSheetDialog = it as BottomSheetDialog
             bottomSheetDialog.setOnDismissListener {
                 val action = MiniAppFragment.getMiniAppAction()
-                PayMEMiniApp.onError(action, PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", "User đóng PayMEMiniApp"))
+                PayMEMiniApp.onError(action, PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", "User đóng PayMEMiniApp"))
             }
             val parentLayout =
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
