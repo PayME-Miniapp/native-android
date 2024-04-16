@@ -447,14 +447,13 @@ class MiniAppFragment : Fragment() {
             }
             val r = Rect()
             rootView!!.getWindowVisibleDisplayFrame(r)
-//            val modalHeightDifference =
-//                if (openType === OpenMiniAppType.modal) (resources.displayMetrics.heightPixels * 0.05).toInt()
-//                else 0
+
             val screenHeight: Int = rootView!!.rootView.height
             val heightDiff: Int = screenHeight - r.bottom
+            val navigationBarHeight = Utils.getSoftNavigationHeight(requireContext())
 
             if (heightDiff > 100) {
-                val height = Utils.pxToDp(requireContext(), heightDiff)
+                val height = Utils.pxToDp(requireContext(), heightDiff + navigationBarHeight)
                 activity?.let {
                     Utils.evaluateJSWebView(
                         it,
