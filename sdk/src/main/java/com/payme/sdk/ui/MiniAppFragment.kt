@@ -948,6 +948,7 @@ class MiniAppFragment : Fragment() {
             MiniAppFragment.closeMiniApp()
         } else if (openType == OpenMiniAppType.screen) {
             (requireContext() as Activity).finish()
+            MiniAppFragment.closeMiniApp()
         }
     }
 
@@ -956,11 +957,7 @@ class MiniAppFragment : Fragment() {
             openMiniAppData.action,
             PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", "User đóng PayMEMiniApp")
         )
-        if (openType == OpenMiniAppType.modal) {
-            MiniAppFragment.closeMiniApp()
-        } else if (openType == OpenMiniAppType.screen) {
-            (requireContext() as Activity).finish()
-        }
+        closeMiniApp()
     }
 
     private fun openUrl(data: String) {

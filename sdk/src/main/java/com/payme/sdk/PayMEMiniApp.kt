@@ -1,10 +1,8 @@
 package com.payme.sdk
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import android.webkit.WebView
 import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.models.*
 import com.payme.sdk.presentation.AccountPresentation
@@ -19,8 +17,8 @@ class PayMEMiniApp(
     appId: String,
     publicKey: String,
     privateKey: String,
-    env: ENV ?= ENV.PRODUCTION,
-    locale: Locale ?= Locale.vi
+    env: ENV? = ENV.PRODUCTION,
+    locale: Locale? = Locale.vi
 ) {
     companion object {
         var TAG: String = "PAYMELOG"
@@ -39,6 +37,7 @@ class PayMEMiniApp(
             "miniapp_product" //miniapp_product, miniapp_sandbox, miniapp_staging, pm_product, pm_staging, pm_sandbox, bank
         internal var onChangeEnv: ((String) -> Unit)? = null
         internal var onChangeLocale: ((String) -> Unit)? = null
+        internal var isOpen = false
     }
 
     init {
@@ -89,7 +88,9 @@ class PayMEMiniApp(
     }
 
     fun close() {
-        MiniAppFragment.closeMiniApp()
+        if (isOpen) {
+            MiniAppFragment.closeMiniApp()
+        }
     }
 
     fun openMiniApp(
@@ -97,12 +98,14 @@ class PayMEMiniApp(
         openMiniAppData: OpenMiniAppDataInterface,
     ) {
         try {
+            isOpen = true
             if (openType == OpenMiniAppType.modal) {
                 val modal = MiniAppBottomSheetDialog()
                 MiniAppFragment.openType = openType
                 MiniAppFragment.openMiniAppData = openMiniAppData
                 MiniAppFragment.closeMiniApp = {
                     modal.dismiss()
+                    isOpen = false
                 }
                 modal.show((context as FragmentActivity).supportFragmentManager, null)
                 return
@@ -110,12 +113,16 @@ class PayMEMiniApp(
             if (openType == OpenMiniAppType.screen) {
                 MiniAppFragment.openType = openType
                 MiniAppFragment.openMiniAppData = openMiniAppData
+                MiniAppFragment.closeMiniApp = {
+                    isOpen = false
+                }
                 val intent = Intent(context, MiniAppActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
                 return
             }
         } catch (e: Exception) {
+            isOpen = false
             Log.d(TAG, "ex cast: ${e.message}")
         }
     }
