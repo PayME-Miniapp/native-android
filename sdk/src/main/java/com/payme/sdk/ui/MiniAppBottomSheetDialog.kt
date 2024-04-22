@@ -26,6 +26,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
             val bottomSheetDialog = it as BottomSheetDialog
             bottomSheetDialog.setOnDismissListener {
                 val action = MiniAppFragment.getMiniAppAction()
+                MiniAppFragment.closeMiniApp()
                 PayMEMiniApp.onError(action, PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", "User đóng PayMEMiniApp"))
             }
             val parentLayout =
