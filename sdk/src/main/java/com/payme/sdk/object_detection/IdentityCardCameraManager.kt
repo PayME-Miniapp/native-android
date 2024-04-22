@@ -8,14 +8,17 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
+import android.view.Surface.ROTATION_0
 import android.view.View
 import android.widget.ImageView
 import androidx.annotation.RequiresApi
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
+import androidx.camera.core.impl.ImageOutputConfig.RotationValue
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.rotationMatrix
 import androidx.lifecycle.LifecycleOwner
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.camerax.GraphicOverlay
@@ -54,27 +57,28 @@ class IdentityCardCameraManager(
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
+    @RequiresApi(Build.VERSION_CODES.R)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
-                val display = finderView.display
-                val metrics = DisplayMetrics().also { display.getMetrics(it) }
+                val rotation = context.display?.rotation ?: ROTATION_0
+                val metrics = context.resources.displayMetrics
+
                 cameraProvider = cameraProviderFuture.get()
                 preview = Preview.Builder()
-                    .setTargetRotation(display.rotation)
+                    .setTargetRotation(rotation)
                     .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
                     .build()
 
                 imageCapture = ImageCapture.Builder()
-                    .setTargetRotation(display.rotation)
+                    .setTargetRotation(rotation)
                     .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
                     .setCaptureMode(CAPTURE_MODE_MAXIMIZE_QUALITY)
                     .build()
 
                 imageAnalyzer = ImageAnalysis.Builder()
-                    .setTargetRotation(display.rotation)
+                    .setTargetRotation(rotation)
                     .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
@@ -107,16 +111,16 @@ class IdentityCardCameraManager(
         cameraProvider: ProcessCameraProvider?,
         cameraSelector: CameraSelector
     ) {
-
-        val useCaseGroup = UseCaseGroup.Builder()
-            .addUseCase(preview!!)
-            .addUseCase(imageAnalyzer!!)
-            .addUseCase(imageCapture!!)
-            .setViewPort(finderView.viewPort!!)
-            .build()
-
+        finderView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         try {
             cameraProvider?.unbindAll()
+
+            val useCaseGroup = UseCaseGroup.Builder()
+                .addUseCase(preview!!)
+                .addUseCase(imageAnalyzer!!)
+                .addUseCase(imageCapture!!)
+                .setViewPort(finderView.viewPort!!)
+                .build()
 
             camera = cameraProvider?.bindToLifecycle(lifecycleOwner, cameraSelector, useCaseGroup)
             preview?.setSurfaceProvider(
