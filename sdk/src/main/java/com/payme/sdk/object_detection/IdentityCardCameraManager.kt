@@ -112,8 +112,8 @@ class IdentityCardCameraManager(
         cameraProvider: ProcessCameraProvider?,
         cameraSelector: CameraSelector
     ) {
-        finderView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         try {
+            finderView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
             cameraProvider?.unbindAll()
 
             val useCaseGroup = UseCaseGroup.Builder()
