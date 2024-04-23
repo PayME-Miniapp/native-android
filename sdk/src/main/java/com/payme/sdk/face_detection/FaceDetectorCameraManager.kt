@@ -116,14 +116,15 @@ class FaceDetectorCameraManager(
             })
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.N)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
-                val display = finderView?.display ?: context.display
-                val rotation = display?.rotation ?: Surface.ROTATION_0
+                val display = finderView.display
+                val rotation = display.rotation
                 val metrics = DisplayMetrics().also { display?.getMetrics(it) }
+                cameraProvider = cameraProviderFuture.get()
 
                 preview = Preview.Builder()
                     .setTargetRotation(rotation)
