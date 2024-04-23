@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
+import android.view.Surface
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.camera.core.*
@@ -115,27 +116,28 @@ class FaceDetectorCameraManager(
             })
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
+    @RequiresApi(Build.VERSION_CODES.R)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
-                val display = finderView.display
-                val metrics = DisplayMetrics().also { display.getMetrics(it) }
-                cameraProvider = cameraProviderFuture.get()
+                val display = finderView?.display ?: context.display
+                val rotation = display?.rotation ?: Surface.ROTATION_0
+                val metrics = DisplayMetrics().also { display?.getMetrics(it) }
+
                 preview = Preview.Builder()
-                    .setTargetRotation(display.rotation)
+                    .setTargetRotation(rotation)
                     .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
                     .build()
 
                 imageCapture = ImageCapture.Builder()
-                    .setTargetRotation(display.rotation)
+                    .setTargetRotation(rotation)
                     .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                     .build()
 
                 imageAnalyzer = ImageAnalysis.Builder()
-                    .setTargetRotation(display.rotation)
+                    .setTargetRotation(rotation)
                     .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()

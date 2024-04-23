@@ -62,8 +62,9 @@ class IdentityCardCameraManager(
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
-                val rotation = context.display?.rotation ?: ROTATION_0
-                val metrics = context.resources.displayMetrics
+                val display = finderView?.display ?: context.display
+                val rotation = display?.rotation ?: ROTATION_0
+                val metrics = DisplayMetrics().also { display?.getMetrics(it) }
 
                 cameraProvider = cameraProviderFuture.get()
                 preview = Preview.Builder()
