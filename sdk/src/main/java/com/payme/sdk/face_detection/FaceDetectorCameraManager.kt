@@ -8,7 +8,6 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
-import android.view.Surface
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.camera.core.*

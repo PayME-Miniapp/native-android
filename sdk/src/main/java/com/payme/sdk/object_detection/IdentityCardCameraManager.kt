@@ -8,17 +8,14 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
-import android.view.Surface.ROTATION_0
 import android.view.View
 import android.widget.ImageView
 import androidx.annotation.RequiresApi
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
-import androidx.camera.core.impl.ImageOutputConfig.RotationValue
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.rotationMatrix
 import androidx.lifecycle.LifecycleOwner
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.camerax.GraphicOverlay
@@ -57,13 +54,13 @@ class IdentityCardCameraManager(
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
+    @RequiresApi(Build.VERSION_CODES.N)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
-                val display = finderView?.display ?: context.display
-                val rotation = display?.rotation ?: ROTATION_0
+                val display = finderView.display
+                val rotation = display.rotation
                 val metrics = DisplayMetrics().also { display?.getMetrics(it) }
 
                 cameraProvider = cameraProviderFuture.get()

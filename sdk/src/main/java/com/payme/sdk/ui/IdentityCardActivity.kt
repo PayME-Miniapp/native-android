@@ -10,11 +10,11 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.R
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.object_detection.IdentityCardActiveFrame
@@ -25,7 +25,7 @@ import com.payme.sdk.viewmodels.IdentityCardViewModel
 import java.util.*
 import kotlin.concurrent.schedule
 
-class IdentityCardActivity : AppCompatActivity() {
+class IdentityCardActivity : FragmentActivity() {
     private lateinit var cameraManager: IdentityCardCameraManager
     private lateinit var preview: PreviewView
     private lateinit var buttonBack: ImageView
@@ -136,7 +136,6 @@ class IdentityCardActivity : AppCompatActivity() {
             finish()
         }
     }
-
     override fun onDestroy() {
         super.onDestroy()
         timer.cancel()
