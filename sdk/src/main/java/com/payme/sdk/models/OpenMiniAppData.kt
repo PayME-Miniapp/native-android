@@ -207,6 +207,21 @@ enum class Locale {
     vi, en
 }
 
+fun getPhoneFromOpenMiniAppData(openMiniAppData: OpenMiniAppDataInterface): String? {
+    return when (openMiniAppData) {
+        is OpenMiniAppServiceData -> openMiniAppData.phone
+        is OpenMiniAppKYCData -> openMiniAppData.phone
+        is OpenMiniAppDepositData -> openMiniAppData.phone
+        is OpenMiniAppWithdrawData -> openMiniAppData.phone
+        is OpenMiniAppTransferData -> openMiniAppData.phone
+        is OpenMiniAppPaymentData -> openMiniAppData.phone
+        is OpenMiniAppPaymentDirectData -> openMiniAppData.phone
+        is OpenMiniAppTransferQRData -> openMiniAppData.phone
+        is OpenMiniAppOpenData -> openMiniAppData.phone
+        else -> null
+    }
+}
+
 private fun addExtraData(jsonObject: JsonObject, extraData: Map<String, Any>) {
     val extraDataObject = JsonObject().apply {
         extraData.forEach { (key, value) ->

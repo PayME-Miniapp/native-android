@@ -51,10 +51,12 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.OpenMiniAppDataInterface
+import com.payme.sdk.models.OpenMiniAppKYCData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.PayMEVersion
+import com.payme.sdk.models.getPhoneFromOpenMiniAppData
 import com.payme.sdk.utils.DeviceTypeResolver
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.PermissionCameraUtil
@@ -82,8 +84,7 @@ fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
     return false
 }
 
-class BackPressCallback(private val fragment: MiniAppFragment) :
-    OnBackPressedCallback(true) {
+class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCallback(true) {
     override fun handleOnBackPressed() {
         Log.d(PayMEMiniApp.TAG, "onBackPressed Called")
         val myWebView = fragment.view?.findViewById<WebView>(R.id.webview)
@@ -1174,8 +1175,31 @@ class MiniAppFragment : Fragment() {
         }
     }
 
+    private fun reStartWithScreen() {
+        closeMiniApp()
+
+        val payMEMiniApp = PayMEMiniApp(
+            requireContext(),
+            PayMEMiniApp.appId,
+            PayMEMiniApp.publicKey,
+            PayMEMiniApp.privateKey,
+            PayMEMiniApp.env
+        )
+        val phone = getPhoneFromOpenMiniAppData(openMiniAppData)
+        phone?.let {
+            payMEMiniApp.openMiniApp(
+                OpenMiniAppType.screen, OpenMiniAppKYCData(it)
+            )
+        }
+    }
+
     private fun startCardKyc(data: String) {
         try {
+            if (openType == OpenMiniAppType.modal) {
+                reStartWithScreen()
+                return
+            }
+
             val json = JSONObject(data)
             paramsKyc = json
             when {
