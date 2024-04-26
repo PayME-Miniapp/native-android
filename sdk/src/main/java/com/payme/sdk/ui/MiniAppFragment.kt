@@ -239,8 +239,8 @@ class MiniAppFragment : Fragment() {
         deviceInfo.put("systemName", "Android")
         deviceInfo.put("systemVersion", Build.VERSION.RELEASE)
         deviceInfo.put("deviceType", DeviceTypeResolver(requireContext()).deviceType.value)
-
         deviceInfo.put("insets", insets)
+        deviceInfo.put("miniAppVersion", BuildConfig.SDK_VERSION)
 
         val biometric = JSONObject()
         biometric.put("isSupport", Utils.isBiometricReady(requireContext()))
