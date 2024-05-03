@@ -12,6 +12,7 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.ENV
 import com.payme.sdk.models.Locale
+import com.payme.sdk.models.OpenMiniAppPayMEData
 import com.payme.sdk.models.OpenMiniAppPaymentData
 import com.payme.sdk.models.OpenMiniAppTransferQRData
 import com.payme.sdk.models.OpenMiniAppType
@@ -61,13 +62,13 @@ class MainActivity : AppCompatActivity() {
 //            ENV.DEV,
 //        )
 
-       payMEMiniApp = PayMEMiniApp(
-           this,
-           "250069027220",
-           """-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCp\nGMGpOd6fc/dFkqIkNBDHoTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQ==\n-----END PUBLIC KEY-----""",
-           """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCpGMGpOd6fc/dFkqIkNBDH\noTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQJAUlyxGfjnJBqZvRPTQ77y\n9cWWJjr/mxtr6HJwy7uSnvgNRY1zfpRLccR4NvMS7LtgK47sx1vJmCOgtVCGwCVU\nUQIhALlGTGM1Q4E5L2xCX0SfCY6vdKOdwvD5NyaUSP7ZJVf/AiEAsYXYoEApSorj\ntLg4JjLJhpE8H8Lf6o1AFpX9g83aNbkCICRY1zmLRIAAcP5DEx+KN7zHTRGgLJNL\nwPcPljZw8TOPAiEAg1P0XSD6KwYyzEgYadHamm2pIAoHorpaNhtCEBbinikCIFtk\n7by4tboFtUkXf7X+/Y1jX1owrT4xDO2sBKrUs/9F\n-----END RSA PRIVATE KEY-----""",
-           ENV.SANDBOX,
-       )
+//       payMEMiniApp = PayMEMiniApp(
+//           this,
+//           "143090043042",
+//           """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK//Ost3vYkmPXuAlIf0jVnfJjVraljwgY52hx6I1R3de1zLxIMOZPIYaDa+yxuMyyxNy/iDqcnE5GbKh/GHdn8CAwEAAQ==-----END PUBLIC KEY-----""",
+//           """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBALnXgEAHajptceS3CA1PZVCypx4tkNTUdRsY+vgCwkzx21Qj/7g9FV7sVRvivUZ4mt/zbAHQtc5gm1bMIQZJa9UCAwEAAQJADH/qKGRXSMbDulZ1PC/y6JKbmvQFocsIdWIgvz2wQ+yDKfgwIWH9qP17dMvwUfd01dNai/LtK4IQNdLs+C3EAQIhAOYKusFQRcsCYauMcBXMfU6Ov7Byeam5g93AWyXRMUH1AiEAzs/0CkdR8emZvHocZ3tjcLbwzqZArlI8O/fTx+uG9mECIQCRI7Hi6Aew50bCWrAZQNTKrMwKwp86U578WTHo8Uy3xQIgMWu2SKKEbYfCKi0QDpaIy82bu/Y0rLOQG1B8tmCNLuECIFBKEdpz9mhjTDmL6yEyewBFWaD+GyY2C4WvvTI+N8tk-----END RSA PRIVATE KEY-----""",
+//           ENV.SANDBOX,
+//       )
 
 //          payMEMiniApp = PayMEMiniApp(
 //              this,
@@ -77,13 +78,13 @@ class MainActivity : AppCompatActivity() {
 //              ENV.STAGING,
 //          )
 
-//         payMEMiniApp = PayMEMiniApp(
-//             this,
-//             "app",
-//             """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQ==-----END PUBLIC KEY-----""",
-//             """-----BEGIN RSA PRIVATE KEY-----MIIBPAIBAAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQJBAJSfTrSCqAzyAo59Ox+mQ1ZdsYWBhxc2084DwTHM8QN/TZiyF4fbVYtjvyhG8ydJ37CiG7d9FY1smvNG3iDC\ndwECIQDygv2UOuR1ifLTDo4YxOs2cK3+dAUy6s54mSuGwUeo4QIhAK7SiYDyGwGoCwqjOdgOsQkJTGoUkDs8MST0MtmPAAs9AiEAjLT1/nBhJ9V/X3f9eF+g/bhJK+8TKSTV4WE1wP0Z3+ECIA9E3DWi77DpWG2JbBfu0I+VfFMXkLFbxH8RxQ8zajGRAiEA8Ly1xJ7UW3up25h9aa9SILBpGqWtJlNQgfVKBoabzsU=-----END RSA PRIVATE KEY-----""",
-//             ENV.SANDBOX,
-//         )
+         payMEMiniApp = PayMEMiniApp(
+             this,
+             "app",
+             """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQ==-----END PUBLIC KEY-----""",
+             """-----BEGIN RSA PRIVATE KEY-----MIIBPAIBAAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQJBAJSfTrSCqAzyAo59Ox+mQ1ZdsYWBhxc2084DwTHM8QN/TZiyF4fbVYtjvyhG8ydJ37CiG7d9FY1smvNG3iDC\ndwECIQDygv2UOuR1ifLTDo4YxOs2cK3+dAUy6s54mSuGwUeo4QIhAK7SiYDyGwGoCwqjOdgOsQkJTGoUkDs8MST0MtmPAAs9AiEAjLT1/nBhJ9V/X3f9eF+g/bhJK+8TKSTV4WE1wP0Z3+ECIA9E3DWi77DpWG2JbBfu0I+VfFMXkLFbxH8RxQ8zajGRAiEA8Ly1xJ7UW3up25h9aa9SILBpGqWtJlNQgfVKBoabzsU=-----END RSA PRIVATE KEY-----""",
+             ENV.SANDBOX,
+         )
 
         payMEMiniApp!!.setUpListener(
             onResponse = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
@@ -133,7 +134,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        payMEMiniApp!!.setMode("miniapp_sandbox")
+        payMEMiniApp!!.setMode("pm_sandbox")
 //        payMEMiniApp!!.setLanguage(locale)
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
@@ -147,25 +148,25 @@ class MainActivity : AppCompatActivity() {
 //                )
 //            )
 
-            payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.modal,  OpenMiniAppTransferQRData("0795550300",
-                    TransferQRData(amount = 2000000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", partnerTransaction = "123456", extraData = mapOf(
-                        "key1" to "value1",
-                        "key2" to 123,
-                        "key3" to mapOf("street" to "123 Main St",
-                            "city" to "New York",
-                            "country" to "USA")
-                    ), isShowResult = true)
-                )
-            )
+//            payMEMiniApp!!.openMiniApp(
+//                OpenMiniAppType.modal,  OpenMiniAppTransferQRData("0567777801",
+//                    TransferQRData(amount = 2000000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", partnerTransaction = "123456", extraData = mapOf(
+//                        "key1" to "value1",
+//                        "key2" to 123,
+//                        "key3" to mapOf("street" to "123 Main St",
+//                            "city" to "New York",
+//                            "country" to "USA")
+//                    ), isShowResult = true)
+//                )
+//            )
 
 //            payMEMiniApp!!.openMiniApp(
 //                OpenMiniAppType.modal,  OpenMiniAppPaymentData("0795550301",
 //                    PaymentData("348115135612", 10000, "", "", true)
 //                )
 //            )
-//             payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayMEData())
-//                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppServiceData("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
+             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+//                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayME("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }
 }
