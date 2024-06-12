@@ -11,7 +11,7 @@ android {
     compileSdk 33
 
     defaultConfig {
-        minSdk 21
+        minSdk 26
         targetSdk 33
         versionCode version_code
         versionName sdk_version
@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.fragment:fragment-ktx:1.5.5'
     implementation 'androidx.appcompat:appcompat:1.5.0'
@@ -59,7 +60,6 @@ dependencies {
     implementation 'com.mixpanel.android:mixpanel-android:7.+'
 
     def camerax_version = "1.1.0-beta01"
-    implementation 'com.google.mlkit:face-detection:16.1.5'
     implementation "androidx.camera:camera-core:${camerax_version}"
     implementation "androidx.camera:camera-camera2:${camerax_version}"
     implementation "androidx.camera:camera-lifecycle:${camerax_version}"
@@ -73,6 +73,33 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    // Network
+    implementation "com.squareup.okhttp3:logging-interceptor:4.5.0"
+    implementation 'com.squareup.okhttp3:okhttp:3.6.0'
+    implementation 'com.squareup.retrofit2:retrofit:2.6.2'
+    implementation 'com.squareup.retrofit2:converter-gson:2.6.2'
+
+    // UI
+    implementation "io.github.chaosleung:pinview:1.4.4"
+    implementation "androidx.window:window-extensions:1.0.0-alpha01"
+    implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.25"
+
+    // liveness & mrz detect
+    implementation "com.google.mlkit:face-detection:16.1.5"
+    implementation "com.google.mlkit:text-recognition:16.0.0"
+
+    implementation "commons-io:commons-io:20030203.000550"
+    implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.25"
+
+    implementation "com.beust:klaxon:5.5"
+    implementation 'de.hdodenhof:circleimageview:3.1.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(":kalapasdk")
+    implementation project(":nfc")
 }
 afterEvaluate {
     publishing {

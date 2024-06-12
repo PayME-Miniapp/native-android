@@ -16,6 +16,7 @@ class JavaScriptInterface(
     val sendNativePreferences: () -> Unit,
     val biometricAuthen: ((String) -> Unit),
     val startCardKyc: ((String) -> Unit),
+    val startKalapaKyc: ((String) -> Unit),
     val startFaceKyc: ((String) -> Unit),
     val openSettings: () -> Unit,
     val share: ((String) -> Unit),
@@ -87,6 +88,12 @@ class JavaScriptInterface(
     public fun jsRequestCardKYC(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsRequestCardKyc: $data")
         startCardKyc(data)
+    }
+
+    @JavascriptInterface
+    public fun jsRequestKalapaKYC(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsRequestKalapaKYC: $data")
+        startKalapaKyc(data)
     }
 
     @JavascriptInterface

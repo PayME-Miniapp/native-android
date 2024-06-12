@@ -16,6 +16,8 @@ import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
@@ -46,10 +48,14 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
+import com.payme.sdk.models.NFCCardData
+import com.payme.sdk.models.NFCResultData
+import com.payme.sdk.models.NFCVerificationData
 import com.payme.sdk.models.OpenMiniAppDataInterface
 import com.payme.sdk.models.OpenMiniAppKYCData
 import com.payme.sdk.models.OpenMiniAppType
@@ -66,13 +72,26 @@ import com.payme.sdk.viewmodels.MiniappViewModel
 import com.payme.sdk.viewmodels.NotificationViewModel
 import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
 import com.payme.sdk.viewmodels.SubWebViewViewModel
+import com.payme.sdk.webServer.ExampleGlobalClass
 import com.payme.sdk.webServer.JavaScriptInterface
 import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONObject
+import vn.kalapa.ekyc.KalapaHandler
+import vn.kalapa.ekyc.KalapaSDK
+import vn.kalapa.ekyc.KalapaSDK.Companion.configure
+import vn.kalapa.ekyc.KalapaSDK.Companion.isBackBitmapInitialized
+import vn.kalapa.ekyc.KalapaSDK.Companion.isFaceBitmapInitialized
+import vn.kalapa.ekyc.KalapaSDK.Companion.isFrontBitmapInitialized
+import vn.kalapa.ekyc.KalapaSDK.Companion.startFullEKYC
+import vn.kalapa.ekyc.KalapaSDKConfig
+import vn.kalapa.ekyc.KalapaSDKResultCode
+import vn.kalapa.ekyc.models.KalapaResult
+import vn.kalapa.ekyc.models.PreferencesConfig
 import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
+
 
 fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
     for (i in 0 until jsonArray.length()) {
@@ -131,6 +150,8 @@ class MiniAppFragment : Fragment() {
     private lateinit var lottieContainerView: LinearLayout
     private lateinit var loadingView: View
 
+    private lateinit var sdkConfig: KalapaSDKConfig
+    private var preferencesConfig: PreferencesConfig? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
 
     private fun unzip() {
@@ -692,6 +713,7 @@ class MiniAppFragment : Fragment() {
                     )
                 },
                 startCardKyc = { data: String -> startCardKyc(data) },
+                startKalapaKyc = { data: String -> startKalapaKyc(data) },
                 startFaceKyc = { data: String -> startFaceKyc(data) },
                 openSettings = { activity?.let { PermissionCameraUtil().openSetting(it) } },
                 share = { data: String -> share(data) },
@@ -779,7 +801,38 @@ class MiniAppFragment : Fragment() {
 
         subWebViewViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
 
+        Handler(Looper.getMainLooper()).post {
+            if (preferencesConfig != null) {
+                setSdkConfig(preferencesConfig!!)
+            }
+            else {
+                sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+                    .withBackgroundColor("#FFFFFF")
+                    .withMainColor("#33CB33")
+                    .withBtnTextColor("#121212")
+                    .withMainTextColor("#121212")
+                    .withLivenessVersion(0)
+                    .withBaseURL("https://ekyc-api.kalapa.vn")
+                    .withLanguage("vi")
+                    .build()
+                configure(sdkConfig)
+            }
+        }
+
         return view
+    }
+
+    private fun setSdkConfig(preferencesConfig: PreferencesConfig) {
+        sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+            .withBackgroundColor(preferencesConfig.backgroundColor)
+            .withMainColor(preferencesConfig.mainColor)
+            .withBtnTextColor(preferencesConfig.btnTextColor)
+            .withMainTextColor(preferencesConfig.mainTextColor)
+            .withLivenessVersion(preferencesConfig.livenessVersion)
+            .withBaseURL(preferencesConfig.env)
+            .withLanguage(preferencesConfig.language)
+            .build()
+        configure(sdkConfig)
     }
 
     private fun changeEnv(env: String) {
@@ -1243,6 +1296,98 @@ class MiniAppFragment : Fragment() {
         }
     }
 
+    private fun startKalapaKyc(data: String) {
+        try {
+            if (openType == OpenMiniAppType.modal) {
+                reStartWithScreen()
+                return
+            }
+
+            val json = JSONObject(data)
+            paramsKyc = json
+            when {
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "GRANTED"
+                        )
+                    }
+                    startEKYC(json)
+                }
+
+                activity?.let {
+                    ActivityCompat.shouldShowRequestPermissionRationale(
+                        it,
+                        Manifest.permission.CAMERA
+                    )
+                } == true -> {
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "BLOCKED"
+                        )
+                    }
+                }
+
+                else -> {
+                    requestCardKycPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: ${e.message} ")
+        }
+    }
+
+    private fun startEKYC(data: JSONObject) {
+        val sessionId = data.optString("token", null)
+        if (sessionId != null) {
+            startFullEKYC(
+                requireActivity(),
+                sessionId,
+                sdkConfig,
+                object : KalapaHandler() {
+                    override fun onError(resultCode: KalapaSDKResultCode) {
+                        Log.d(PayMEMiniApp.TAG, """startFullEKYC error""")
+                    }
+
+                    override fun onComplete(kalapaResult: KalapaResult) {
+                        ExampleGlobalClass.kalapaResult = kalapaResult
+                        if (isFaceBitmapInitialized()) ExampleGlobalClass.faceImage =
+                            KalapaSDK.faceBitmap
+                        if (isFrontBitmapInitialized()) ExampleGlobalClass.frontImage =
+                            KalapaSDK.frontBitmap
+                        if (isBackBitmapInitialized()) ExampleGlobalClass.backImage =
+                            KalapaSDK.backBitmap
+                    ExampleGlobalClass.nfcData =
+                        NFCVerificationData(NFCCardData(kalapaResult.nfc_data, true), null, null)
+                        val nfcResult = ExampleGlobalClass.nfcData?.data?.data
+                        Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $nfcResult""")
+
+                        activity?.let {
+                            Utils.evaluateJSWebView(
+                                it,
+                                myWebView!!,
+                                "nativeKalapaKYC",
+                                "",
+                                null
+                            )
+                        }
+                    }
+                })
+        }
+        else {
+            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
+        }
+    }
+
     private val requestWriteExternalStoragePermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -1497,7 +1642,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
-        internal var loadUrl = ""
+        internal var loadUrl = "https://3a9e-113-161-36-155.ngrok-free.app/"
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 
