@@ -1347,8 +1347,8 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun startEKYC(data: JSONObject) {
-        val sessionId = data.optString("token", null)
-        if (sessionId != null) {
+        val sessionId = data.optString("token", "")
+        if (sessionId != "") {
             startFullEKYC(
                 requireActivity(),
                 sessionId,
@@ -1368,7 +1368,7 @@ class MiniAppFragment : Fragment() {
                             KalapaSDK.backBitmap
                     ExampleGlobalClass.nfcData =
                         NFCVerificationData(NFCCardData(kalapaResult.nfc_data, true), null, null)
-                        val nfcResult = ExampleGlobalClass.nfcData?.data?.data
+                        val nfcResult = ExampleGlobalClass.nfcData.data?.data
                         Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $nfcResult""")
 
                         activity?.let {
