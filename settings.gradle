@@ -18,5 +18,3 @@ dependencyResolutionManagement {
 rootProject.name = "PayME-Android-Sdk"
 include ':app'
 include ':sdk'
-include ':nfc'
-include ':kalapasdk'
