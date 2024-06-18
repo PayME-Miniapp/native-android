@@ -4,7 +4,7 @@ plugins {
     id 'maven-publish'
 }
 
-def sdk_version = "1.0.20"
+def sdk_version = "1.0.21"
 def version_code = 667
 
 android {
@@ -41,8 +41,13 @@ android {
     }
 }
 
-dependencies {
+// repositories {
+//     flatDir {
+//         dirs 'libs'
+//     }
+// }
 
+dependencies {
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.fragment:fragment-ktx:1.5.5'
     implementation 'androidx.appcompat:appcompat:1.5.0'
@@ -98,8 +103,10 @@ dependencies {
     implementation "com.beust:klaxon:5.5"
     implementation 'de.hdodenhof:circleimageview:3.1.0'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation project(":kalapasdk")
-    implementation project(":nfc")
+    // implementation project(":kalapasdk")
+    // implementation project(":nfc")
+    implementation files('libs\\nfc.aar')
+    implementation files('libs\\kalapasdk.aar')
 }
 afterEvaluate {
     publishing {
@@ -108,7 +115,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.1'
+                version = '0.2.0-alpha.2'
             }
         }
     }
