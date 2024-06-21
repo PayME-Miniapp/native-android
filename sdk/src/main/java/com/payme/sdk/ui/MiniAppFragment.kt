@@ -47,6 +47,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
+import com.beust.klaxon.Json
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.payme.sdk.BuildConfig
@@ -153,6 +154,7 @@ class MiniAppFragment : Fragment() {
     private lateinit var sdkConfig: KalapaSDKConfig
     private var preferencesConfig: PreferencesConfig? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
+    private var faceAuthenData: JSONObject? = null
 
     private fun unzip() {
         val filesDir = requireContext().filesDir
@@ -715,6 +717,7 @@ class MiniAppFragment : Fragment() {
                 startCardKyc = { data: String -> startCardKyc(data) },
                 startKalapaKyc = { data: String -> startKalapaKyc(data) },
                 startFaceKyc = { data: String -> startFaceKyc(data) },
+                startFaceAuthen = { data: String -> startFaceAuthen(data) },
                 openSettings = { activity?.let { PermissionCameraUtil().openSetting(it) } },
                 share = { data: String -> share(data) },
                 requestPermission = { data: String -> requestPermission(data) },
@@ -1297,6 +1300,7 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun startKalapaKyc(data: String) {
+        Log.d(PayMEMiniApp.TAG, "startKalapaKyc: ${JSONObject(data)} ")
         try {
             if (openType == OpenMiniAppType.modal) {
                 reStartWithScreen()
@@ -1338,7 +1342,7 @@ class MiniAppFragment : Fragment() {
                 }
 
                 else -> {
-                    requestCardKycPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    requestKalapaPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             }
         } catch (e: Exception) {
@@ -1347,44 +1351,57 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun startEKYC(data: JSONObject) {
-        val sessionId = data.optString("token", "")
-        if (sessionId != "") {
-            startFullEKYC(
-                requireActivity(),
-                sessionId,
-                sdkConfig,
-                object : KalapaHandler() {
-                    override fun onError(resultCode: KalapaSDKResultCode) {
-                        Log.d(PayMEMiniApp.TAG, """startFullEKYC error""")
-                    }
+        try {
+            val sessionId = data.optString("token", null)
 
-                    override fun onComplete(kalapaResult: KalapaResult) {
-                        ExampleGlobalClass.kalapaResult = kalapaResult
-                        if (isFaceBitmapInitialized()) ExampleGlobalClass.faceImage =
-                            KalapaSDK.faceBitmap
-                        if (isFrontBitmapInitialized()) ExampleGlobalClass.frontImage =
-                            KalapaSDK.frontBitmap
-                        if (isBackBitmapInitialized()) ExampleGlobalClass.backImage =
-                            KalapaSDK.backBitmap
-                    ExampleGlobalClass.nfcData =
-                        NFCVerificationData(NFCCardData(kalapaResult.nfc_data, true), null, null)
-                        val nfcResult = ExampleGlobalClass.nfcData.data?.data
-                        Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $nfcResult""")
-
-                        activity?.let {
-                            Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaKYC",
-                                "",
-                                null
-                            )
+            if (sessionId != null) {
+                startFullEKYC(
+                    requireActivity(),
+                    sessionId,
+                    sdkConfig,
+                    object : KalapaHandler() {
+                        override fun onError(resultCode: KalapaSDKResultCode) {
+                            Log.d(PayMEMiniApp.TAG, """startFullEKYC error""")
                         }
-                    }
-                })
-        }
-        else {
-            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
+
+                        override fun onComplete(kalapaResult: KalapaResult) {
+//                        ExampleGlobalClass.kalapaResult = kalapaResult
+//                        if (isFaceBitmapInitialized()) ExampleGlobalClass.faceImage =
+//                            KalapaSDK.faceBitmap
+//                        if (isFrontBitmapInitialized()) ExampleGlobalClass.frontImage =
+//                            KalapaSDK.frontBitmap
+//                        if (isBackBitmapInitialized()) ExampleGlobalClass.backImage =
+//                            KalapaSDK.backBitmap
+//                    ExampleGlobalClass.nfcData =
+//                        NFCVerificationData(NFCCardData(kalapaResult.nfc_data, true), null, null)
+//                        val nfcResult = ExampleGlobalClass.nfcData?.data?.data
+                            Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $kalapaResult""")
+
+                            val action = data.optString("action", "")
+                            val payload = data.optString("payload", null)
+                            val response = JSONObject()
+                            response.put("action", action)
+                            if(action != "KYC" && payload != null) {
+                                response.put("payload", JSONObject(payload))
+                            }
+
+                            activity?.let {
+                                Utils.evaluateJSWebView(
+                                    it,
+                                    myWebView!!,
+                                    "nativeKalapaKYC",
+                                    response.toString(),
+                                    null
+                                )
+                            }
+                        }
+                    })
+            }
+            else {
+                Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
+            }
+        } catch (e: Exception) {
+            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: ${e.message} ")
         }
     }
 
@@ -1433,6 +1450,30 @@ class MiniAppFragment : Fragment() {
             if (isGranted) {
                 activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
                 paramsKyc?.let { startFaceDetectorActivity(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
+            }
+        }
+
+    private val requestKalapaPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                paramsKyc?.let { startEKYC(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
+            }
+        }
+
+    private val requestFaceAuthPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                paramsKyc?.let { startFaceAuthenticationActivity(it) }
             } else {
                 activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
             }
@@ -1545,13 +1586,114 @@ class MiniAppFragment : Fragment() {
                     images3.put("images/kycFace2.jpeg")
                     images3.put("images/kycFace3.jpeg")
                     val responseFaceKyc = JSONObject()
-                    responseFaceKyc.put("images", images3)
+                    .put("images", images3)
+                    Log.d(PayMEMiniApp.TAG, "responseFaceKyc: $responseFaceKyc ")
                     activity?.let {
                         Utils.evaluateJSWebView(
                             it,
                             myWebView!!,
                             "nativeFaceKYC",
                             responseFaceKyc.toString(),
+                            null
+                        )
+                    }
+                }
+            }
+        }
+
+    private fun startFaceAuthen(data: String) {
+        try {
+            val json = JSONObject(data)
+            paramsKyc = json
+            when {
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "GRANTED"
+                        )
+                    }
+                    startFaceAuthenticationActivity(json)
+                }
+
+                activity?.let {
+                    ActivityCompat.shouldShowRequestPermissionRationale(
+                        it,
+                        Manifest.permission.CAMERA
+                    )
+                } == true -> {
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "BLOCKED"
+                        )
+                    }
+                }
+
+                else -> {
+                    requestFaceAuthPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
+        }
+    }
+    private fun startFaceAuthenticationActivity(data: JSONObject) {
+        faceAuthenData = data
+        Log.d(PayMEMiniApp.TAG, "faceAuthenData: $faceAuthenData , $data ")
+        val title = data.optString("title", "")
+        val jsonArray = JSONArray()
+        jsonArray.put(getString(R.string.face_detector_hint1))
+        val hints: JSONArray = data.optJSONArray("hints") ?: jsonArray
+        val intent = Intent(requireContext(), com.payme.sdk.ui.FaceAuthenticationActivity::class.java)
+        intent.putExtra("title", title)
+        intent.putExtra("hint1", hints.get(0) as String)
+        faceAuthenticationLauncher.launch(intent)
+    }
+
+    private var faceAuthenticationLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            when (result.resultCode) {
+                Activity.RESULT_CANCELED -> {
+                    val responseFaceAuthen = JSONObject()
+                    val action = faceAuthenData?.optString("action", "")
+                    val payload = faceAuthenData?.optString("payload", "")
+                    responseFaceAuthen.put("action", action)
+                    responseFaceAuthen.put("payload", JSONObject(payload))
+                    responseFaceAuthen.put("error", "CLOSE")
+                    activity?.let {
+                        Utils.evaluateJSWebView(
+                            it,
+                            myWebView!!,
+                            "nativeFaceAuthen",
+                            responseFaceAuthen.toString(),
+                            null
+                        )
+                    }
+                    Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
+                }
+                Activity.RESULT_OK -> {
+                    val images3 = "images/authenFace.jpeg"
+                    val responseFaceAuthen = JSONObject()
+                    responseFaceAuthen.put("images", images3)
+                    val action = faceAuthenData?.optString("action", "")
+                    val payload = faceAuthenData?.optString("payload", "")
+                    responseFaceAuthen.put("action", action)
+                    responseFaceAuthen.put("payload", JSONObject(payload))
+                    Log.d(PayMEMiniApp.TAG, "responseFaceAuthen: $responseFaceAuthen")
+                    activity?.let {
+                        Utils.evaluateJSWebView(
+                            it,
+                            myWebView!!,
+                            "nativeFaceAuthen",
+                            responseFaceAuthen.toString(),
                             null
                         )
                     }
@@ -1642,7 +1784,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
-        internal var loadUrl = ""
+        internal var loadUrl = "https://e82e-113-161-36-155.ngrok-free.app/"
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 

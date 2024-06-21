@@ -1,4 +1,4 @@
-package com.payme.sdk.face_detection
+package com.payme.sdk.face_authentication
 
 import android.content.Context
 import android.graphics.Rect
@@ -12,15 +12,15 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.camerax.BaseImageAnalyzer
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.face_authentication.FaceContourGraphic
+import com.payme.sdk.face_detection.FaceDetectorActiveFrame
 import com.payme.sdk.viewmodels.FaceDetectorStepViewModel
 import java.io.IOException
 import java.util.*
 import kotlin.concurrent.schedule
 
-class FaceContourDetectionProcessor(
+class FaceContourAuthenticationProcessor(
     private val context: Context,
     private val graphicOverlayView: GraphicOverlay,
-    private val progressBar: ProgressDetectBar,
     private val activeFrame: FaceDetectorActiveFrame,
     private var isClosedEyes: Boolean,
     private var timerTask: TimerTask?,
@@ -65,12 +65,10 @@ class FaceContourDetectionProcessor(
                 graphicOverlay,
                 face,
                 rect,
-                progressBar,
                 activeFrame,
                 faceDetectorStepViewModel
             )
             graphicOverlay.add(faceGraphic)
-            if (!progressBar.getIsValid()) return
             val condition1 = face.headEulerAngleX >= -20 && face.headEulerAngleX < 20
                     && face.headEulerAngleY >= -20 && face.headEulerAngleY < 20
                     && face.headEulerAngleZ >= -20 && face.headEulerAngleZ < 20
@@ -79,7 +77,7 @@ class FaceContourDetectionProcessor(
 
             if (faceDetectorStepViewModel.getStep().value == 1) {
                 if (condition1) {
-                    faceDetectorStepViewModel.setStep(2)
+                    faceDetectorStepViewModel.setStep(4)
                 }
             } else if (faceDetectorStepViewModel.getStep().value == 2) {
                 if (face.leftEyeOpenProbability != null && face.rightEyeOpenProbability != null) {
@@ -101,7 +99,6 @@ class FaceContourDetectionProcessor(
             }
         } else {
             faceDetectorStepViewModel.setTextHint("")
-            progressBar.setIsValid(false)
         }
         graphicOverlay.postInvalidate()
     }

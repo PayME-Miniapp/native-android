@@ -39,6 +39,12 @@
       android:screenOrientation="portrait"
       android:theme="@style/CameraActivityTheme"
       android:windowSoftInputMode="stateHidden" />
+      <activity
+      android:name=".ui.FaceAuthenticationActivity"
+      android:exported="false"
+      android:screenOrientation="portrait"
+      android:theme="@style/CameraActivityTheme"
+      android:windowSoftInputMode="stateHidden" />
     <activity
       android:name=".ui.IdentityCardActivity"
       android:exported="false"

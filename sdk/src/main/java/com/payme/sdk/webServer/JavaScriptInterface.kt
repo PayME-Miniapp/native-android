@@ -18,6 +18,7 @@ class JavaScriptInterface(
     val startCardKyc: ((String) -> Unit),
     val startKalapaKyc: ((String) -> Unit),
     val startFaceKyc: ((String) -> Unit),
+    val startFaceAuthen: ((String) -> Unit),
     val openSettings: () -> Unit,
     val share: ((String) -> Unit),
     val requestPermission: ((String) -> Unit),
@@ -100,6 +101,12 @@ class JavaScriptInterface(
     public fun jsRequestFaceKYC(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsRequestFaceKyc: $data")
         startFaceKyc(data)
+    }
+
+    @JavascriptInterface
+    public fun jsRequestFaceAuthen(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsRequestFaceAuthen: $data")
+        startFaceAuthen(data)
     }
 
     @JavascriptInterface
