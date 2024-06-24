@@ -4,6 +4,40 @@ plugins {
     id 'maven-publish'
 }
 
+def sdk_version = "1.0.21"
+def version_code = 667
+
+android {
+    compileSdk 33
+
+    defaultConfig {
+        minSdk 26
+        targetSdk 33
+        versionCode version_code
+        versionName sdk_version
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "SDK_VERSION", "\"" + sdk_version + "\""
+            buildConfigField "int", "BUILD_NUMBER", version_code.toString()
+        }
+        debug {
+            buildConfigField "String", "SDK_VERSION", "\"" + sdk_version + "\""
+            buildConfigField "int", "BUILD_NUMBER", version_code.toString()
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
 configurations.maybeCreate("default")
 artifacts.add("default", file('nfc.aar'))
 
@@ -14,7 +48,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "kalapasdk"
-                version = '0.2.0-alpha.6'
+                version = '0.2.0-alpha.7'
             }
         }
     }
