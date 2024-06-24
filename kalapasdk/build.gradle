@@ -1,0 +1,15 @@
+configurations.maybeCreate("default")
+artifacts.add("default", file('kalapasdk.aar'))
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = "com.payme.sdk"
+                artifactId = "kalapasdk"
+                version = '0.2.0-alpha.5'
+            }
+        }
+    }
+}

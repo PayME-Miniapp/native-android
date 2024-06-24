@@ -97,13 +97,8 @@ dependencies {
     implementation "com.beust:klaxon:5.5"
     implementation 'de.hdodenhof:circleimageview:3.1.0'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation fileTree(dir: 'libs', include: ['*.aar'])
-    // implementation project(":kalapasdk")tre
-    // implementation project(":nfc")
-    implementation files('libs\\nfc.aar')
-    implementation files('libs\\kalapasdk.aar')
-    // implementation project(":kalapasdk")
-    // implementation project(":nfc")
+    implementation project(":kalapasdk")
+    implementation project(":nfc")
 }
 afterEvaluate {
     publishing {
@@ -112,7 +107,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.4'
+                version = '0.2.0-alpha.5'
             }
         }
     }
