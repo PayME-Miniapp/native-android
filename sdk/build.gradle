@@ -8,12 +8,12 @@ def sdk_version = "1.0.21"
 def version_code = 667
 
 android {
-    compileSdk 33
+    compileSdk 34
     namespace = "com.payme.sdk"
 
     defaultConfig {
         minSdk 26
-        targetSdk 33
+        targetSdk 34
         versionCode version_code
         versionName sdk_version
 
@@ -116,7 +116,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.9'
+                version = '0.2.0-alpha.10'
             }
         }
     }
