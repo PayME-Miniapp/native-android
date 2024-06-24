@@ -107,7 +107,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.5'
+                version = '0.2.0-alpha.6'
             }
         }
     }
