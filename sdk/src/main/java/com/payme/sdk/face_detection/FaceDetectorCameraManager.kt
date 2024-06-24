@@ -57,7 +57,7 @@ class FaceDetectorCameraManager(
                 2 -> {
                     progressBar.setProgress(0.33F)
                     textHint.text =
-                        (hint2 ?: context.getString(R.string.face_detector_hint2)) as CharSequence?
+                        (hint2 ?: context.getString(R.string.face_detector_hint2))
                     takePicture("kycFace1.jpeg", null)
                     lottieView.setAnimation(R.raw.chop_mat)
                     lottieView.playAnimation()
@@ -65,7 +65,7 @@ class FaceDetectorCameraManager(
                 3 -> {
                     progressBar.setProgress(0.67F)
                     textHint.text =
-                        (hint3 ?: context.getString(R.string.face_detector_hint3)) as CharSequence?
+                        (hint3 ?: context.getString(R.string.face_detector_hint3))
                     takePicture("kycFace2.jpeg", null)
                     lottieView.setAnimation(R.raw.cuoi)
                     lottieView.playAnimation()
@@ -115,7 +115,6 @@ class FaceDetectorCameraManager(
             })
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
@@ -155,7 +154,6 @@ class FaceDetectorCameraManager(
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     private fun selectAnalyzer(): ImageAnalysis.Analyzer {
         return FaceContourDetectionProcessor(
             context,

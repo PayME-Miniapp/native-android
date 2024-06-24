@@ -77,7 +77,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         else {
             val convertHeight = context?.let { Utils.dpToPx(it, contentHeight + 10) }
             if (convertHeight!! > maxHeight) // giới hạn ở 90% màn hình
-                return maxHeight else return convertHeight!!
+                return maxHeight else return convertHeight
         }
     }
 
@@ -99,7 +99,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val view: View = inflater.inflate(R.layout.bottom_sheet_dialog_miniapp, container, false)
         return view
     }

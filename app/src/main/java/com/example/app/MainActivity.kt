@@ -13,12 +13,8 @@ import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.ENV
 import com.payme.sdk.models.Locale
 import com.payme.sdk.models.OpenMiniAppPayMEData
-import com.payme.sdk.models.OpenMiniAppPaymentData
-import com.payme.sdk.models.OpenMiniAppTransferQRData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
-import com.payme.sdk.models.PaymentData
-import com.payme.sdk.models.TransferQRData
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
@@ -165,7 +161,7 @@ class MainActivity : AppCompatActivity() {
 //                    PaymentData("348115135612", 10000, "", "", true)
 //                )
 //            )
-             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+             payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayMEData())
 //                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayME("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }

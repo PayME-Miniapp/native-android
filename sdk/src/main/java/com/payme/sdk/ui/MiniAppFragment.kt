@@ -453,13 +453,7 @@ class MiniAppFragment : Fragment() {
         val connectivityManager =
             requireContext().getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            connectivityManager.registerDefaultNetworkCallback(networkCallback)
-        } else {
-            val request = NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
-            connectivityManager.registerNetworkCallback(request, networkCallback)
-        }
+        connectivityManager.registerDefaultNetworkCallback(networkCallback)
 
         rootView!!.viewTreeObserver.addOnGlobalLayoutListener {
             if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
@@ -499,7 +493,7 @@ class MiniAppFragment : Fragment() {
         myWebView?.apply {
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView, newProgress: Int) {
-                    val url = URL(view?.url).toString().removePrefix(loadUrl)
+                    val url = URL(view.url).toString().removePrefix(loadUrl)
                     onSetWebViewUrlPart(url)
                 }
 
@@ -531,6 +525,7 @@ class MiniAppFragment : Fragment() {
             }
 
             webViewClient = object : WebViewClient() {
+                @Deprecated("Deprecated in Java")
                 override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                     Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
                     return if (url.contains(".pdf")) {
@@ -651,7 +646,6 @@ class MiniAppFragment : Fragment() {
                     }
                 }
 
-                @RequiresApi(Build.VERSION_CODES.M)
                 override fun onReceivedError(
                     view: WebView?,
                     request: WebResourceRequest?,
@@ -1684,5 +1678,4 @@ class MiniAppFragment : Fragment() {
             }
         }
     }
-
 }

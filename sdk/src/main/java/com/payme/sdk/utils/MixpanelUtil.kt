@@ -1,9 +1,7 @@
 package com.payme.sdk.utils
 
 import android.content.Context
-import android.util.Log
 import com.mixpanel.android.mpmetrics.MixpanelAPI
-import com.payme.sdk.PayMEMiniApp
 import org.json.JSONObject
 
 object MixpanelUtil {

@@ -1,12 +1,7 @@
 package com.payme.sdk.network_requests;
 
-import android.os.Build;
 import android.util.Base64;
-import androidx.annotation.RequiresApi;
-
 import com.payme.sdk.PayMEMiniApp;
-
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -26,9 +21,6 @@ public class CryptoRSA {
     Cipher cipher, cipher1;
     String decrypted;
 
-    private final static String CRYPTO_METHOD = "RSA";
-    private final static int CRYPTO_BITS = 512;
-
     public CryptoRSA() throws NoSuchAlgorithmException, InvalidKeySpecException {
             generateKeyPair();
     }
@@ -39,7 +31,6 @@ public class CryptoRSA {
         publicKey = stringToPublicKey(PayMEMiniApp.publicKey);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public String encrypt(Object... args)
             throws NoSuchAlgorithmException,
             NoSuchPaddingException,
@@ -57,19 +48,6 @@ public class CryptoRSA {
         cipher =  Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
         encryptedBytes = cipher.doFinal(plain.getBytes(StandardCharsets.UTF_8));
-        return Base64.encodeToString(encryptedBytes, Base64.NO_WRAP);
-    }
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    public String encryptWebView(String key,String plainText)
-            throws NoSuchAlgorithmException,
-            NoSuchPaddingException,
-            InvalidKeyException,
-            IllegalBlockSizeException,
-            BadPaddingException, InvalidKeySpecException {
-        PublicKey rsaPublicKey =  stringToPublicKey(key);
-        cipher =  Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
-        encryptedBytes = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
         return Base64.encodeToString(encryptedBytes, Base64.NO_WRAP);
     }
 
@@ -104,20 +82,13 @@ public class CryptoRSA {
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
         return kf.generatePrivate(keySpec);
     }
+
     public static PublicKey stringToPublicKey(String privateKeyPEM) throws NoSuchAlgorithmException, InvalidKeySpecException {
         privateKeyPEM = privateKeyPEM.replace("-----BEGIN PUBLIC KEY-----", "");
         privateKeyPEM = privateKeyPEM.replace("-----END PUBLIC KEY-----", "");
         byte[] encoded = Base64.decode(privateKeyPEM,Base64.DEFAULT);
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey pubKey = keyFactory.generatePublic(keySpec);
-        return pubKey;
-    }
-
-    static PublicKey getPublicKey(PrivateKey privKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        RSAPrivateKeySpec priv = kf.getKeySpec(privKey, RSAPrivateKeySpec.class);
-        RSAPublicKeySpec keySpec = new RSAPublicKeySpec(priv.getModulus(), BigInteger.valueOf(65537));
-        return kf.generatePublic(keySpec);
+        return keyFactory.generatePublic(keySpec);
     }
 }

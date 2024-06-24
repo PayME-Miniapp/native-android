@@ -177,9 +177,7 @@ class SubWebView(
               request: WebResourceRequest?,
               error: WebResourceError?
             ) {
-              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Log.d(PayMEMiniApp.TAG, "onReceivedError error " + error?.errorCode)
-              }
+              Log.d(PayMEMiniApp.TAG, "onReceivedError error " + error?.errorCode)
               super.onReceivedError(view, request, error)
             }
 
@@ -203,6 +201,7 @@ class SubWebView(
         }
       }
       webViewClient = object : WebViewClient() {
+        @Deprecated("Deprecated in Java")
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
           Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
           return if (url.contains(".pdf")) {
@@ -267,7 +266,6 @@ class SubWebView(
           loading.visibility = View.GONE
         }
 
-        @RequiresApi(Build.VERSION_CODES.M)
         override fun onReceivedError(
           view: WebView?,
           request: WebResourceRequest?,

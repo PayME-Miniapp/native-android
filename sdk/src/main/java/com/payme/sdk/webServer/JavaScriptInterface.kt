@@ -114,7 +114,7 @@ class JavaScriptInterface(
     public fun jsPostModalHeight(data: String) {
         val parseJson = JSONObject(data)
         Log.d(PayMEMiniApp.TAG, " jsPostModalHeight: $parseJson")
-        val height = parseJson?.optInt("height") ?: 0
+        val height = parseJson.optInt("height")
         setModalHeight(height)
     }
 
@@ -158,9 +158,6 @@ class JavaScriptInterface(
     public fun jsOneSignalSendTags(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsOneSignalSendTags: $data")
         try {
-            val parseJson = JSONObject(data)
-//            OneSignal.sendTags(parseJson)
-//            OneSignal.sendTags(data)
             if (PayMEMiniApp.onOneSignalSendTags != null) {
                 PayMEMiniApp.onOneSignalSendTags!!(data)
             }

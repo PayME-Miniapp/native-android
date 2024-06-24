@@ -19,7 +19,6 @@ object NetworkUtils {
             ENV.PRODUCTION, ENV.STAGING -> "https://gapi.payme.vn"
             ENV.SANDBOX -> "https://sbx-gapi.payme.vn"
             ENV.DEV, ENV.LOCAL -> "http://vula.mecorp.local:3000"
-            else -> "https://gapi.payme.vn"
         }
     }
 }
@@ -55,7 +54,7 @@ internal class NetworkRequest(
             JSONObject(body as Map<*, *>),
             Response.Listener { response ->
                 try {
-                    var finalJSONObject: JSONObject? = null
+                    val finalJSONObject: JSONObject?
                     val jsonObject = JSONObject(response.toString())
                     val xAPIMessageResponse = jsonObject.getString("x-api-message")
                     val headers = jsonObject.getJSONObject("headers")

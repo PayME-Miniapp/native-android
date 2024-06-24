@@ -1,9 +1,9 @@
 package com.payme.sdk.models
 
 class PayMEError(type: PayMEErrorType, code: String, description: String = "Có lỗi xảy ra", isCloseMiniApp: Boolean = false) {
-    val code: String
+    private val code: String
     val description: String
-    val isCloseMiniApp: Boolean
+    private val isCloseMiniApp: Boolean
     init {
         when (type) {
             PayMEErrorType.MiniApp -> {

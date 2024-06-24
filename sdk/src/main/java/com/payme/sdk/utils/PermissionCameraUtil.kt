@@ -12,7 +12,7 @@ import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import androidx.core.content.ContextCompat
 
 class PermissionCameraUtil {
-    val CAMERA_REQUEST_CODE = 100
+    private val CAMERA_REQUEST_CODE = 100
 
     fun isGrantedCamera(context: Context): Boolean {
         return ContextCompat.checkSelfPermission(

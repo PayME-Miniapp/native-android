@@ -58,8 +58,8 @@ object Utils {
         "^(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}$"
     )
 
-    private fun isIPv4Address(input: String?): Boolean {
-        return IPV4_PATTERN.matcher(input).matches()
+    private fun isIPv4Address(input: String?): Boolean? {
+        return input?.let { IPV4_PATTERN.matcher(it).matches() }
     }
 
     fun getStatusBarHeight(activity: Activity): Int {
@@ -145,7 +145,7 @@ object Utils {
                     val inetAddress = enumIpAddr.nextElement()
                     if (!inetAddress.isLoopbackAddress) {
                         val ip = inetAddress.hostAddress
-                        if (isIPv4Address(ip)) {
+                        if (isIPv4Address(ip) == true) {
                             return ip
                         }
                     }
@@ -406,7 +406,6 @@ object Utils {
         return insets.bottom.toFloat()
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     @Suppress("DEPRECATION")
     private fun getRootWindowInsetsCompatM(rootView: View): Float? {
         val insets = rootView.rootWindowInsets ?: return null
@@ -422,8 +421,7 @@ object Utils {
     fun getRootWindowInsetsCompat(rootView: View): Float? {
         return when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> getRootWindowInsetsCompatR(rootView)
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> getRootWindowInsetsCompatM(rootView)
-            else -> getRootWindowInsetsCompatBase(rootView)
+            else -> getRootWindowInsetsCompatM(rootView)
         }
     }
 

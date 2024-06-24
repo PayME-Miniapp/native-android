@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  xmlns:tools="http://schemas.android.com/tools"
-  package="com.payme.sdk">
+  xmlns:tools="http://schemas.android.com/tools">
 
   <uses-feature android:name="android.hardware.camera.any" />
 
@@ -16,35 +15,10 @@
 
   <uses-feature android:name="android.hardware.camera" />
   <uses-feature android:name="android.hardware.camera.autofocus" />
-  <application
-    android:allowBackup="false"
-    android:dataExtractionRules="@xml/data_extraction_rules"
-    android:fullBackupContent="@xml/backup_rules"
-    android:requestLegacyExternalStorage="true"
-    android:supportsRtl="true"
-    android:theme="@style/AppTheme"
-    android:usesCleartextTraffic="true"
-    tools:targetApi="31"
-    tools:replace="android:theme, android:allowBackup">
-    <activity
-      android:name=".ui.MiniAppActivity"
-      android:exported="true"
-      android:theme="@style/AppTheme"
-      android:screenOrientation="portrait"
-      android:windowSoftInputMode="stateHidden"
-      />
-    <activity
-      android:name=".ui.FaceDetectorActivity"
-      android:exported="false"
-      android:screenOrientation="portrait"
-      android:theme="@style/CameraActivityTheme"
-      android:windowSoftInputMode="stateHidden" />
-    <activity
-      android:name=".ui.IdentityCardActivity"
-      android:exported="false"
-      android:screenOrientation="portrait"
-      android:theme="@style/CameraActivityTheme"
-      android:windowSoftInputMode="stateHidden" />
+  <application android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:requestLegacyExternalStorage="true" android:supportsRtl="true" android:theme="@style/AppTheme" android:usesCleartextTraffic="true" tools:targetApi="31" tools:replace="android:theme, android:allowBackup">
+    <activity android:name=".ui.MiniAppActivity" android:exported="true" android:theme="@style/AppTheme" android:screenOrientation="portrait" android:windowSoftInputMode="stateHidden" />
+    <activity android:name=".ui.FaceDetectorActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
+    <activity android:name=".ui.IdentityCardActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
   </application>
 
 </manifest>

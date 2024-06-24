@@ -40,7 +40,7 @@ internal class CryptoAES {
         return Base64.encodeToString(data, Base64.NO_WRAP)
     }
 
-    fun decryptAES(password: String, source: String?): String? {
+    fun decryptAES(password: String, source: String?): String {
         val pass: ByteArray = password.toByteArray(US_ASCII)
         val inBytes: ByteArray = Base64.decode(source, Base64.DEFAULT)
         val shouldBeMagic = inBytes.copyOfRange(0, SALTED_MAGIC.size)

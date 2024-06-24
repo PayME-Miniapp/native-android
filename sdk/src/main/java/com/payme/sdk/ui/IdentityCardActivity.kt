@@ -43,12 +43,11 @@ class IdentityCardActivity : FragmentActivity() {
     private lateinit var identityCardViewModel: IdentityCardViewModel
 
     private lateinit var timerEnableButton: TimerTask
-    var doneTimerEnable: Boolean = false
+    private var doneTimerEnable: Boolean = false
     private var description = ""
 
     private var identityCardType: String = "FRONT"
 
-    @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_identity_card)

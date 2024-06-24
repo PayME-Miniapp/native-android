@@ -9,6 +9,7 @@ def version_code = 667
 
 android {
     compileSdk 33
+    namespace = "com.payme.sdk"
 
     defaultConfig {
         minSdk 26
@@ -18,6 +19,10 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -33,32 +38,32 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.7.0'
-    implementation 'androidx.fragment:fragment-ktx:1.5.5'
-    implementation 'androidx.appcompat:appcompat:1.5.0'
-    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.fragment:fragment-ktx:1.8.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.webkit:webkit:1.4.0'
+    implementation 'androidx.webkit:webkit:1.11.0'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     implementation 'org.nanohttpd:nanohttpd-webserver:2.3.1'
-    implementation 'androidx.biometric:biometric:1.2.0-alpha04'
+    implementation 'androidx.biometric:biometric:1.2.0-alpha05'
     implementation 'com.airbnb.android:lottie:5.2.0'
-    implementation 'com.google.code.gson:gson:2.8.9'
-    implementation 'androidx.core:core:1.8.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'com.android.volley:volley:1.2.1'
     implementation 'com.google.zxing:core:3.3.3'
-    implementation 'com.mixpanel.android:mixpanel-android:7.+'
+    implementation 'com.mixpanel.android:mixpanel-android:7.5.2'
 
-    def camerax_version = "1.1.0-beta01"
+    def camerax_version = "1.3.4"
     implementation "androidx.camera:camera-core:${camerax_version}"
     implementation "androidx.camera:camera-camera2:${camerax_version}"
     implementation "androidx.camera:camera-lifecycle:${camerax_version}"
@@ -67,18 +72,18 @@ dependencies {
     implementation "androidx.camera:camera-view:${camerax_version}"
     implementation "androidx.camera:camera-extensions:${camerax_version}"
 
-    implementation 'com.google.mlkit:object-detection:17.0.0'
-    implementation 'com.google.mlkit:object-detection-custom:17.0.0'
+    implementation 'com.google.mlkit:object-detection:17.0.1'
+    implementation 'com.google.mlkit:object-detection-custom:17.0.1'
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.4'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
     // Network
     implementation "com.squareup.okhttp3:logging-interceptor:4.5.0"
-    implementation 'com.squareup.okhttp3:okhttp:3.6.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.2'
     implementation 'com.squareup.retrofit2:retrofit:2.6.2'
     implementation 'com.squareup.retrofit2:converter-gson:2.6.2'
 
@@ -88,7 +93,7 @@ dependencies {
     implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.25"
 
     // liveness & mrz detect
-    implementation "com.google.mlkit:face-detection:16.1.5"
+    implementation "com.google.mlkit:face-detection:16.1.6"
     implementation "com.google.mlkit:text-recognition:16.0.0"
 
     implementation "commons-io:commons-io:20030203.000550"
@@ -97,12 +102,11 @@ dependencies {
     implementation "com.beust:klaxon:5.5"
     implementation 'de.hdodenhof:circleimageview:3.1.0'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation fileTree(dir: 'libs', include: ['*.aar'])
-    // implementation project(":kalapasdk")
-    // implementation project(":nfc")
+    implementation project(":kalapasdk")
+    implementation project(":nfc")
 
-    implementation files('libs/nfc.aar')
-    implementation files('libs/kalapasdk.aar')
+    // implementation files('libs/nfc.aar')
+    // implementation files('libs/kalapasdk.aar')
 }
 
 afterEvaluate {
@@ -112,7 +116,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.8'
+                version = '0.2.0-alpha.9'
             }
         }
     }

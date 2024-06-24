@@ -37,9 +37,8 @@ class FaceDetectorActivity : AppCompatActivity() {
     private lateinit var hintContainer: LinearLayout
     private lateinit var faceDetectorStepViewModel: FaceDetectorStepViewModel
 
-    var timerTask: TimerTask? = null
+    private var timerTask: TimerTask? = null
 
-    @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_face_detector)
@@ -64,7 +63,7 @@ class FaceDetectorActivity : AppCompatActivity() {
         val hint1 = intent.extras?.get("hint1") as String?
         val hint2 = intent.extras?.get("hint2") as String?
         val hint3 = intent.extras?.get("hint3") as String?
-        textHint.text = (hint1 ?: getString(R.string.face_detector_hint1)) as CharSequence?
+        textHint.text = (hint1 ?: getString(R.string.face_detector_hint1))
         faceDetectorStepViewModel = FaceDetectorStepViewModel()
 
         adjustLayout()
@@ -73,15 +72,15 @@ class FaceDetectorActivity : AppCompatActivity() {
                 if (it.isEmpty()) {
                     if (faceDetectorStepViewModel.getStep().value == 1) {
                         textHint.text =
-                            (hint1 ?: getString(R.string.face_detector_hint1)) as CharSequence?
+                            (hint1 ?: getString(R.string.face_detector_hint1))
                     }
                     if (faceDetectorStepViewModel.getStep().value == 2) {
                         textHint.text =
-                            (hint2 ?: getString(R.string.face_detector_hint2)) as CharSequence?
+                            (hint2 ?: getString(R.string.face_detector_hint2))
                     }
                     if (faceDetectorStepViewModel.getStep().value == 3) {
                         textHint.text =
-                            (hint3 ?: getString(R.string.face_detector_hint3)) as CharSequence?
+                            (hint3 ?: getString(R.string.face_detector_hint3))
                     }
                 } else {
                     textHint.text = it

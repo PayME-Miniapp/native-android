@@ -54,7 +54,6 @@ class IdentityCardCameraManager(
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(

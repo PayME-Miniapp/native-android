@@ -6,6 +6,8 @@ import android.content.res.Configuration
 import android.os.Build
 import android.util.DisplayMetrics
 import android.view.WindowManager
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 
 enum class DeviceType(val value: String) {
@@ -43,19 +45,15 @@ class DeviceTypeResolver(context: Context) {
         }
 
     private val deviceTypeFromPhysicalSize: DeviceType
-        private get() {
+        get() {
             val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val metrics = DisplayMetrics()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                windowManager.defaultDisplay.getRealMetrics(metrics)
-            } else {
-                windowManager.defaultDisplay.getMetrics(metrics)
-            }
+            windowManager.defaultDisplay.getRealMetrics(metrics)
 
             val widthInches = metrics.widthPixels / metrics.xdpi.toDouble()
             val heightInches = metrics.heightPixels / metrics.ydpi.toDouble()
             val diagonalSizeInches =
-                Math.sqrt(Math.pow(widthInches, 2.0) + Math.pow(heightInches, 2.0))
+                sqrt(widthInches.pow(2.0) + heightInches.pow(2.0))
             return if (diagonalSizeInches in 3.0..6.9) {
                 DeviceType.HANDSET
             } else if (diagonalSizeInches > 6.9 && diagonalSizeInches <= 18.0) {
