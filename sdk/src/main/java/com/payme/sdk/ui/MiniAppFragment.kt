@@ -48,13 +48,11 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
-import com.google.gson.JsonSyntaxException
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.NFCCardData
-import com.payme.sdk.models.NFCResultData
 import com.payme.sdk.models.NFCVerificationData
 import com.payme.sdk.models.OpenMiniAppDataInterface
 import com.payme.sdk.models.OpenMiniAppKYCData
