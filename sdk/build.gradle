@@ -47,7 +47,6 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.fragment:fragment-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
@@ -59,6 +58,7 @@ dependencies {
     implementation 'com.airbnb.android:lottie:5.2.0'
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'androidx.core:core-ktx:1.13.1'
+
     implementation 'com.android.volley:volley:1.2.1'
     implementation 'com.google.zxing:core:3.3.3'
     implementation 'com.mixpanel.android:mixpanel-android:7.5.2'
@@ -101,12 +101,12 @@ dependencies {
 
     implementation "com.beust:klaxon:5.5"
     implementation 'de.hdodenhof:circleimageview:3.1.0'
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation project(":kalapasdk")
-    implementation project(":nfc")
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    // implementation project(":kalapasdk")
+    // implementation project(":nfc")
 
-    // implementation files('libs/nfc.aar')
-    // implementation files('libs/kalapasdk.aar')
+    implementation files('libs/nfc.aar')
+    implementation files('libs/kalapasdk.aar')
 }
 
 afterEvaluate {
@@ -116,7 +116,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.11'
+                version = '0.2.0-alpha.12'
             }
         }
     }

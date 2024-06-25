@@ -13,8 +13,9 @@ dependencyResolutionManagement {
         maven { url 'https://jitpack.io' }
     }
 }
+
 rootProject.name = "PayME-Android-Sdk"
 include ':app'
 include ':sdk'
-include ':nfc'
-include ':kalapasdk'
+// include ':nfc'
+// include ':kalapasdk'
