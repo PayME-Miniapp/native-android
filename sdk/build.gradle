@@ -37,10 +37,14 @@ android {
             buildConfigField "int", "BUILD_NUMBER", version_code.toString()
         }
     }
+
+    flavorDimensions "default"
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = '17'
     }
@@ -102,11 +106,14 @@ dependencies {
     implementation "com.beust:klaxon:5.5"
     implementation 'de.hdodenhof:circleimageview:3.1.0'
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-    // implementation project(":kalapasdk")
-    // implementation project(":nfc")
+    //  embed project(":kalapasdk")
+    //  implementation project(":nfc")
 
-    implementation files('libs/nfc.aar')
-    implementation files('libs/kalapasdk.aar')
+   implementation files('libs\\nfc.aar')
+   implementation files('libs\\kalapasdk.aar')
+
+    // implementation (name:'nfc', ext:'aar')
+    // implementation (name:'kalapasdk', ext:'aar')
 }
 
 afterEvaluate {
@@ -116,7 +123,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.12'
+                version = '0.2.0-alpha.13'
             }
         }
     }
