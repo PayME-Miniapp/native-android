@@ -8,7 +8,7 @@ publishing {
         aar(MavenPublication) {
             groupId = "com.payme.sdk"
             artifactId = "nfc"
-            version = '0.2.0-alpha.15'
+            version = '0.2.0-alpha.16'
 
             artifact(file('nfc.aar')) {
                 extension 'aar'
