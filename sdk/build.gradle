@@ -14,8 +14,6 @@ android {
     defaultConfig {
         minSdk 26
         targetSdk 34
-        versionCode version_code
-        versionName sdk_version
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -47,11 +45,6 @@ android {
 
     kotlinOptions {
         jvmTarget = '17'
-    }
-
-    lintOptions {
-      checkReleaseBuilds false
-      abortOnError false
     }
 }
 
@@ -113,12 +106,6 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(":kalapasdk")
     implementation project(":nfc")
-
-    //    implementation files('libs\\nfc.aar')
-    //    implementation files('libs\\kalapasdk.aar')
-
-    // implementation (name:'nfc', ext:'aar')
-    // implementation (name:'kalapasdk', ext:'aar')
 }
 
 afterEvaluate {
