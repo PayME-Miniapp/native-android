@@ -8,7 +8,7 @@ publishing {
         aar(MavenPublication) {
             groupId = "com.payme.sdk"
             artifactId = "kalapasdk"
-            version = '0.2.0'
+            version = '0.2.1'
 
             artifact(file('kalapasdk.aar')) {
                 extension 'aar'
