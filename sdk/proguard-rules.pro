@@ -29,3 +29,11 @@
     public static *** d(...);
     public static *** v(...);
 }
+
+-keep class vn.kalapa.faceotp.{*;}
+-keep class com.fis.ekyc.{*;}
+-keep class com.fis.nfc.**{*;}
+
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
