@@ -48,14 +48,10 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
-import com.google.gson.JsonSyntaxException
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
-import com.payme.sdk.models.NFCCardData
-import com.payme.sdk.models.NFCResultData
-import com.payme.sdk.models.NFCVerificationData
 import com.payme.sdk.models.OpenMiniAppDataInterface
 import com.payme.sdk.models.OpenMiniAppKYCData
 import com.payme.sdk.models.OpenMiniAppType
@@ -72,17 +68,12 @@ import com.payme.sdk.viewmodels.MiniappViewModel
 import com.payme.sdk.viewmodels.NotificationViewModel
 import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
 import com.payme.sdk.viewmodels.SubWebViewViewModel
-import com.payme.sdk.webServer.ExampleGlobalClass
 import com.payme.sdk.webServer.JavaScriptInterface
 import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONObject
 import vn.kalapa.ekyc.KalapaHandler
-import vn.kalapa.ekyc.KalapaSDK
 import vn.kalapa.ekyc.KalapaSDK.Companion.configure
-import vn.kalapa.ekyc.KalapaSDK.Companion.isBackBitmapInitialized
-import vn.kalapa.ekyc.KalapaSDK.Companion.isFaceBitmapInitialized
-import vn.kalapa.ekyc.KalapaSDK.Companion.isFrontBitmapInitialized
 import vn.kalapa.ekyc.KalapaSDK.Companion.startFullEKYC
 import vn.kalapa.ekyc.KalapaSDKConfig
 import vn.kalapa.ekyc.KalapaSDKResultCode
@@ -1347,8 +1338,8 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun startEKYC(data: JSONObject) {
-        val sessionId = data.optString("token", null)
-        if (sessionId != null) {
+        val sessionId = data.optString("token", "")
+        if (sessionId != "") {
             startFullEKYC(
                 requireActivity(),
                 sessionId,
@@ -1359,18 +1350,6 @@ class MiniAppFragment : Fragment() {
                     }
 
                     override fun onComplete(kalapaResult: KalapaResult) {
-                        ExampleGlobalClass.kalapaResult = kalapaResult
-                        if (isFaceBitmapInitialized()) ExampleGlobalClass.faceImage =
-                            KalapaSDK.faceBitmap
-                        if (isFrontBitmapInitialized()) ExampleGlobalClass.frontImage =
-                            KalapaSDK.frontBitmap
-                        if (isBackBitmapInitialized()) ExampleGlobalClass.backImage =
-                            KalapaSDK.backBitmap
-                    ExampleGlobalClass.nfcData =
-                        NFCVerificationData(NFCCardData(kalapaResult.nfc_data, true), null, null)
-                        val nfcResult = ExampleGlobalClass.nfcData?.data?.data
-                        Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $nfcResult""")
-
                         activity?.let {
                             Utils.evaluateJSWebView(
                                 it,
