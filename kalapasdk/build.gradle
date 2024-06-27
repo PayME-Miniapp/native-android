@@ -1,0 +1,18 @@
+apply plugin: 'maven-publish'
+
+configurations.maybeCreate("default")
+artifacts.add("default", file('kalapasdk.aar'))
+
+publishing {
+    publications {
+        aar(MavenPublication) {
+            groupId = "com.payme.sdk"
+            artifactId = "kalapasdk"
+            version = '0.2.3-alpha.2'
+
+            artifact(file('kalapasdk.aar')) {
+                extension 'aar'
+            }
+        }
+    }
+}

@@ -76,12 +76,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
-    // Network
-    implementation "com.squareup.okhttp3:logging-interceptor:4.5.0"
-    implementation 'com.squareup.okhttp3:okhttp:3.6.0'
-    implementation 'com.squareup.retrofit2:retrofit:2.6.2'
-    implementation 'com.squareup.retrofit2:converter-gson:2.6.2'
-
     // UI
     implementation "io.github.chaosleung:pinview:1.4.4"
     implementation "androidx.window:window-extensions:1.0.0-alpha01"
@@ -91,19 +85,20 @@ dependencies {
     implementation "com.google.mlkit:face-detection:16.1.5"
     implementation "com.google.mlkit:text-recognition:16.0.0"
 
-    implementation "commons-io:commons-io:20030203.000550"
-    implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.25"
+    // Network
+    implementation "com.squareup.okhttp3:logging-interceptor:4.5.0"
+    implementation "com.squareup.okhttp3:okhttp:3.6.0"
+    implementation "com.squareup.retrofit2:retrofit:2.6.2"
+    implementation "com.squareup.retrofit2:converter-gson:2.6.2"
 
-    implementation "com.beust:klaxon:5.5"
-    implementation 'de.hdodenhof:circleimageview:3.1.0'
+    // nfc
+    implementation "commons-io:commons-io:20030203.000550"
+    implementation project(":nfc")
+
+    // kalapasdk
+    implementation project(":kalapasdk")
+
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation fileTree(dir: 'libs', include: ['*.aar'])
-    // implementation project(":kalapasdk")tre
-    // implementation project(":nfc")
-    implementation files('libs\\nfc.aar')
-    implementation files('libs\\kalapasdk.aar')
-    // implementation project(":kalapasdk")
-    // implementation project(":nfc")
 }
 afterEvaluate {
     publishing {
@@ -112,7 +107,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.0-alpha.4'
+                version = '0.2.3-alpha.2'
             }
         }
     }

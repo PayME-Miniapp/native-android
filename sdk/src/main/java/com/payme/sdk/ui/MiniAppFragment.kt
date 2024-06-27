@@ -49,14 +49,10 @@ import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
 import com.beust.klaxon.Json
 import com.google.gson.Gson
-import com.google.gson.JsonSyntaxException
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
-import com.payme.sdk.models.NFCCardData
-import com.payme.sdk.models.NFCResultData
-import com.payme.sdk.models.NFCVerificationData
 import com.payme.sdk.models.OpenMiniAppDataInterface
 import com.payme.sdk.models.OpenMiniAppKYCData
 import com.payme.sdk.models.OpenMiniAppType
@@ -73,17 +69,12 @@ import com.payme.sdk.viewmodels.MiniappViewModel
 import com.payme.sdk.viewmodels.NotificationViewModel
 import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
 import com.payme.sdk.viewmodels.SubWebViewViewModel
-import com.payme.sdk.webServer.ExampleGlobalClass
 import com.payme.sdk.webServer.JavaScriptInterface
 import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONObject
 import vn.kalapa.ekyc.KalapaHandler
-import vn.kalapa.ekyc.KalapaSDK
 import vn.kalapa.ekyc.KalapaSDK.Companion.configure
-import vn.kalapa.ekyc.KalapaSDK.Companion.isBackBitmapInitialized
-import vn.kalapa.ekyc.KalapaSDK.Companion.isFaceBitmapInitialized
-import vn.kalapa.ekyc.KalapaSDK.Companion.isFrontBitmapInitialized
 import vn.kalapa.ekyc.KalapaSDK.Companion.startFullEKYC
 import vn.kalapa.ekyc.KalapaSDKConfig
 import vn.kalapa.ekyc.KalapaSDKResultCode
@@ -1351,57 +1342,40 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun startEKYC(data: JSONObject) {
-        try {
-            val sessionId = data.optString("token", null)
+        val sessionId = data.optString("token", "")
+        if (sessionId != "") {
+            startFullEKYC(
+                requireActivity(),
+                sessionId,
+                sdkConfig,
+                object : KalapaHandler() {
+                    override fun onError(resultCode: KalapaSDKResultCode) {
+                        Log.d(PayMEMiniApp.TAG, """startFullEKYC error""")
+                    }
 
-            if (sessionId != null) {
-                startFullEKYC(
-                    requireActivity(),
-                    sessionId,
-                    sdkConfig,
-                    object : KalapaHandler() {
-                        override fun onError(resultCode: KalapaSDKResultCode) {
-                            Log.d(PayMEMiniApp.TAG, """startFullEKYC error""")
+                    override fun onComplete(kalapaResult: KalapaResult) {
+                        Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $kalapaResult""")
+                        val action = data.optString("action", "")
+                        val payload = data.optString("payload", null)
+                        val response = JSONObject()
+                        response.put("action", action)
+                        if (action != "KYC" && payload != null) {
+                            response.put("payload", JSONObject(payload))
                         }
-
-                        override fun onComplete(kalapaResult: KalapaResult) {
-//                        ExampleGlobalClass.kalapaResult = kalapaResult
-//                        if (isFaceBitmapInitialized()) ExampleGlobalClass.faceImage =
-//                            KalapaSDK.faceBitmap
-//                        if (isFrontBitmapInitialized()) ExampleGlobalClass.frontImage =
-//                            KalapaSDK.frontBitmap
-//                        if (isBackBitmapInitialized()) ExampleGlobalClass.backImage =
-//                            KalapaSDK.backBitmap
-//                    ExampleGlobalClass.nfcData =
-//                        NFCVerificationData(NFCCardData(kalapaResult.nfc_data, true), null, null)
-//                        val nfcResult = ExampleGlobalClass.nfcData?.data?.data
-                            Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $kalapaResult""")
-
-                            val action = data.optString("action", "")
-                            val payload = data.optString("payload", null)
-                            val response = JSONObject()
-                            response.put("action", action)
-                            if(action != "KYC" && payload != null) {
-                                response.put("payload", JSONObject(payload))
-                            }
-
-                            activity?.let {
-                                Utils.evaluateJSWebView(
-                                    it,
-                                    myWebView!!,
-                                    "nativeKalapaKYC",
-                                    response.toString(),
-                                    null
-                                )
-                            }
+                        activity?.let {
+                            Utils.evaluateJSWebView(
+                                it,
+                                myWebView!!,
+                                "nativeKalapaKYC",
+                                response.toString(),
+                                null
+                            )
                         }
-                    })
-            }
-            else {
-                Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: ${e.message} ")
+                    }
+                })
+        }
+        else {
+            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
         }
     }
 
@@ -1784,7 +1758,7 @@ class MiniAppFragment : Fragment() {
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
         internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
-        internal var loadUrl = "https://e82e-113-161-36-155.ngrok-free.app/"
+        internal var loadUrl = ""
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
 
