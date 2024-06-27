@@ -97,6 +97,7 @@ dependencies {
 
     // kalapasdk
     implementation project(":kalapasdk")
+    implementation "com.beust:klaxon:5.5"
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
@@ -107,7 +108,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.3-alpha.2'
+                version = '0.2.3-alpha.3'
             }
         }
     }
