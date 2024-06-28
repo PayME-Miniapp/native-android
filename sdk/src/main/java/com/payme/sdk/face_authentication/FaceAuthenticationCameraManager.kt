@@ -57,8 +57,8 @@ class FaceAuthenticationCameraManager(
                 4 -> {
                     takePicture("authenFace.jpeg") {
                         val intent = Intent()
-                        val image = "authenFace.jpeg"
-                        intent.putExtra("image", image)
+                        val fileName = "authenFace.jpeg"
+                        intent.putExtra("fileName", "images/$fileName")
                         (context as Activity).setResult(Activity.RESULT_OK, intent)
                         context.finish()
                     }
