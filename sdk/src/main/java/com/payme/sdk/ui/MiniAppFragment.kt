@@ -1654,11 +1654,12 @@ class MiniAppFragment : Fragment() {
                     Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
                 }
                 Activity.RESULT_OK -> {
-                    val images3 = "images/authenFace.jpeg"
-                    val responseFaceAuthen = JSONObject()
-                    responseFaceAuthen.put("images", images3)
+                    val resultData = result.data
+                    val image = resultData?.extras?.get("image")
                     val action = faceAuthenData?.optString("action", "")
                     val payload = faceAuthenData?.optString("payload", "")
+                    val responseFaceAuthen = JSONObject()
+                    responseFaceAuthen.put("image", image)
                     responseFaceAuthen.put("action", action)
                     responseFaceAuthen.put("payload", JSONObject(payload))
                     Log.d(PayMEMiniApp.TAG, "responseFaceAuthen: $responseFaceAuthen")

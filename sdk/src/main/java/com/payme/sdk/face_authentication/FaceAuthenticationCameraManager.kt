@@ -55,13 +55,10 @@ class FaceAuthenticationCameraManager(
         faceDetectorStepViewModel.getStep().observe(context as LifecycleOwner) {
             when (it) {
                 4 -> {
-                    takePicture("kycFace1.jpeg") {
+                    takePicture("authenFace.jpeg") {
                         val intent = Intent()
-                        val images =
-                            arrayOf(
-                                "images/kycFace1.jpeg",
-                            )
-                        intent.putExtra("images", images)
+                        val image = "authenFace.jpeg"
+                        intent.putExtra("image", image)
                         (context as Activity).setResult(Activity.RESULT_OK, intent)
                         context.finish()
                     }
