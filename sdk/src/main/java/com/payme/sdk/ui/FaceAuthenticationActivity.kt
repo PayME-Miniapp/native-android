@@ -72,8 +72,6 @@ class FaceAuthenticationActivity : AppCompatActivity() {
                 if (it.isEmpty()) {
                     when (faceDetectorStepViewModel.getStep().value) {
                         1 -> textHint.text = hint1 ?: getString(R.string.face_detector_hint1)
-                        2 -> textHint.text = hint2 ?: getString(R.string.face_detector_hint2)
-                        3 -> textHint.text = hint3 ?: getString(R.string.face_detector_hint3)
                     }
                 } else {
                     textHint.text = it

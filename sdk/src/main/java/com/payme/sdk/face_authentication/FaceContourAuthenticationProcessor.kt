@@ -77,24 +77,7 @@ class FaceContourAuthenticationProcessor(
 
             if (faceDetectorStepViewModel.getStep().value == 1) {
                 if (condition1) {
-                    faceDetectorStepViewModel.setStep(4)
-                }
-            } else if (faceDetectorStepViewModel.getStep().value == 2) {
-                if (face.leftEyeOpenProbability != null && face.rightEyeOpenProbability != null) {
-                    if (face.leftEyeOpenProbability!! >= 0.5 && face.rightEyeOpenProbability!! >= 0.5) {
-                        if (isClosedEyes) {
-                            faceDetectorStepViewModel.setStep(3)
-                        }
-                    } else if (face.leftEyeOpenProbability!! < 0.6 && face.rightEyeOpenProbability!! < 0.6) { // blink
-                        isClosedEyes = true
-                        timerTask = Timer("Blinking", false).schedule(3000) {
-                            isClosedEyes = false
-                        }
-                    }
-                }
-            } else if (faceDetectorStepViewModel.getStep().value == 3) {
-                if (face.smilingProbability != null && face.smilingProbability!! >= 0.5) {
-                    faceDetectorStepViewModel.setStep(4)
+                    faceDetectorStepViewModel.setStep(2)
                 }
             }
         } else {
