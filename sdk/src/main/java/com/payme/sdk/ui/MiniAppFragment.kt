@@ -467,7 +467,7 @@ class MiniAppFragment : Fragment() {
             val heightDiff: Int = screenHeight - r.bottom
             val navigationBarHeight = Utils.getSoftNavigationHeight(requireContext())
 
-            if (heightDiff > 100) {
+            if (heightDiff > 140) {
                 val height = Utils.pxToDp(requireContext(), heightDiff + navigationBarHeight)
                 activity?.let {
                     Utils.evaluateJSWebView(
