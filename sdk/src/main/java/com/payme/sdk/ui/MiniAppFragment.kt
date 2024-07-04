@@ -1,5 +1,6 @@
 package com.payme.sdk.ui
 
+//import vn.kalapa.ekyc.KalapaSDK.Companion.configure
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -16,8 +17,6 @@ import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
@@ -47,7 +46,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.airbnb.lottie.LottieAnimationView
-import com.beust.klaxon.Json
 import com.google.gson.Gson
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
@@ -74,7 +72,6 @@ import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONObject
 import vn.kalapa.ekyc.KalapaHandler
-import vn.kalapa.ekyc.KalapaSDK.Companion.configure
 import vn.kalapa.ekyc.KalapaSDK.Companion.startFullEKYC
 import vn.kalapa.ekyc.KalapaSDKConfig
 import vn.kalapa.ekyc.KalapaSDKResultCode
@@ -142,7 +139,7 @@ class MiniAppFragment : Fragment() {
     private lateinit var lottieContainerView: LinearLayout
     private lateinit var loadingView: View
 
-    private lateinit var sdkConfig: KalapaSDKConfig
+//    private lateinit var sdkConfig: KalapaSDKConfig
     private var preferencesConfig: PreferencesConfig? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var faceAuthenData: JSONObject? = null
@@ -795,39 +792,39 @@ class MiniAppFragment : Fragment() {
 
         subWebViewViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
 
-        Handler(Looper.getMainLooper()).post {
-            if (preferencesConfig != null) {
-                setSdkConfig(preferencesConfig!!)
-            }
-            else {
-                sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
-                    .withBackgroundColor("#FFFFFF")
-                    .withMainColor("#33CB33")
-                    .withBtnTextColor("#121212")
-                    .withMainTextColor("#121212")
-                    .withLivenessVersion(0)
-                    .withBaseURL("https://ekyc-api.kalapa.vn")
-                    .withLanguage("vi")
-                    .build()
-                configure(sdkConfig)
-            }
-        }
+//        Handler(Looper.getMainLooper()).post {
+//            if (preferencesConfig != null) {
+//                setSdkConfig(preferencesConfig!!)
+//            }
+//            else {
+//                sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+//                    .withBackgroundColor("#FFFFFF")
+//                    .withMainColor("#33CB33")
+//                    .withBtnTextColor("#121212")
+//                    .withMainTextColor("#121212")
+//                    .withLivenessVersion(0)
+//                    .withBaseURL("https://ekyc-api.kalapa.vn")
+//                    .withLanguage("vi")
+//                    .build()
+//                configure(sdkConfig)
+//            }
+//        }
 
         return view
     }
 
-    private fun setSdkConfig(preferencesConfig: PreferencesConfig) {
-        sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
-            .withBackgroundColor(preferencesConfig.backgroundColor)
-            .withMainColor(preferencesConfig.mainColor)
-            .withBtnTextColor(preferencesConfig.btnTextColor)
-            .withMainTextColor(preferencesConfig.mainTextColor)
-            .withLivenessVersion(preferencesConfig.livenessVersion)
-            .withBaseURL(preferencesConfig.env)
-            .withLanguage(preferencesConfig.language)
-            .build()
-        configure(sdkConfig)
-    }
+//    private fun setSdkConfig(preferencesConfig: PreferencesConfig) {
+//        sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+//            .withBackgroundColor(preferencesConfig.backgroundColor)
+//            .withMainColor(preferencesConfig.mainColor)
+//            .withBtnTextColor(preferencesConfig.btnTextColor)
+//            .withMainTextColor(preferencesConfig.mainTextColor)
+//            .withLivenessVersion(preferencesConfig.livenessVersion)
+//            .withBaseURL(preferencesConfig.env)
+//            .withLanguage(preferencesConfig.language)
+//            .build()
+//        configure(sdkConfig)
+//    }
 
     private fun changeEnv(env: String) {
         PayMEMiniApp.onChangeEnv?.let { it(env) }
@@ -1344,9 +1341,19 @@ class MiniAppFragment : Fragment() {
     private fun startEKYC(data: JSONObject) {
         val sessionId = data.optString("token", "")
         if (sessionId != "") {
+            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+                .withBackgroundColor("#FFFFFF")
+                .withMainColor("#33CB33")
+                .withBtnTextColor("#121212")
+                .withMainTextColor("#121212")
+                .withLivenessVersion(0)
+                .withBaseURL("https://ekyc-api.kalapa.vn")
+                .withLanguage("vi")
+                .build()
             startFullEKYC(
                 requireActivity(),
                 sessionId,
+                "nfc_only",
                 sdkConfig,
                 object : KalapaHandler() {
                     override fun onError(resultCode: KalapaSDKResultCode) {
@@ -1356,10 +1363,10 @@ class MiniAppFragment : Fragment() {
                     override fun onComplete(kalapaResult: KalapaResult) {
                         Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $kalapaResult""")
                         val action = data.optString("action", "")
-                        val payload = data.optString("payload", null)
+                        val payload = data.optString("payload", "")
                         val response = JSONObject()
                         response.put("action", action)
-                        if (action != "KYC" && payload != null) {
+                        if (action != "KYC" && payload != "") {
                             response.put("payload", JSONObject(payload))
                         }
                         activity?.let {
