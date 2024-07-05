@@ -17,6 +17,7 @@ class JavaScriptInterface(
     val biometricAuthen: ((String) -> Unit),
     val startCardKyc: ((String) -> Unit),
     val startKalapaKyc: ((String) -> Unit),
+    val startKalapaNFC: ((String) -> Unit),
     val startFaceKyc: ((String) -> Unit),
     val startFaceAuthen: ((String) -> Unit),
     val openSettings: () -> Unit,
@@ -98,15 +99,21 @@ class JavaScriptInterface(
     }
 
     @JavascriptInterface
-    public fun jsRequestFaceKYC(data: String) {
-        Log.d(PayMEMiniApp.TAG, " jsRequestFaceKyc: $data")
-        startFaceKyc(data)
+    public fun jsRequestKalapaNFC(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsRequestKalapaNFC: $data")
+        startKalapaNFC(data)
     }
 
     @JavascriptInterface
     public fun jsRequestFaceAuthen(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsRequestFaceAuthen: $data")
         startFaceAuthen(data)
+    }
+
+    @JavascriptInterface
+    public fun jsRequestFaceKYC(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsRequestFaceKyc: $data")
+        startFaceKyc(data)
     }
 
     @JavascriptInterface

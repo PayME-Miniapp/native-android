@@ -71,12 +71,24 @@ import com.payme.sdk.webServer.JavaScriptInterface
 import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONObject
+import vn.kalapa.ekyc.KalapaFlowType
 import vn.kalapa.ekyc.KalapaHandler
+import vn.kalapa.ekyc.KalapaSDK
+import vn.kalapa.ekyc.KalapaSDK.Companion.isBackBitmapInitialized
+import vn.kalapa.ekyc.KalapaSDK.Companion.isFaceBitmapInitialized
+import vn.kalapa.ekyc.KalapaSDK.Companion.isFrontBitmapInitialized
 import vn.kalapa.ekyc.KalapaSDK.Companion.startFullEKYC
 import vn.kalapa.ekyc.KalapaSDKConfig
 import vn.kalapa.ekyc.KalapaSDKResultCode
+import vn.kalapa.ekyc.models.CreateSessionResult
+import vn.kalapa.ekyc.models.KalapaError
 import vn.kalapa.ekyc.models.KalapaResult
 import vn.kalapa.ekyc.models.PreferencesConfig
+import vn.kalapa.ekyc.networks.KalapaAPI.Companion.doRequestGetSession
+import vn.kalapa.ekyc.utils.Common.Companion.isOnline
+import vn.kalapa.ekyc.views.ProgressView.Companion.hideProgress
+import vn.kalapa.ekyc.views.ProgressView.Companion.showProgress
+import vn.kalapa.ekyc.views.ProgressView.ProgressViewType
 import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
@@ -703,8 +715,9 @@ class MiniAppFragment : Fragment() {
                     )
                 },
                 startCardKyc = { data: String -> startCardKyc(data) },
-                startKalapaKyc = { data: String -> startKalapaKyc(data) },
                 startFaceKyc = { data: String -> startFaceKyc(data) },
+                startKalapaKyc = { data: String -> startKalapaKyc(data) },
+                startKalapaNFC = { data: String -> startKalapaNFC(data) },
                 startFaceAuthen = { data: String -> startFaceAuthen(data) },
                 openSettings = { activity?.let { PermissionCameraUtil().openSetting(it) } },
                 share = { data: String -> share(data) },
@@ -1330,7 +1343,7 @@ class MiniAppFragment : Fragment() {
                 }
 
                 else -> {
-                    requestKalapaPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    requestKalapaKYCPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             }
         } catch (e: Exception) {
@@ -1350,25 +1363,22 @@ class MiniAppFragment : Fragment() {
                 .withBaseURL("https://ekyc-api.kalapa.vn")
                 .withLanguage("vi")
                 .build()
+            val flowType = KalapaFlowType.EKYC
             startFullEKYC(
                 requireActivity(),
                 sessionId,
-                "nfc_only",
+                flowType.toString().lowercase(),
                 sdkConfig,
                 object : KalapaHandler() {
                     override fun onError(resultCode: KalapaSDKResultCode) {
-                        Log.d(PayMEMiniApp.TAG, """startFullEKYC error""")
+                        Log.d(PayMEMiniApp.TAG, """startEKYC error: $resultCode""")
                     }
 
                     override fun onComplete(kalapaResult: KalapaResult) {
-                        Log.d(PayMEMiniApp.TAG, """Kalapa KYC complete: $kalapaResult""")
-                        val action = data.optString("action", "")
-                        val payload = data.optString("payload", "")
+                        Log.d(PayMEMiniApp.TAG, """startEKYC onComplete: $kalapaResult""")
                         val response = JSONObject()
-                        response.put("action", action)
-                        if (action != "KYC" && payload != "") {
-                            response.put("payload", JSONObject(payload))
-                        }
+                        response.put("token", sessionId)
+                        response.put("fieldType", kalapaResult.type)
                         activity?.let {
                             Utils.evaluateJSWebView(
                                 it,
@@ -1380,85 +1390,111 @@ class MiniAppFragment : Fragment() {
                         }
                     }
                 })
+            null
         }
         else {
             Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
         }
     }
 
-    private val requestWriteExternalStoragePermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "WRITE_EXTERNAL_STORAGE",
-                        "GRANTED"
-                    )
+    private fun startKalapaNFC(data: String) {
+        Log.d(PayMEMiniApp.TAG, "startKalapaNFC: ${JSONObject(data)} ")
+        try {
+            if (openType == OpenMiniAppType.modal) {
+                reStartWithScreen()
+                return
+            }
+
+            val json = JSONObject(data)
+            paramsKyc = json
+            when {
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "GRANTED"
+                        )
+                    }
+                    startNFC(json)
                 }
-                paramsSaveQr?.let { downloadImageQR(it) }
-            } else {
+
                 activity?.let {
-                    Utils.nativePermissionStatus(
+                    ActivityCompat.shouldShowRequestPermissionRationale(
                         it,
-                        myWebView!!,
-                        "WRITE_EXTERNAL_STORAGE",
-                        "DENIED"
+                        Manifest.permission.CAMERA
                     )
+                } == true -> {
+                    activity?.let {
+                        Utils.nativePermissionStatus(
+                            it,
+                            myWebView!!,
+                            "CAMERA",
+                            "BLOCKED"
+                        )
+                    }
+                }
+
+                else -> {
+                    requestKalapaNFCPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             }
+        } catch (e: Exception) {
+            Log.d(PayMEMiniApp.TAG, "startKalapaNfc exception: ${e.message} ")
         }
+    }
 
-    private val requestCardKycPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startIdentityCardActivity(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
-        }
+    private fun startNFC(data: JSONObject) {
+        val sessionId = data.optString("token", "")
+        if (sessionId != "") {
+            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+                .withBackgroundColor("#FFFFFF")
+                .withMainColor("#33CB33")
+                .withBtnTextColor("#121212")
+                .withMainTextColor("#121212")
+                .withLivenessVersion(0)
+                .withBaseURL("https://ekyc-api.kalapa.vn")
+                .withLanguage("vi")
+                .build()
+            startFullEKYC(
+                requireActivity(),
+                sessionId,
+                "nfc_only",
+                sdkConfig,
+                object : KalapaHandler() {
+                    override fun onError(resultCode: KalapaSDKResultCode) {
+                        Log.d(PayMEMiniApp.TAG, """startNFC error: $resultCode""")
+                    }
 
-    private val requestFaceKycPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startFaceDetectorActivity(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
+                    override fun onComplete(kalapaResult: KalapaResult) {
+                        Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
+                        val action = data.optString("action", "")
+                        val payload = data.optString("payload", "")
+                        val response = JSONObject()
+                        response.put("action", action)
+                        if (action != "KLP_KYC" && payload != "") {
+                            response.put("payload", JSONObject(payload))
+                        }
+                        activity?.let {
+                            Utils.evaluateJSWebView(
+                                it,
+                                myWebView!!,
+                                "nativeKalapaNFC",
+                                response.toString(),
+                                null
+                            )
+                        }
+                    }
+                })
         }
-
-    private val requestKalapaPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startEKYC(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
+        else {
+            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
         }
-
-    private val requestFaceAuthPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startFaceAuthenticationActivity(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
-        }
+    }
 
     private fun startFaceKyc(data: String) {
         try {
@@ -1680,6 +1716,92 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 }
+            }
+        }
+
+    private val requestWriteExternalStoragePermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "WRITE_EXTERNAL_STORAGE",
+                        "GRANTED"
+                    )
+                }
+                paramsSaveQr?.let { downloadImageQR(it) }
+            } else {
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "WRITE_EXTERNAL_STORAGE",
+                        "DENIED"
+                    )
+                }
+            }
+        }
+
+    private val requestCardKycPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                paramsKyc?.let { startIdentityCardActivity(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
+            }
+        }
+
+    private val requestFaceKycPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                paramsKyc?.let { startFaceDetectorActivity(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
+            }
+        }
+
+    private val requestKalapaKYCPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                paramsKyc?.let { startEKYC(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
+            }
+        }
+
+    private val requestKalapaNFCPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                paramsKyc?.let { startNFC(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
+            }
+        }
+
+    private val requestFaceAuthPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+                paramsKyc?.let { startFaceAuthenticationActivity(it) }
+            } else {
+                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
             }
         }
 
