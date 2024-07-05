@@ -4,7 +4,7 @@ plugins {
     id 'maven-publish'
 }
 
-def sdk_version = "1.0.21"
+def sdk_version = "1.0.22"
 def version_code = 667
 
 android {
@@ -109,7 +109,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.2.6-alpha.2'
+                version = '0.2.6-alpha.3'
             }
         }
     }
