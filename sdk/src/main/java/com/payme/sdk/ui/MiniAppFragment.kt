@@ -805,39 +805,8 @@ class MiniAppFragment : Fragment() {
 
         subWebViewViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
 
-//        Handler(Looper.getMainLooper()).post {
-//            if (preferencesConfig != null) {
-//                setSdkConfig(preferencesConfig!!)
-//            }
-//            else {
-//                sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
-//                    .withBackgroundColor("#FFFFFF")
-//                    .withMainColor("#33CB33")
-//                    .withBtnTextColor("#121212")
-//                    .withMainTextColor("#121212")
-//                    .withLivenessVersion(0)
-//                    .withBaseURL("https://ekyc-api.kalapa.vn")
-//                    .withLanguage("vi")
-//                    .build()
-//                configure(sdkConfig)
-//            }
-//        }
-
         return view
     }
-
-//    private fun setSdkConfig(preferencesConfig: PreferencesConfig) {
-//        sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
-//            .withBackgroundColor(preferencesConfig.backgroundColor)
-//            .withMainColor(preferencesConfig.mainColor)
-//            .withBtnTextColor(preferencesConfig.btnTextColor)
-//            .withMainTextColor(preferencesConfig.mainTextColor)
-//            .withLivenessVersion(preferencesConfig.livenessVersion)
-//            .withBaseURL(preferencesConfig.env)
-//            .withLanguage(preferencesConfig.language)
-//            .build()
-//        configure(sdkConfig)
-//    }
 
     private fun changeEnv(env: String) {
         PayMEMiniApp.onChangeEnv?.let { it(env) }
@@ -1360,8 +1329,7 @@ class MiniAppFragment : Fragment() {
                 .withBtnTextColor("#121212")
                 .withMainTextColor("#121212")
                 .withLivenessVersion(0)
-                .withBaseURL("https://ekyc-api.kalapa.vn")
-                .withLanguage("vi")
+                .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
             val flowType = KalapaFlowType.EKYC
             startFullEKYC(
@@ -1457,8 +1425,7 @@ class MiniAppFragment : Fragment() {
                 .withBtnTextColor("#121212")
                 .withMainTextColor("#121212")
                 .withLivenessVersion(0)
-                .withBaseURL("https://ekyc-api.kalapa.vn")
-                .withLanguage("vi")
+                .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
             startFullEKYC(
                 requireActivity(),
