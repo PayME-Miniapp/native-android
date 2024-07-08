@@ -30,7 +30,7 @@ enum class PayMEErrorType {
 }
 
 enum class PayMENetworkErrorCode {
-    ENCODE_FAILED, DECODE_FAILED, CONNECTION_LOST, TIMED_OUT, NO_RESPONSE, OTHER
+    ENCODE_FAILED, DECODE_FAILED, CONNECTION_LOST, TIMED_OUT, NO_RESPONSE, OTHER, SERVER_ERROR
 }
 
 fun getPayMENetworkErrorDescription(code: String): String {
@@ -40,6 +40,7 @@ fun getPayMENetworkErrorDescription(code: String): String {
         PayMENetworkErrorCode.CONNECTION_LOST.toString() -> "Kết nối mạng bị sự cố, vui lòng kiểm tra và thử lại. Xin cảm ơn!"
         PayMENetworkErrorCode.TIMED_OUT.toString() -> "Kết nối tới máy chủ quá lâu, vui lòng kiểm tra và thử lại. Xin cảm ơn!"
         PayMENetworkErrorCode.NO_RESPONSE.toString() -> "Không thể kết nối tới server"
+        PayMENetworkErrorCode.SERVER_ERROR.toString() -> "Máy chủ gặp lỗi. Vui lòng thử lại sau"
         PayMENetworkErrorCode.OTHER.toString() -> "Có lỗi xảy ra"
         else -> "Có lỗi xảy ra"
     }

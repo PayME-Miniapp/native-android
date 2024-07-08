@@ -69,10 +69,7 @@ class PayMEMiniApp(
         phone: String,
     ) {
         AccountPresentation.getBalance(
-            context,
-            phone,
-            onResponse,
-            onError
+            context, phone, onResponse, onError
         )
     }
 
@@ -80,10 +77,7 @@ class PayMEMiniApp(
         phone: String,
     ) {
         AccountPresentation.getAccountInfo(
-            context,
-            phone,
-            onResponse,
-            onError
+            context, phone, onResponse, onError
         )
     }
 
