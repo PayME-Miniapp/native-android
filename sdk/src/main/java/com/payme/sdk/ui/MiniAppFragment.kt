@@ -70,6 +70,7 @@ import com.payme.sdk.viewmodels.SubWebViewViewModel
 import com.payme.sdk.webServer.JavaScriptInterface
 import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import vn.kalapa.ekyc.KalapaFlowType
 import vn.kalapa.ekyc.KalapaHandler
@@ -1439,13 +1440,21 @@ class MiniAppFragment : Fragment() {
 
                     override fun onComplete(kalapaResult: KalapaResult) {
                         Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
-                        val action = data.optString("action", "")
-                        val payload = data.optString("payload", "")
-                        Log.d(PayMEMiniApp.TAG, """action: $action, $payload""")
+                        val action = data.optString("action", null)
+                        val payload = data.optString("payload", null)
                         val response = JSONObject()
-                        response.put("action", action)
-                        if (action != null && payload != null && action != "KLP_KYC") {
-                            response.put("payload", JSONObject(payload))
+                        if (action != "null") {
+                            response.put("action", action)
+                            if( payload != "null" && action != "KLP_KYC") {
+                                try {
+                                    response.put("payload", JSONObject(payload))
+                                } catch (e: JSONException) {
+                                    Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+                                }
+                            }
+                        }
+                        else {
+                            response.put("action", "KLP_KYC")
                         }
                         activity?.let {
                             Utils.evaluateJSWebView(
