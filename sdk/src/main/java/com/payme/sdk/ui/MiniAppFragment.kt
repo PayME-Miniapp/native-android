@@ -1441,9 +1441,10 @@ class MiniAppFragment : Fragment() {
                         Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
                         val action = data.optString("action", "")
                         val payload = data.optString("payload", "")
+                        Log.d(PayMEMiniApp.TAG, """action: $action, $payload""")
                         val response = JSONObject()
                         response.put("action", action)
-                        if (action != "KLP_KYC" && payload != "") {
+                        if (action != null && payload != null && action != "KLP_KYC") {
                             response.put("payload", JSONObject(payload))
                         }
                         activity?.let {
