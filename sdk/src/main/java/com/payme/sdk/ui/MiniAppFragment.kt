@@ -152,7 +152,6 @@ class MiniAppFragment : Fragment() {
     private lateinit var lottieContainerView: LinearLayout
     private lateinit var loadingView: View
 
-//    private lateinit var sdkConfig: KalapaSDKConfig
     private var preferencesConfig: PreferencesConfig? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var faceAuthenData: JSONObject? = null
@@ -1360,8 +1359,7 @@ class MiniAppFragment : Fragment() {
                     }
                 })
             null
-        }
-        else {
+        } else {
             Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
         }
     }
@@ -1440,20 +1438,19 @@ class MiniAppFragment : Fragment() {
 
                     override fun onComplete(kalapaResult: KalapaResult) {
                         Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
-                        val action = data.optString("action", null)
-                        val payload = data.optString("payload", null)
+                        val action = data.optString("action", "")
+                        val payload = data.optString("payload", "")
                         val response = JSONObject()
-                        if (action != "null") {
+                        if (action != "") {
                             response.put("action", action)
-                            if( payload != "null" && action != "KLP_KYC") {
+                            if (payload != "" && action != "KLP_KYC") {
                                 try {
                                     response.put("payload", JSONObject(payload))
                                 } catch (e: JSONException) {
                                     Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             response.put("action", "KLP_KYC")
                         }
                         activity?.let {
@@ -1467,8 +1464,7 @@ class MiniAppFragment : Fragment() {
                         }
                     }
                 })
-        }
-        else {
+        } else {
             Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
         }
     }
@@ -1580,7 +1576,7 @@ class MiniAppFragment : Fragment() {
                     images3.put("images/kycFace2.jpeg")
                     images3.put("images/kycFace3.jpeg")
                     val responseFaceKyc = JSONObject()
-                    .put("images", images3)
+                        .put("images", images3)
                     Log.d(PayMEMiniApp.TAG, "responseFaceKyc: $responseFaceKyc ")
                     activity?.let {
                         Utils.evaluateJSWebView(
@@ -1639,6 +1635,7 @@ class MiniAppFragment : Fragment() {
             Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
         }
     }
+
     private fun startFaceAuthenticationActivity(data: JSONObject) {
         faceAuthenData = data
         Log.d(PayMEMiniApp.TAG, "faceAuthenData: $faceAuthenData , $data ")
@@ -1646,7 +1643,8 @@ class MiniAppFragment : Fragment() {
         val jsonArray = JSONArray()
         jsonArray.put(getString(R.string.face_detector_hint1))
         val hints: JSONArray = data.optJSONArray("hints") ?: jsonArray
-        val intent = Intent(requireContext(), com.payme.sdk.ui.FaceAuthenticationActivity::class.java)
+        val intent =
+            Intent(requireContext(), com.payme.sdk.ui.FaceAuthenticationActivity::class.java)
         intent.putExtra("title", title)
         intent.putExtra("hint1", hints.get(0) as String)
         faceAuthenticationLauncher.launch(intent)
@@ -1673,6 +1671,7 @@ class MiniAppFragment : Fragment() {
                     }
                     Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
                 }
+
                 Activity.RESULT_OK -> {
                     val resultData = result.data
                     val image = resultData?.extras?.get("image")
