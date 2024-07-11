@@ -30,8 +30,8 @@
     public static *** v(...);
 }
 
--keep class vn.kalapa.ekyc.{*;}
--keep class com.fis.ekyc.{*;}
+-keep class vn.kalapa.ekyc.**{*;}
+-keep class com.fis.ekyc.**{*;}
 -keep class com.fis.nfc.**{*;}
 
 -keepclassmembers,allowobfuscation class * {
