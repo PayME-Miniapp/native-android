@@ -1272,11 +1272,6 @@ class MiniAppFragment : Fragment() {
     private fun startKalapaKyc(data: String) {
         Log.d(PayMEMiniApp.TAG, "startKalapaKyc: ${JSONObject(data)} ")
         try {
-            if (openType == OpenMiniAppType.modal) {
-                reStartWithScreen()
-                return
-            }
-
             val json = JSONObject(data)
             paramsKyc = json
             when {
@@ -1367,11 +1362,6 @@ class MiniAppFragment : Fragment() {
     private fun startKalapaNFC(data: String) {
         Log.d(PayMEMiniApp.TAG, "startKalapaNFC: ${JSONObject(data)} ")
         try {
-            if (openType == OpenMiniAppType.modal) {
-                reStartWithScreen()
-                return
-            }
-
             val json = JSONObject(data)
             paramsKyc = json
             when {
