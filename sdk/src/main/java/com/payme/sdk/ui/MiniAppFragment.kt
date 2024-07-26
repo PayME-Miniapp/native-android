@@ -1134,7 +1134,10 @@ class MiniAppFragment : Fragment() {
 
     private fun requestPermission(data: String) {
         try {
-            permissionType = data
+            val json = JSONObject(data)
+            val type = json.optString("type", "")
+            val isCheckPermissionStatus = json.getBoolean("isCheckPermissionStatus")
+            permissionType = type
             when {
                 ContextCompat.checkSelfPermission(
                     requireContext(),
@@ -1165,15 +1168,16 @@ class MiniAppFragment : Fragment() {
                         )
                     }
                 }
-
                 else -> {
-                    if (permissionType == "CAMERA") {
-                        requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        return
-                    }
-                    if (permissionType == "READ_EXTERNAL_STORAGE") {
-                        requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                        return
+                    if(isCheckPermissionStatus === false) {
+                        if (permissionType == "CAMERA") {
+                            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            return
+                        }
+                        if (permissionType == "READ_EXTERNAL_STORAGE") {
+                            requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                            return
+                        }
                     }
                 }
             }
