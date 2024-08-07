@@ -92,7 +92,6 @@ dependencies {
     implementation "com.squareup.retrofit2:converter-gson:2.6.2"
 
     // nfc
-    implementation "commons-io:commons-io:20030203.000550"
     implementation project(":nfc")
 
     // kalapasdk
@@ -109,7 +108,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.payme.sdk"
                 artifactId = "PayME-Android-Sdk"
-                version = '0.3.2'
+                version = '0.3.3-alpha.2'
             }
         }
     }
