@@ -11,13 +11,11 @@
   <uses-feature android:name="android.hardware.camera.autofocus" />
 
   <application
-    android:allowBackup="true"
+    android:allowBackup="false"
     android:icon="@mipmap/ic_launcher"
     android:label="@string/app_name"
     android:roundIcon="@mipmap/ic_launcher_round"
     android:supportsRtl="true"
-    android:theme="@style/AppTheme"
-    tools:replace="android:theme, android:allowBackup"
     >
     <activity
       android:name=".MainActivity"
