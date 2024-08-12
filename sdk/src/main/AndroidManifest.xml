@@ -18,7 +18,7 @@
   <uses-feature android:name="android.hardware.NFC" android:required="false" tools:node="replace" tools:replace="android:required" />
   <uses-feature android:name="android.hardware.nfc" android:required="false" tools:node="replace" tools:replace="android:required" />
 
-  <application android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:requestLegacyExternalStorage="true" android:supportsRtl="true" android:theme="@style/AppTheme" android:usesCleartextTraffic="true" tools:targetApi="31" tools:replace="android:theme, android:allowBackup">
+  <application android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:requestLegacyExternalStorage="true" android:supportsRtl="true" android:theme="@style/AppTheme" android:usesCleartextTraffic="true" tools:targetApi="31">
     <activity android:name=".ui.MiniAppActivity" android:exported="true" android:theme="@style/AppTheme" android:screenOrientation="portrait" android:windowSoftInputMode="stateHidden" />
     <activity android:name=".ui.FaceDetectorActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
     <activity android:name=".ui.FaceAuthenticationActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
