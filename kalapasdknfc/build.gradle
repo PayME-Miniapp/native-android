@@ -1,2 +1,18 @@
+apply plugin: 'maven-publish'
+
 configurations.maybeCreate("default")
 artifacts.add("default", file('kalapasdknfc.aar'))
+
+publishing {
+    publications {
+        aar(MavenPublication) {
+            groupId = "com.payme.sdk"
+            artifactId = "kalapasdknfc"
+            version = '0.3.4-alpha.4'
+
+            artifact(file('kalapasdknfc.aar')) {
+                extension 'aar'
+            }
+        }
+    }
+}
