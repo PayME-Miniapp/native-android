@@ -337,7 +337,7 @@ class MiniAppFragment : Fragment() {
                 }
                 versionFile.createNewFile()
                 Utils.downloadWithoutTemp(
-                    "https://aws-payme-production.s3.ap-southeast-1.amazonaws.com/frontend/miniapp-store/PayMEMiniAppVersion.json",
+                    "https://static.payme.vn/frontend/miniapp-store/PayMEMiniAppVersion.json",
                     versionFile.absolutePath
                 )
 //        val jsonString: String =
