@@ -99,7 +99,7 @@ dependencies {
     implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.25'
 
     // kalapasdk
-    implementation project(":kalapasdknfc")
+    implementation project(":kalapasdk")
     implementation "com.beust:klaxon:5.5"
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
