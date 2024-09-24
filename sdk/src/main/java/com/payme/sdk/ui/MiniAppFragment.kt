@@ -15,6 +15,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
+import android.nfc.NfcAdapter
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -741,7 +742,8 @@ class MiniAppFragment : Fragment() {
                 changeEnv = { data: String -> changeEnv(data) },
                 changeLocale = { data: String -> changeLocale(data) },
                 setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) },
-                setModalHeight = { data: Int -> setModalHeight(data) }
+                setModalHeight = { data: Int -> setModalHeight(data) },
+                requestNFCPermission = {data: String -> requestNFCPermission(data)}
             )
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
@@ -1183,6 +1185,48 @@ class MiniAppFragment : Fragment() {
             }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "requestPermission exception: ${e.message} ")
+        }
+    }
+
+    private fun requestNFCPermission(data: String) {
+        try {
+            val nfcAdapter: NfcAdapter? = NfcAdapter.getDefaultAdapter(context)
+            if (nfcAdapter == null) {
+                //Thiết bị không hỗ trợ NFC
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "NFC",
+                        "BLOCKED"
+                    )
+                }
+            } else if (!nfcAdapter.isEnabled) {
+                //NFC đã tắt. Vui lòng bật NFC trong cài đặt.
+                // Mở cài đặt NFC cho người dùng
+//                val intent = Intent(Settings.ACTION_NFC_SETTINGS)
+//                context?.startActivity(intent)
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "NFC",
+                        "DENIED"
+                    )
+                }
+            } else {
+                // NFC đã bật, thực hiện các thao tác liên quan tới NFC ở đây
+                activity?.let {
+                    Utils.nativePermissionStatus(
+                        it,
+                        myWebView!!,
+                        "NFC",
+                        "GRANTED"
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(PayMEMiniApp.TAG, "requestNFCPermission exception: ${e.message} ")
         }
     }
 
