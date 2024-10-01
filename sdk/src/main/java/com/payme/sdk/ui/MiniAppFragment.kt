@@ -75,10 +75,6 @@ import org.json.JSONObject
 import vn.kalapa.ekyc.KalapaFlowType
 import vn.kalapa.ekyc.KalapaHandler
 import vn.kalapa.ekyc.KalapaSDK
-import vn.kalapa.ekyc.KalapaSDK.Companion.isBackBitmapInitialized
-import vn.kalapa.ekyc.KalapaSDK.Companion.isFaceBitmapInitialized
-import vn.kalapa.ekyc.KalapaSDK.Companion.isFrontBitmapInitialized
-import vn.kalapa.ekyc.KalapaSDK.Companion.startFullEKYC
 import vn.kalapa.ekyc.KalapaSDKConfig
 import vn.kalapa.ekyc.KalapaSDKResultCode
 import vn.kalapa.ekyc.models.CreateSessionResult
@@ -1331,33 +1327,33 @@ class MiniAppFragment : Fragment() {
                 .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
             val flowType = KalapaFlowType.EKYC
-            startFullEKYC(
-                requireActivity(),
-                sessionId,
-                flowType.toString().lowercase(),
-                sdkConfig,
-                object : KalapaHandler() {
-                    override fun onError(resultCode: KalapaSDKResultCode) {
-                        Log.d(PayMEMiniApp.TAG, """startEKYC error: $resultCode""")
-                    }
-
-                    override fun onComplete(kalapaResult: KalapaResult) {
-                        Log.d(PayMEMiniApp.TAG, """startEKYC onComplete: $kalapaResult""")
-                        val response = JSONObject()
-                        response.put("token", sessionId)
-                        response.put("fieldType", kalapaResult.type)
-                        activity?.let {
-                            Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaKYC",
-                                response.toString(),
-                                null
-                            )
-                        }
-                    }
-                })
-            null
+//            startFullEKYC(
+//                requireActivity(),
+//                sessionId,
+//                flowType.toString().lowercase(),
+//                sdkConfig,
+//                object : KalapaHandler() {
+//                    override fun onError(resultCode: KalapaSDKResultCode) {
+//                        Log.d(PayMEMiniApp.TAG, """startEKYC error: $resultCode""")
+//                    }
+//
+//                    override fun onComplete(kalapaResult: KalapaResult) {
+//                        Log.d(PayMEMiniApp.TAG, """startEKYC onComplete: $kalapaResult""")
+//                        val response = JSONObject()
+//                        response.put("token", sessionId)
+//                        response.put("fieldType", kalapaResult.type)
+//                        activity?.let {
+//                            Utils.evaluateJSWebView(
+//                                it,
+//                                myWebView!!,
+//                                "nativeKalapaKYC",
+//                                response.toString(),
+//                                null
+//                            )
+//                        }
+//                    }
+//                })
+//            null
         } else {
             Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
         }
@@ -1420,44 +1416,44 @@ class MiniAppFragment : Fragment() {
                 .withLivenessVersion(0)
                 .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
-            startFullEKYC(
-                requireActivity(),
-                sessionId,
-                "nfc_only",
-                sdkConfig,
-                object : KalapaHandler() {
-                    override fun onError(resultCode: KalapaSDKResultCode) {
-                        Log.d(PayMEMiniApp.TAG, """startNFC error: $resultCode""")
-                    }
-
-                    override fun onComplete(kalapaResult: KalapaResult) {
-                        Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
-                        val action = data.optString("action", "")
-                        val payload = data.optString("payload", "")
-                        val response = JSONObject()
-                        if (action != "") {
-                            response.put("action", action)
-                            if (payload != "" && action != "KLP_KYC") {
-                                try {
-                                    response.put("payload", JSONObject(payload))
-                                } catch (e: JSONException) {
-                                    Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                                }
-                            }
-                        } else {
-                            response.put("action", "KLP_KYC")
-                        }
-                        activity?.let {
-                            Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
-                            )
-                        }
-                    }
-                })
+//            startFullEKYC(
+//                requireActivity(),
+//                sessionId,
+//                "nfc_only",
+//                sdkConfig,
+//                object : KalapaHandler() {
+//                    override fun onError(resultCode: KalapaSDKResultCode) {
+//                        Log.d(PayMEMiniApp.TAG, """startNFC error: $resultCode""")
+//                    }
+//
+//                    override fun onComplete(kalapaResult: KalapaResult) {
+//                        Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
+//                        val action = data.optString("action", "")
+//                        val payload = data.optString("payload", "")
+//                        val response = JSONObject()
+//                        if (action != "") {
+//                            response.put("action", action)
+//                            if (payload != "" && action != "KLP_KYC") {
+//                                try {
+//                                    response.put("payload", JSONObject(payload))
+//                                } catch (e: JSONException) {
+//                                    Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+//                                }
+//                            }
+//                        } else {
+//                            response.put("action", "KLP_KYC")
+//                        }
+//                        activity?.let {
+//                            Utils.evaluateJSWebView(
+//                                it,
+//                                myWebView!!,
+//                                "nativeKalapaNFC",
+//                                response.toString(),
+//                                null
+//                            )
+//                        }
+//                    }
+//                })
         } else {
             Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
         }
