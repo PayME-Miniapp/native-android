@@ -78,6 +78,7 @@ import vn.kalapa.ekyc.KalapaHandler
 import vn.kalapa.ekyc.KalapaSDK
 import vn.kalapa.ekyc.KalapaSDKConfig
 import vn.kalapa.ekyc.KalapaSDKResultCode
+import vn.kalapa.ekyc.KalapaTimeoutScanNFCCallback
 import vn.kalapa.ekyc.models.CreateSessionResult
 import vn.kalapa.ekyc.models.KalapaError
 import vn.kalapa.ekyc.models.KalapaResult
@@ -1331,7 +1332,7 @@ class MiniAppFragment : Fragment() {
                             "GRANTED"
                         )
                     }
-                    startEKYC(json)
+                    startNFC(json)
                 }
 
                 activity?.let {
@@ -1370,7 +1371,78 @@ class MiniAppFragment : Fragment() {
                 .withLivenessVersion(0)
                 .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
-            val flowType = KalapaFlowType.EKYC
+            val klpHandler = object : KalapaHandler() {
+                override fun onNFCTimeoutHandle(activity: Activity, sdkCallback: KalapaTimeoutScanNFCCallback) {
+                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC timeout""")
+                    val action = data.optString("action", "")
+                    val payload = data.optString("payload", "")
+                    val response = JSONObject()
+                    if (action != "") {
+                        response.put("action", action)
+                        if (payload != "" && action != "KLP_KYC") {
+                            try {
+                                response.put("payload", JSONObject(payload))
+                            } catch (e: JSONException) {
+                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+                            }
+                        }
+                    } else {
+                        response.put("action", "KLP_KYC")
+                    }
+                    response.put("timeout", true)
+                    activity?.let {
+                        Utils.evaluateJSWebView(
+                            it,
+                            myWebView!!,
+                            "nativeKalapaNFC",
+                            response.toString(),
+                            null
+                        )
+                    }
+                    sdkCallback.close{
+                    }
+                }
+
+                override fun onComplete(kalapaResult: KalapaResult) {
+                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
+                    val action = data.optString("action", "")
+                    val payload = data.optString("payload", "")
+                    val response = JSONObject()
+                    if (action != "") {
+                        response.put("action", action)
+                        if (payload != "" && action != "KLP_KYC") {
+                            try {
+                                response.put("payload", JSONObject(payload))
+                            } catch (e: JSONException) {
+                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+                            }
+                        }
+                    } else {
+                        response.put("action", "KLP_KYC")
+                    }
+                    activity?.let {
+                        Utils.evaluateJSWebView(
+                            it,
+                            myWebView!!,
+                            "nativeKalapaNFC",
+                            response.toString(),
+                            null
+                        )
+                    }
+                }
+
+                override fun onError(resultCode: KalapaSDKResultCode) {
+                    Log.d(PayMEMiniApp.TAG, """startNFC error: $resultCode""")
+                }
+
+                override fun onExpired() {
+                    // This handler is called when current session goes expired and user clicks the Retry button in the popup.
+                }
+
+            }
+            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig)
+                .build()
+                .start(sessionId, "nfc_only", klpHandler)
 //            startFullEKYC(
 //                requireActivity(),
 //                sessionId,
@@ -1460,6 +1532,77 @@ class MiniAppFragment : Fragment() {
                 .withLivenessVersion(0)
                 .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
+            val klpHandler = object : KalapaHandler() {
+                override fun onNFCTimeoutHandle(activity: Activity, sdkCallback: KalapaTimeoutScanNFCCallback) {
+                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC timeout""")
+                    val action = data.optString("action", "")
+                    val payload = data.optString("payload", "")
+                    val response = JSONObject()
+                    if (action != "") {
+                        response.put("action", action)
+                        if (payload != "" && action != "KLP_KYC") {
+                            try {
+                                response.put("payload", JSONObject(payload))
+                            } catch (e: JSONException) {
+                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+                            }
+                        }
+                    } else {
+                        response.put("action", "KLP_KYC")
+                    }
+                    response.put("timeout", true)
+                    activity?.let {
+                        Utils.evaluateJSWebView(
+                            it,
+                            myWebView!!,
+                            "nativeKalapaNFC",
+                            response.toString(),
+                            null
+                        )
+                    }
+                    sdkCallback.close{}
+                }
+
+                override fun onComplete(kalapaResult: KalapaResult) {
+                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
+                     val action = data.optString("action", "")
+                     val payload = data.optString("payload", "")
+                     val response = JSONObject()
+                     if (action != "") {
+                            response.put("action", action)
+                            if (payload != "" && action != "KLP_KYC") {
+                                try {
+                                    response.put("payload", JSONObject(payload))
+                                } catch (e: JSONException) {
+                                    Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+                                }
+                            }
+                        } else {
+                            response.put("action", "KLP_KYC")
+                        }
+                        activity?.let {
+                            Utils.evaluateJSWebView(
+                                it,
+                                myWebView!!,
+                                "nativeKalapaNFC",
+                                response.toString(),
+                                null
+                            )
+                        }
+                }
+
+                override fun onError(resultCode: KalapaSDKResultCode) {
+                    Log.d(PayMEMiniApp.TAG, """startNFC error: $resultCode""")
+                }
+
+                override fun onExpired() {
+                    // This handler is called when current session goes expired and user clicks the Retry button in the popup.
+                }
+
+            }
+            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig)
+                .build()
+                .start(sessionId, "nfc_only", klpHandler)
 //            startFullEKYC(
 //                requireActivity(),
 //                sessionId,
