@@ -73,21 +73,14 @@ import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import vn.kalapa.ekyc.KalapaFlowType
 import vn.kalapa.ekyc.KalapaHandler
 import vn.kalapa.ekyc.KalapaSDK
 import vn.kalapa.ekyc.KalapaSDKConfig
 import vn.kalapa.ekyc.KalapaSDKResultCode
-import vn.kalapa.ekyc.KalapaTimeoutScanNFCCallback
-import vn.kalapa.ekyc.models.CreateSessionResult
-import vn.kalapa.ekyc.models.KalapaError
+import vn.kalapa.ekyc.KalapaScanNFCCallback
+import vn.kalapa.ekyc.KalapaScanNFCError
 import vn.kalapa.ekyc.models.KalapaResult
 import vn.kalapa.ekyc.models.PreferencesConfig
-import vn.kalapa.ekyc.networks.KalapaAPI.Companion.doRequestGetSession
-import vn.kalapa.ekyc.utils.Common.Companion.isOnline
-import vn.kalapa.ekyc.views.ProgressView.Companion.hideProgress
-import vn.kalapa.ekyc.views.ProgressView.Companion.showProgress
-import vn.kalapa.ekyc.views.ProgressView.ProgressViewType
 import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
@@ -1369,39 +1362,10 @@ class MiniAppFragment : Fragment() {
                 .withBtnTextColor("#121212")
                 .withMainTextColor("#121212")
                 .withLivenessVersion(0)
+                .withNFCTimeoutInSeconds(180)
                 .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
             val klpHandler = object : KalapaHandler() {
-                override fun onNFCTimeoutHandle(activity: Activity, sdkCallback: KalapaTimeoutScanNFCCallback) {
-                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC timeout""")
-                    val action = data.optString("action", "")
-                    val payload = data.optString("payload", "")
-                    val response = JSONObject()
-                    if (action != "") {
-                        response.put("action", action)
-                        if (payload != "" && action != "KLP_KYC") {
-                            try {
-                                response.put("payload", JSONObject(payload))
-                            } catch (e: JSONException) {
-                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                            }
-                        }
-                    } else {
-                        response.put("action", "KLP_KYC")
-                    }
-                    response.put("timeout", true)
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it,
-                            myWebView!!,
-                            "nativeKalapaNFC",
-                            response.toString(),
-                            null
-                        )
-                    }
-                    sdkCallback.close{
-                    }
-                }
 
                 override fun onComplete(kalapaResult: KalapaResult) {
                     Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
@@ -1428,6 +1392,43 @@ class MiniAppFragment : Fragment() {
                             response.toString(),
                             null
                         )
+                    }
+                }
+
+                override fun onNFCErrorHandle(
+                    activity: Activity,
+                    error: KalapaScanNFCError,
+                    callback: KalapaScanNFCCallback
+                ) {
+                    Log.d(PayMEMiniApp.TAG, """NFC error handle: $error""")
+                    if(error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH || error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH || error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
+                        Log.d(PayMEMiniApp.TAG, """Kalapa NFC timeout""")
+                        val action = data.optString("action", "")
+                        val payload = data.optString("payload", "")
+                        val response = JSONObject()
+                        if (action != "") {
+                            response.put("action", action)
+                            if (payload != "" && action != "KLP_KYC") {
+                                try {
+                                    response.put("payload", JSONObject(payload))
+                                } catch (e: JSONException) {
+                                    Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+                                }
+                            }
+                        } else {
+                            response.put("action", "KLP_KYC")
+                        }
+                        response.put("timeout", true)
+                        activity?.let {
+                            Utils.evaluateJSWebView(
+                                it,
+                                myWebView!!,
+                                "nativeKalapaNFC",
+                                response.toString(),
+                                null
+                            )
+                        }
+                        callback.close{}
                     }
                 }
 
@@ -1530,38 +1531,10 @@ class MiniAppFragment : Fragment() {
                 .withBtnTextColor("#121212")
                 .withMainTextColor("#121212")
                 .withLivenessVersion(0)
+                .withNFCTimeoutInSeconds(180)
                 .withLanguage(PayMEMiniApp.locale.toString())
                 .build()
             val klpHandler = object : KalapaHandler() {
-                override fun onNFCTimeoutHandle(activity: Activity, sdkCallback: KalapaTimeoutScanNFCCallback) {
-                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC timeout""")
-                    val action = data.optString("action", "")
-                    val payload = data.optString("payload", "")
-                    val response = JSONObject()
-                    if (action != "") {
-                        response.put("action", action)
-                        if (payload != "" && action != "KLP_KYC") {
-                            try {
-                                response.put("payload", JSONObject(payload))
-                            } catch (e: JSONException) {
-                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                            }
-                        }
-                    } else {
-                        response.put("action", "KLP_KYC")
-                    }
-                    response.put("timeout", true)
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it,
-                            myWebView!!,
-                            "nativeKalapaNFC",
-                            response.toString(),
-                            null
-                        )
-                    }
-                    sdkCallback.close{}
-                }
 
                 override fun onComplete(kalapaResult: KalapaResult) {
                     Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
@@ -1589,6 +1562,43 @@ class MiniAppFragment : Fragment() {
                                 null
                             )
                         }
+                }
+
+                override fun onNFCErrorHandle(
+                    activity: Activity,
+                    error: KalapaScanNFCError,
+                    callback: KalapaScanNFCCallback
+                ) {
+                    Log.d(PayMEMiniApp.TAG, """NFC error handle: $error""")
+                    if(error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH || error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH || error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
+                        Log.d(PayMEMiniApp.TAG, """Kalapa NFC timeout""")
+                        val action = data.optString("action", "")
+                        val payload = data.optString("payload", "")
+                        val response = JSONObject()
+                        if (action != "") {
+                            response.put("action", action)
+                            if (payload != "" && action != "KLP_KYC") {
+                                try {
+                                    response.put("payload", JSONObject(payload))
+                                } catch (e: JSONException) {
+                                    Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
+                                }
+                            }
+                        } else {
+                            response.put("action", "KLP_KYC")
+                        }
+                        response.put("timeout", true)
+                        activity?.let {
+                            Utils.evaluateJSWebView(
+                                it,
+                                myWebView!!,
+                                "nativeKalapaNFC",
+                                response.toString(),
+                                null
+                            )
+                        }
+                        callback.close{}
+                    }
                 }
 
                 override fun onError(resultCode: KalapaSDKResultCode) {
