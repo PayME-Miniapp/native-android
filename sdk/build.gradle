@@ -4,7 +4,7 @@ plugins {
     id 'maven-publish'
 }
 
-def sdk_version = "1.0.22"
+def sdk_version = "1.0.23"
 def version_code = 667
 
 android {
