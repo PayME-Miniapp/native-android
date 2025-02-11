@@ -35,7 +35,8 @@ class JavaScriptInterface(
     val changeEnv: (String) -> Unit,
     val changeLocale: (String) -> Unit,
     val setListScreenBackBlocked: (JSONArray) -> Unit,
-    val setModalHeight: (Int) -> Unit
+    val setModalHeight: (Int) -> Unit,
+    val requestNFCPermission: ((String) -> Unit)
 ) {
     @JavascriptInterface
     public fun jsPreferences(data: String?) {
@@ -238,5 +239,11 @@ class JavaScriptInterface(
     public fun jsChangeLocale(data: String) {
         Log.d(PayMEMiniApp.TAG, " jsChangeLocale: $data")
         changeLocale(data)
+    }
+
+    @JavascriptInterface
+    public fun jsRequestNFCPermission(data: String) {
+        Log.d(PayMEMiniApp.TAG, " jsRequestNFCPermission: $data")
+        requestNFCPermission(data)
     }
 }
