@@ -12,8 +12,6 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.net.Uri
 import android.nfc.NfcAdapter
 import android.os.Build
@@ -38,7 +36,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
@@ -85,7 +82,6 @@ import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
 
-
 fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
     for (i in 0 until jsonArray.length()) {
         val item = jsonArray.getString(i)
@@ -119,7 +115,7 @@ class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCa
 class MiniAppFragment : Fragment() {
     private var rootView: View? = null
     private var myWebView: WebView? = null
-    private var www_root: File? = null
+    private var wwwRoot: File? = null
     private var server: com.payme.sdk.webServer.MySimpleWebServer? = null
 
     private var port = 4646
@@ -192,14 +188,14 @@ class MiniAppFragment : Fragment() {
             return
         }
         port = Utils.findRandomOpenPort() ?: 4646
-        www_root = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
+        wwwRoot = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
         if (loadUrl.contains("http://localhost") || loadUrl.isEmpty()) {
             loadUrl = "http://localhost:$port/"
         }
 
 //        loadUrl = "http://10.8.20.39:3000/"
         try {
-            server = WebServer("localhost", port, www_root)
+            server = WebServer("localhost", port, wwwRoot)
             (server as WebServer).start()
             Log.d(PayMEMiniApp.TAG, "start server with port $port")
         } catch (e: Exception) {
@@ -217,6 +213,14 @@ class MiniAppFragment : Fragment() {
 
     @SuppressLint("HardwareIds")
     private fun sendNativeDeviceInfo() {
+        val packageInfo =
+            requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+        val buildNumber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION") // Nếu cần hỗ trợ các API cũ hơn
+            packageInfo.versionCode.toLong()
+        }
         val insets = JSONObject()
         val statusHeight = activity?.let {
             Utils.getStatusBarHeight(it)
@@ -233,18 +237,12 @@ class MiniAppFragment : Fragment() {
         deviceInfo.put("deviceId", deviceId)
         deviceInfo.put("userAgent", Utils.getUserAgent(requireContext()))
         deviceInfo.put(
-            "version",
-            requireContext().packageManager.getPackageInfo(
-                requireContext().packageName,
-                0
+            "version", requireContext().packageManager.getPackageInfo(
+                requireContext().packageName, 0
             ).versionName
         )
         deviceInfo.put(
-            "buildNumber",
-            requireContext().packageManager.getPackageInfo(
-                requireContext().packageName,
-                0
-            ).versionCode
+            "buildNumber", buildNumber
         )
         deviceInfo.put("isEmulator", Utils.isEmulator())
         deviceInfo.put("brand", Build.BRAND)
@@ -263,11 +261,7 @@ class MiniAppFragment : Fragment() {
 
         activity?.let {
             Utils.evaluateJSWebView(
-                it,
-                myWebView!!,
-                "nativeDeviceInfo",
-                deviceInfo.toString(),
-                null
+                it, myWebView!!, "nativeDeviceInfo", deviceInfo.toString(), null
             )
         }
     }
@@ -285,14 +279,12 @@ class MiniAppFragment : Fragment() {
         sourceWeb.createNewFile()
         url?.let {
             Utils.download(
-                requireContext(),
-                it,
-                sourceWeb.absolutePath
+                requireContext(), it, sourceWeb.absolutePath
             ) { totalBytesCopied, length ->
                 val progressValuePercent = (totalBytesCopied * 100 / length).toInt()
                 activity?.runOnUiThread {
                     progressBar.progress = progressValuePercent
-                    textProgress.text = "${progressValuePercent}%"
+                    textProgress.text = getString(R.string.progress_value, progressValuePercent)
 
                     val layoutParams = lottieView.layoutParams as LinearLayout.LayoutParams
                     layoutParams.leftMargin =
@@ -328,8 +320,7 @@ class MiniAppFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         val view: View = inflater.inflate(R.layout.fragment_mini_app, container, false)
         payMEUpdatePatchViewModel = PayMEUpdatePatchViewModel()
@@ -373,11 +364,9 @@ class MiniAppFragment : Fragment() {
                     return@Thread
                 }
                 Log.d("PAYMELOG", "payme miniapp mode ${PayMEMiniApp.mode}")
-                val sharedPreference =
-                    requireContext().getSharedPreferences(
-                        "PAYME_NATIVE_UPDATE",
-                        Context.MODE_PRIVATE
-                    )
+                val sharedPreference = requireContext().getSharedPreferences(
+                    "PAYME_NATIVE_UPDATE", Context.MODE_PRIVATE
+                )
                 val editor = sharedPreference.edit()
                 val mode = found.optJSONObject(PayMEMiniApp.mode)
                 if (mode == null) {
@@ -418,7 +407,7 @@ class MiniAppFragment : Fragment() {
                 Log.d(PayMEMiniApp.TAG, "force update")
                 activity?.runOnUiThread {
                     textUpdateLabel.text =
-                        "Đang tải dữ liệu (${BuildConfig.SDK_VERSION}.${patch})..."
+                        getString(R.string.loading_data, BuildConfig.SDK_VERSION, patch)
                 }
                 payMEUpdatePatchViewModel.setShowUpdatingUI(true)
                 payMEUpdatePatchViewModel.setIsForceUpdating(true)
@@ -427,10 +416,10 @@ class MiniAppFragment : Fragment() {
                 payMEUpdatePatchViewModel.setIsForceUpdating(false)
                 payMEUpdatePatchViewModel.setDoneUpdate(true)
             } catch (e: SSLException) {
-                Log.d(PayMEMiniApp.TAG, "SSLException ex ${e}")
+                Log.d(PayMEMiniApp.TAG, "SSLException ex $e")
             } catch (e: Exception) {
                 payMEUpdatePatchViewModel.setDoneUpdate(true)
-                Log.d(PayMEMiniApp.TAG, "thread ex ${e}")
+                Log.d(PayMEMiniApp.TAG, "thread ex $e")
             }
         }
         versionCheckingTask?.start()
@@ -448,13 +437,7 @@ class MiniAppFragment : Fragment() {
         val connectivityManager =
             requireContext().getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            connectivityManager.registerDefaultNetworkCallback(networkCallback)
-        } else {
-            val request = NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
-            connectivityManager.registerNetworkCallback(request, networkCallback)
-        }
+        connectivityManager.registerDefaultNetworkCallback(networkCallback)
 
         rootView!!.viewTreeObserver.addOnGlobalLayoutListener {
             if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
@@ -471,21 +454,13 @@ class MiniAppFragment : Fragment() {
                 val height = Utils.pxToDp(requireContext(), heightDiff + navigationBarHeight)
                 activity?.let {
                     Utils.evaluateJSWebView(
-                        it,
-                        myWebView!!,
-                        "nativeKeyboardHeight",
-                        height.toString(),
-                        null
+                        it, myWebView!!, "nativeKeyboardHeight", height.toString(), null
                     )
                 }
             } else {
                 activity?.let {
                     Utils.evaluateJSWebView(
-                        it,
-                        myWebView!!,
-                        "nativeKeyboardHeight",
-                        "0",
-                        null
+                        it, myWebView!!, "nativeKeyboardHeight", "0", null
                     )
                 }
             }
@@ -494,7 +469,7 @@ class MiniAppFragment : Fragment() {
         myWebView?.apply {
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView, newProgress: Int) {
-                    val url = URL(view?.url).toString().removePrefix(loadUrl)
+                    val url = URL(view.url).toString().removePrefix(loadUrl)
                     onSetWebViewUrlPart(url)
                 }
 
@@ -526,6 +501,7 @@ class MiniAppFragment : Fragment() {
             }
 
             webViewClient = object : WebViewClient() {
+                @Deprecated("Deprecated in Java")
                 override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                     Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
                     return if (url.contains(".pdf")) {
@@ -546,8 +522,7 @@ class MiniAppFragment : Fragment() {
                 }
 
                 override fun shouldOverrideUrlLoading(
-                    view: WebView?,
-                    request: WebResourceRequest?
+                    view: WebView?, request: WebResourceRequest?
                 ): Boolean {
                     val url = request?.url.toString()
                     Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
@@ -568,9 +543,7 @@ class MiniAppFragment : Fragment() {
                 }
 
                 override fun onReceivedHttpError(
-                    view: WebView,
-                    request: WebResourceRequest?,
-                    errorResponse: WebResourceResponse
+                    view: WebView, request: WebResourceRequest?, errorResponse: WebResourceResponse
                 ) {
                     Log.d(
                         PayMEMiniApp.TAG,
@@ -620,11 +593,7 @@ class MiniAppFragment : Fragment() {
                                     null
                                 )
                                 Utils.evaluateJSWebView(
-                                    it,
-                                    myWebView!!,
-                                    "openType",
-                                    jsonOpenTypeString,
-                                    null
+                                    it, myWebView!!, "openType", jsonOpenTypeString, null
                                 )
                             }
                         }
@@ -634,11 +603,7 @@ class MiniAppFragment : Fragment() {
                             val jsonQuoteString = JSONObject.quote(deeplink)
                             activity?.let {
                                 Utils.evaluateJSWebView(
-                                    it,
-                                    myWebView!!,
-                                    "nativeLinkingOpenedApp",
-                                    jsonQuoteString,
-                                    null
+                                    it, myWebView!!, "nativeLinkingOpenedApp", jsonQuoteString, null
                                 )
                             }
                             deepLinkViewModel.setDeepLinkUrl("")
@@ -646,16 +611,13 @@ class MiniAppFragment : Fragment() {
                     }
                 }
 
-                @RequiresApi(Build.VERSION_CODES.M)
                 override fun onReceivedError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    error: WebResourceError?
+                    view: WebView?, request: WebResourceRequest?, error: WebResourceError?
                 ) {
                     super.onReceivedError(view, request, error)
                     try {
                         stopServer()
-                        server = WebServer("localhost", port, www_root)
+                        server = WebServer("localhost", port, wwwRoot)
                         (server as WebServer).start()
                         Log.d(PayMEMiniApp.TAG, "start server")
                     } catch (e: Exception) {
@@ -671,6 +633,8 @@ class MiniAppFragment : Fragment() {
                 builtInZoomControls = true
                 displayZoomControls = false
                 javaScriptEnabled = true
+                allowFileAccess = false
+                allowContentAccess = false
                 javaScriptCanOpenWindowsAutomatically = true
                 domStorageEnabled = true
                 setGeolocationEnabled(true)
@@ -678,7 +642,7 @@ class MiniAppFragment : Fragment() {
                 loadsImagesAutomatically = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 allowContentAccess = true
-                pluginState = WebSettings.PluginState.ON
+                mediaPlaybackRequiresUserGesture = false
                 cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
                 requestFocus(View.FOCUS_DOWN)
                 useWideViewPort = true
@@ -688,21 +652,17 @@ class MiniAppFragment : Fragment() {
 
             setBackgroundColor(0)
 
-            val javaScriptInterface = JavaScriptInterface(
-                setNativePreferences = { data: String? ->
-                    activity?.let {
-                        Utils.setNativePref(
-                            it,
-                            data
-                        )
-                    }
-                },
+            val javaScriptInterface = JavaScriptInterface(setNativePreferences = { data: String? ->
+                activity?.let {
+                    Utils.setNativePref(
+                        it, data
+                    )
+                }
+            },
                 sendNativePreferences = { activity?.let { Utils.sendNativePref(it, this) } },
                 biometricAuthen = { data: String ->
                     Utils.biometricAuthenticate(
-                        activity as AppCompatActivity,
-                        myWebView!!,
-                        data
+                        activity as AppCompatActivity, myWebView!!, data
                     )
                 },
                 startCardKyc = { data: String -> startCardKyc(data) },
@@ -718,8 +678,7 @@ class MiniAppFragment : Fragment() {
                 nativeOpenKeyboard = {
                     activity?.let {
                         Utils.nativeOpenKeyboard(
-                            it,
-                            myWebView
+                            it, myWebView
                         )
                     }
                 },
@@ -733,8 +692,7 @@ class MiniAppFragment : Fragment() {
                 changeLocale = { data: String -> changeLocale(data) },
                 setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) },
                 setModalHeight = { data: Int -> setModalHeight(data) },
-                requestNFCPermission = {data: String -> requestNFCPermission(data)}
-            )
+                requestNFCPermission = { data: String -> requestNFCPermission() })
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
             WebStorage.getInstance().deleteAllData()
@@ -785,11 +743,7 @@ class MiniAppFragment : Fragment() {
                 notificationViewModel.setNotificationJSON(it)
                 activity?.let { it1 ->
                     Utils.evaluateJSWebView(
-                        it1,
-                        myWebView!!,
-                        "nativeNotificationOpenedApp",
-                        it.toString(),
-                        null
+                        it1, myWebView!!, "nativeNotificationOpenedApp", it.toString(), null
                     )
                 }
             }
@@ -827,11 +781,7 @@ class MiniAppFragment : Fragment() {
 
     private fun onSetWebViewUrlPart(url: String) {
         val action = getMiniAppAction()
-        if (action != ActionOpenMiniApp.PAY &&
-            action != ActionOpenMiniApp.SERVICE &&
-            action != ActionOpenMiniApp.PAYMENT &&
-            action != ActionOpenMiniApp.TRANSFER_QR
-        ) return
+        if (action != ActionOpenMiniApp.PAY && action != ActionOpenMiniApp.SERVICE && action != ActionOpenMiniApp.PAYMENT && action != ActionOpenMiniApp.TRANSFER_QR) return
 
         url.let {
             if (it != webViewUrl) {
@@ -856,11 +806,7 @@ class MiniAppFragment : Fragment() {
             response.put("succeeded", true)
             activity?.let {
                 Utils.evaluateJSWebView(
-                    it,
-                    myWebView!!,
-                    "nativeSaveQR",
-                    response.toString(),
-                    null
+                    it, myWebView!!, "nativeSaveQR", response.toString(), null
                 )
             }
         }, onError = {
@@ -868,11 +814,7 @@ class MiniAppFragment : Fragment() {
             response.put("error", "Tải mã QR thất bại")
             activity?.let {
                 Utils.evaluateJSWebView(
-                    it,
-                    myWebView!!,
-                    "nativeSaveQR",
-                    response.toString(),
-                    null
+                    it, myWebView!!, "nativeSaveQR", response.toString(), null
                 )
             }
         })
@@ -883,10 +825,7 @@ class MiniAppFragment : Fragment() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             activity?.let {
                 Utils.nativePermissionStatus(
-                    it,
-                    myWebView!!,
-                    "WRITE_EXTERNAL_STORAGE",
-                    "GRANTED"
+                    it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED"
                 )
             }
             paramsSaveQr?.let { downloadImageQR(it) }
@@ -895,15 +834,11 @@ class MiniAppFragment : Fragment() {
 
         when {
             ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED -> {
                 activity?.let {
                     Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "WRITE_EXTERNAL_STORAGE",
-                        "GRANTED"
+                        it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED"
                     )
                 }
                 paramsSaveQr?.let { downloadImageQR(it) }
@@ -911,16 +846,12 @@ class MiniAppFragment : Fragment() {
 
             activity?.let {
                 ActivityCompat.shouldShowRequestPermissionRationale(
-                    it,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    it, Manifest.permission.WRITE_EXTERNAL_STORAGE
                 )
             } == true -> {
                 activity?.let {
                     Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "WRITE_EXTERNAL_STORAGE",
-                        "BLOCKED"
+                        it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "BLOCKED"
                     )
                 }
             }
@@ -1004,8 +935,7 @@ class MiniAppFragment : Fragment() {
                     if (fileChooserCallback == null) return@registerForActivityResult
                     fileChooserCallback?.onReceiveValue(
                         WebChromeClient.FileChooserParams.parseResult(
-                            result.resultCode,
-                            result.data
+                            result.resultCode, result.data
                         )
                     )
                     fileChooserCallback = null
@@ -1028,45 +958,34 @@ class MiniAppFragment : Fragment() {
         }
     }
 
-    private val requestContactsPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "READ_CONTACTS",
-                        "GRANTED"
-                    )
-                }
-                Utils.getContacts(requireContext(), myWebView!!)
-            } else {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "READ_CONTACTS",
-                        "DENIED"
-                    )
-                }
+    private val requestContactsPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            activity?.let {
+                Utils.nativePermissionStatus(
+                    it, myWebView!!, "READ_CONTACTS", "GRANTED"
+                )
+            }
+            Utils.getContacts(requireContext(), myWebView!!)
+        } else {
+            activity?.let {
+                Utils.nativePermissionStatus(
+                    it, myWebView!!, "READ_CONTACTS", "DENIED"
+                )
             }
         }
+    }
 
     private fun getContacts() {
         try {
             when {
                 ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.READ_CONTACTS
+                    requireContext(), Manifest.permission.READ_CONTACTS
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "READ_CONTACTS",
-                            "GRANTED"
+                            it, myWebView!!, "READ_CONTACTS", "GRANTED"
                         )
                     }
                     Utils.getContacts(requireContext(), myWebView!!)
@@ -1074,16 +993,12 @@ class MiniAppFragment : Fragment() {
 
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
-                        it,
-                        Manifest.permission.READ_CONTACTS
+                        it, Manifest.permission.READ_CONTACTS
                     )
                 } == true -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "READ_CONTACTS",
-                            "BLOCKED"
+                            it, myWebView!!, "READ_CONTACTS", "BLOCKED"
                         )
                     }
                 }
@@ -1105,19 +1020,13 @@ class MiniAppFragment : Fragment() {
             if (isGranted) {
                 activity?.let {
                     Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        permissionType,
-                        "GRANTED"
+                        it, myWebView!!, permissionType, "GRANTED"
                     )
                 }
             } else {
                 activity?.let {
                     Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        permissionType,
-                        "DENIED"
+                        it, myWebView!!, permissionType, "DENIED"
                     )
                 }
             }
@@ -1132,43 +1041,32 @@ class MiniAppFragment : Fragment() {
             permissionType = type
             when {
                 ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    "android.permission.$permissionType"
+                    requireContext(), "android.permission.$permissionType"
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            permissionType,
-                            "GRANTED"
+                            it, myWebView!!, permissionType, "GRANTED"
                         )
                     }
                 }
 
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
-                        it,
-                        "android.permission.$permissionType"
+                        it, "android.permission.$permissionType"
                     )
                 } == true -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            permissionType,
-                            "BLOCKED"
+                            it, myWebView!!, permissionType, "BLOCKED"
                         )
                     }
                 }
+
                 else -> {
-                    if(isCheckPermissionStatus === false) {
-                        if (permissionType == "CAMERA") {
-                            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            return
-                        }
-                        if (permissionType == "READ_EXTERNAL_STORAGE") {
-                            requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                            return
+                    if (!isCheckPermissionStatus) {
+                        when (permissionType) {
+                            "CAMERA" -> requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            "READ_EXTERNAL_STORAGE" -> requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
                         }
                     }
                 }
@@ -1178,17 +1076,14 @@ class MiniAppFragment : Fragment() {
         }
     }
 
-    private fun requestNFCPermission(data: String) {
+    private fun requestNFCPermission() {
         try {
             val nfcAdapter: NfcAdapter? = NfcAdapter.getDefaultAdapter(context)
             if (nfcAdapter == null) {
                 //Thiết bị không hỗ trợ NFC
                 activity?.let {
                     Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "NFC",
-                        "BLOCKED"
+                        it, myWebView!!, "NFC", "BLOCKED"
                     )
                 }
             } else if (!nfcAdapter.isEnabled) {
@@ -1198,20 +1093,14 @@ class MiniAppFragment : Fragment() {
 //                context?.startActivity(intent)
                 activity?.let {
                     Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "NFC",
-                        "DENIED"
+                        it, myWebView!!, "NFC", "DENIED"
                     )
                 }
             } else {
                 // NFC đã bật, thực hiện các thao tác liên quan tới NFC ở đây
                 activity?.let {
                     Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "NFC",
-                        "GRANTED"
+                        it, myWebView!!, "NFC", "GRANTED"
                     )
                 }
             }
@@ -1268,15 +1157,11 @@ class MiniAppFragment : Fragment() {
             paramsKyc = json
             when {
                 ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.CAMERA
+                    requireContext(), Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "GRANTED"
+                            it, myWebView!!, "CAMERA", "GRANTED"
                         )
                     }
                     startIdentityCardActivity(json)
@@ -1284,16 +1169,12 @@ class MiniAppFragment : Fragment() {
 
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
-                        it,
-                        Manifest.permission.CAMERA
+                        it, Manifest.permission.CAMERA
                     )
                 } == true -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "BLOCKED"
+                            it, myWebView!!, "CAMERA", "BLOCKED"
                         )
                     }
                 }
@@ -1314,15 +1195,11 @@ class MiniAppFragment : Fragment() {
             paramsKyc = json
             when {
                 ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.CAMERA
+                    requireContext(), Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "GRANTED"
+                            it, myWebView!!, "CAMERA", "GRANTED"
                         )
                     }
                     startNFC(json)
@@ -1330,16 +1207,12 @@ class MiniAppFragment : Fragment() {
 
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
-                        it,
-                        Manifest.permission.CAMERA
+                        it, Manifest.permission.CAMERA
                     )
                 } == true -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "BLOCKED"
+                            it, myWebView!!, "CAMERA", "BLOCKED"
                         )
                     }
                 }
@@ -1357,14 +1230,9 @@ class MiniAppFragment : Fragment() {
         val sessionId = data.optString("token", "")
         if (sessionId != "") {
             val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
-                .withBackgroundColor("#FFFFFF")
-                .withMainColor("#33CB33")
-                .withBtnTextColor("#121212")
-                .withMainTextColor("#121212")
-                .withLivenessVersion(0)
-                .withNFCTimeoutInSeconds(180)
-                .withLanguage(PayMEMiniApp.locale.toString())
-                .build()
+                .withBackgroundColor("#FFFFFF").withMainColor("#33CB33").withBtnTextColor("#121212")
+                .withMainTextColor("#121212").withLivenessVersion(0).withNFCTimeoutInSeconds(180)
+                .withLanguage(PayMEMiniApp.locale.toString()).build()
             val klpHandler = object : KalapaHandler() {
 
                 override fun onComplete(kalapaResult: KalapaResult) {
@@ -1386,19 +1254,13 @@ class MiniAppFragment : Fragment() {
                     }
                     activity?.let {
                         Utils.evaluateJSWebView(
-                            it,
-                            myWebView!!,
-                            "nativeKalapaNFC",
-                            response.toString(),
-                            null
+                            it, myWebView!!, "nativeKalapaNFC", response.toString(), null
                         )
                     }
                 }
 
                 override fun onNFCErrorHandle(
-                    activity: Activity,
-                    error: KalapaScanNFCError,
-                    callback: KalapaScanNFCCallback
+                    activity: Activity, error: KalapaScanNFCError, callback: KalapaScanNFCCallback
                 ) {
                     Log.d(PayMEMiniApp.TAG, """NFC error handle: $error""")
                     val action = data.optString("action", "")
@@ -1416,42 +1278,30 @@ class MiniAppFragment : Fragment() {
                     } else {
                         response.put("action", "KLP_KYC")
                     }
-                    if(error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
+                    if (error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
                         response.put("isTimeout", true)
-                        activity?.let {
+                        activity.let {
                             Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
+                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
                             )
                         }
-                        callback.close{}
-                    } else if(error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH) {
+                        callback.close {}
+                    } else if (error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH) {
                         response.put("isFaceNotMatch", true)
-                        activity?.let {
+                        activity.let {
                             Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
+                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
                             )
                         }
-                        callback.close{}
-                    } else if(error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH) {
+                        callback.close {}
+                    } else if (error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH) {
                         response.put("isInfoNotMatch", true)
-                        activity?.let {
+                        activity.let {
                             Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
+                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
                             )
                         }
-                        callback.close{}
+                        callback.close {}
                     }
                 }
 
@@ -1464,8 +1314,7 @@ class MiniAppFragment : Fragment() {
                 }
 
             }
-            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig)
-                .build()
+            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig).build()
                 .start(sessionId, "nfc_only", klpHandler)
 //            startFullEKYC(
 //                requireActivity(),
@@ -1506,15 +1355,11 @@ class MiniAppFragment : Fragment() {
             paramsKyc = json
             when {
                 ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.CAMERA
+                    requireContext(), Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "GRANTED"
+                            it, myWebView!!, "CAMERA", "GRANTED"
                         )
                     }
                     startNFC(json)
@@ -1522,16 +1367,12 @@ class MiniAppFragment : Fragment() {
 
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
-                        it,
-                        Manifest.permission.CAMERA
+                        it, Manifest.permission.CAMERA
                     )
                 } == true -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "BLOCKED"
+                            it, myWebView!!, "CAMERA", "BLOCKED"
                         )
                     }
                 }
@@ -1549,48 +1390,37 @@ class MiniAppFragment : Fragment() {
         val sessionId = data.optString("token", "")
         if (sessionId != "") {
             val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
-                .withBackgroundColor("#FFFFFF")
-                .withMainColor("#33CB33")
-                .withBtnTextColor("#121212")
-                .withMainTextColor("#121212")
-                .withLivenessVersion(0)
-                .withNFCTimeoutInSeconds(180)
-                .withLanguage(PayMEMiniApp.locale.toString())
-                .build()
+                .withBackgroundColor("#FFFFFF").withMainColor("#33CB33").withBtnTextColor("#121212")
+                .withMainTextColor("#121212").withLivenessVersion(0).withNFCTimeoutInSeconds(180)
+                .withLanguage(PayMEMiniApp.locale.toString()).build()
             val klpHandler = object : KalapaHandler() {
 
                 override fun onComplete(kalapaResult: KalapaResult) {
                     Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
-                     val action = data.optString("action", "")
-                     val payload = data.optString("payload", "")
-                     val response = JSONObject()
-                     if (action != "") {
-                            response.put("action", action)
-                            if (payload != "" && action != "KLP_KYC") {
-                                try {
-                                    response.put("payload", JSONObject(payload))
-                                } catch (e: JSONException) {
-                                    Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                                }
+                    val action = data.optString("action", "")
+                    val payload = data.optString("payload", "")
+                    val response = JSONObject()
+                    if (action != "") {
+                        response.put("action", action)
+                        if (payload != "" && action != "KLP_KYC") {
+                            try {
+                                response.put("payload", JSONObject(payload))
+                            } catch (e: JSONException) {
+                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
                             }
-                        } else {
-                            response.put("action", "KLP_KYC")
                         }
-                        activity?.let {
-                            Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
-                            )
-                        }
+                    } else {
+                        response.put("action", "KLP_KYC")
+                    }
+                    activity?.let {
+                        Utils.evaluateJSWebView(
+                            it, myWebView!!, "nativeKalapaNFC", response.toString(), null
+                        )
+                    }
                 }
 
                 override fun onNFCErrorHandle(
-                    activity: Activity,
-                    error: KalapaScanNFCError,
-                    callback: KalapaScanNFCCallback
+                    activity: Activity, error: KalapaScanNFCError, callback: KalapaScanNFCCallback
                 ) {
                     Log.d(PayMEMiniApp.TAG, """NFC error handle: $error""")
                     val action = data.optString("action", "")
@@ -1608,42 +1438,30 @@ class MiniAppFragment : Fragment() {
                     } else {
                         response.put("action", "KLP_KYC")
                     }
-                    if(error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
+                    if (error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
                         response.put("isTimeout", true)
-                        activity?.let {
+                        activity.let {
                             Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
+                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
                             )
                         }
-                        callback.close{}
-                    } else if(error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH) {
+                        callback.close {}
+                    } else if (error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH) {
                         response.put("isFaceNotMatch", true)
-                        activity?.let {
+                        activity.let {
                             Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
+                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
                             )
                         }
-                        callback.close{}
-                    } else if(error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH) {
+                        callback.close {}
+                    } else if (error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH) {
                         response.put("isInfoNotMatch", true)
-                        activity?.let {
+                        activity.let {
                             Utils.evaluateJSWebView(
-                                it,
-                                myWebView!!,
-                                "nativeKalapaNFC",
-                                response.toString(),
-                                null
+                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
                             )
                         }
-                        callback.close{}
+                        callback.close {}
                     }
                 }
 
@@ -1656,8 +1474,7 @@ class MiniAppFragment : Fragment() {
                 }
 
             }
-            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig)
-                .build()
+            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig).build()
                 .start(sessionId, "nfc_only", klpHandler)
         } else {
             Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
@@ -1670,15 +1487,11 @@ class MiniAppFragment : Fragment() {
             paramsKyc = json
             when {
                 ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.CAMERA
+                    requireContext(), Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "GRANTED"
+                            it, myWebView!!, "CAMERA", "GRANTED"
                         )
                     }
                     startFaceDetectorActivity(json)
@@ -1686,16 +1499,12 @@ class MiniAppFragment : Fragment() {
 
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
-                        it,
-                        Manifest.permission.CAMERA
+                        it, Manifest.permission.CAMERA
                     )
                 } == true -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "BLOCKED"
+                            it, myWebView!!, "CAMERA", "BLOCKED"
                         )
                     }
                 }
@@ -1728,18 +1537,14 @@ class MiniAppFragment : Fragment() {
                 Activity.RESULT_CANCELED -> Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
                 Activity.RESULT_OK -> {
                     val resultData = result.data
-                    val fileName = resultData?.extras?.get("fileName")
-                    val type = resultData?.extras?.get("type") ?: "FRONT"
+                    val fileName = resultData?.extras?.getString("title")
+                    val type = resultData?.extras?.getString("type") ?: "FRONT"
                     val responseCardKyc = JSONObject()
                     responseCardKyc.put("image", fileName)
                     responseCardKyc.put("type", type)
                     activity?.let {
                         Utils.evaluateJSWebView(
-                            it,
-                            myWebView!!,
-                            "nativeCardKYC",
-                            responseCardKyc.toString(),
-                            null
+                            it, myWebView!!, "nativeCardKYC", responseCardKyc.toString(), null
                         )
                     }
                 }
@@ -1770,16 +1575,11 @@ class MiniAppFragment : Fragment() {
                     images3.put("images/kycFace1.jpeg")
                     images3.put("images/kycFace2.jpeg")
                     images3.put("images/kycFace3.jpeg")
-                    val responseFaceKyc = JSONObject()
-                        .put("images", images3)
+                    val responseFaceKyc = JSONObject().put("images", images3)
                     Log.d(PayMEMiniApp.TAG, "responseFaceKyc: $responseFaceKyc ")
                     activity?.let {
                         Utils.evaluateJSWebView(
-                            it,
-                            myWebView!!,
-                            "nativeFaceKYC",
-                            responseFaceKyc.toString(),
-                            null
+                            it, myWebView!!, "nativeFaceKYC", responseFaceKyc.toString(), null
                         )
                     }
                 }
@@ -1792,15 +1592,11 @@ class MiniAppFragment : Fragment() {
             paramsKyc = json
             when {
                 ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.CAMERA
+                    requireContext(), Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "GRANTED"
+                            it, myWebView!!, "CAMERA", "GRANTED"
                         )
                     }
                     startFaceAuthenticationActivity(json)
@@ -1808,16 +1604,12 @@ class MiniAppFragment : Fragment() {
 
                 activity?.let {
                     ActivityCompat.shouldShowRequestPermissionRationale(
-                        it,
-                        Manifest.permission.CAMERA
+                        it, Manifest.permission.CAMERA
                     )
                 } == true -> {
                     activity?.let {
                         Utils.nativePermissionStatus(
-                            it,
-                            myWebView!!,
-                            "CAMERA",
-                            "BLOCKED"
+                            it, myWebView!!, "CAMERA", "BLOCKED"
                         )
                     }
                 }
@@ -1853,15 +1645,11 @@ class MiniAppFragment : Fragment() {
                     val action = faceAuthenData?.optString("action", "")
                     val payload = faceAuthenData?.optString("payload", "")
                     responseFaceAuthen.put("action", action)
-                    responseFaceAuthen.put("payload", JSONObject(payload))
+                    responseFaceAuthen.put("payload", payload?.let { JSONObject(it) })
                     responseFaceAuthen.put("error", "CLOSE")
                     activity?.let {
                         Utils.evaluateJSWebView(
-                            it,
-                            myWebView!!,
-                            "nativeFaceAuthen",
-                            responseFaceAuthen.toString(),
-                            null
+                            it, myWebView!!, "nativeFaceAuthen", responseFaceAuthen.toString(), null
                         )
                     }
                     Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
@@ -1869,122 +1657,102 @@ class MiniAppFragment : Fragment() {
 
                 Activity.RESULT_OK -> {
                     val resultData = result.data
-                    val image = resultData?.extras?.get("image")
+                    val image = resultData?.extras?.getString("image")
                     val action = faceAuthenData?.optString("action", "")
                     val payload = faceAuthenData?.optString("payload", "")
                     val responseFaceAuthen = JSONObject()
                     responseFaceAuthen.put("image", image)
                     responseFaceAuthen.put("action", action)
-                    responseFaceAuthen.put("payload", JSONObject(payload))
+                    responseFaceAuthen.put("payload", payload?.let { JSONObject(it) })
                     Log.d(PayMEMiniApp.TAG, "responseFaceAuthen: $responseFaceAuthen")
                     activity?.let {
                         Utils.evaluateJSWebView(
-                            it,
-                            myWebView!!,
-                            "nativeFaceAuthen",
-                            responseFaceAuthen.toString(),
-                            null
+                            it, myWebView!!, "nativeFaceAuthen", responseFaceAuthen.toString(), null
                         )
                     }
                 }
             }
         }
 
-    private val requestWriteExternalStoragePermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "WRITE_EXTERNAL_STORAGE",
-                        "GRANTED"
-                    )
-                }
-                paramsSaveQr?.let { downloadImageQR(it) }
-            } else {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it,
-                        myWebView!!,
-                        "WRITE_EXTERNAL_STORAGE",
-                        "DENIED"
-                    )
-                }
+    private val requestWriteExternalStoragePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            activity?.let {
+                Utils.nativePermissionStatus(
+                    it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED"
+                )
+            }
+            paramsSaveQr?.let { downloadImageQR(it) }
+        } else {
+            activity?.let {
+                Utils.nativePermissionStatus(
+                    it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "DENIED"
+                )
             }
         }
+    }
 
-    private val requestCardKycPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startIdentityCardActivity(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
+    private val requestCardKycPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+            paramsKyc?.let { startIdentityCardActivity(it) }
+        } else {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
         }
+    }
 
-    private val requestFaceKycPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startFaceDetectorActivity(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
+    private val requestFaceKycPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+            paramsKyc?.let { startFaceDetectorActivity(it) }
+        } else {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
         }
+    }
 
-    private val requestKalapaKYCPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startEKYC(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
+    private val requestKalapaKYCPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+            paramsKyc?.let { startEKYC(it) }
+        } else {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
         }
+    }
 
-    private val requestKalapaNFCPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startNFC(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
+    private val requestKalapaNFCPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+            paramsKyc?.let { startNFC(it) }
+        } else {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
         }
+    }
 
-    private val requestFaceAuthPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-                paramsKyc?.let { startFaceAuthenticationActivity(it) }
-            } else {
-                activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-            }
+    private val requestFaceAuthPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
+            paramsKyc?.let { startFaceAuthenticationActivity(it) }
+        } else {
+            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
         }
+    }
 
     private val evaluateJsDataObserver: Observer<Pair<String, String>> = Observer {
         if (it.first.isNotEmpty() && myWebView != null) {
             activity?.let { it1 ->
                 Utils.evaluateJSWebView(
-                    it1,
-                    myWebView!!,
-                    it.first,
-                    it.second,
-                    null
+                    it1, myWebView!!, it.first, it.second, null
                 )
             }
         }
@@ -1998,11 +1766,7 @@ class MiniAppFragment : Fragment() {
         }
         activity?.let {
             Utils.evaluateJSWebView(
-                it,
-                myWebView!!,
-                "nativeAppState",
-                "\"background\"",
-                null
+                it, myWebView!!, "nativeAppState", "\"background\"", null
             )
         }
         MixpanelUtil.flushEvents()
@@ -2016,11 +1780,7 @@ class MiniAppFragment : Fragment() {
         }
         activity?.let {
             Utils.evaluateJSWebView(
-                it,
-                myWebView!!,
-                "nativeAppState",
-                "\"active\"",
-                null
+                it, myWebView!!, "nativeAppState", "\"active\"", null
             )
         }
     }
@@ -2058,7 +1818,7 @@ class MiniAppFragment : Fragment() {
         internal lateinit var openMiniAppData: OpenMiniAppDataInterface
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
-        internal var onSetModalHeight: ((Int) -> Unit) = { _ -> {} }
+        internal var onSetModalHeight: ((Int) -> Unit) = { _ -> run {} }
         internal var loadUrl = ""
         internal var webViewUrl = ""
         internal var modalHeight: Int = 0
@@ -2083,10 +1843,6 @@ class MiniAppFragment : Fragment() {
             return ::openMiniAppData.isInitialized
         }
 
-        fun setDeepLink(data: String) {
-            deepLinkViewModel.setDeepLinkUrl(data)
-        }
-
         fun setLoadUrl(data: String) {
             loadUrl = data
         }
@@ -2103,5 +1859,4 @@ class MiniAppFragment : Fragment() {
             }
         }
     }
-
 }

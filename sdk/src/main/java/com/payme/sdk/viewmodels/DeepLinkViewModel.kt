@@ -4,7 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
-class DeepLinkViewModel: ViewModel() {
+class DeepLinkViewModel : ViewModel() {
     private val deepLinkUrl: MutableLiveData<String> = MutableLiveData<String>("")
 
     fun getDeepLinkUrl(): LiveData<String> {

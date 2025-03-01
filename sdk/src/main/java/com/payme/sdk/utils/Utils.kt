@@ -19,6 +19,7 @@ import android.util.Log
 import android.view.View
 import android.view.Window
 import android.view.WindowInsets
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -36,9 +37,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.*
-import java.net.NetworkInterface
 import java.net.ServerSocket
-import java.net.SocketException
 import java.net.URL
 import java.nio.ByteBuffer
 import java.util.*
@@ -49,18 +48,13 @@ import kotlin.math.min
 
 
 enum class BiometricError {
-    APP_CANCEL, AUTHENTICATION_FAILED, PASSCODE_NOT_SET, SYSTEM_CANCEL, USER_CANCEL, USER_FALLBACK,
-    BIOMETRY_LOCKOUT, BIOMETRY_NOT_AVAILABLE, BIOMETRY_NOT_ENROLLED, UNKNOWN
+    APP_CANCEL, AUTHENTICATION_FAILED, PASSCODE_NOT_SET, SYSTEM_CANCEL, USER_CANCEL, USER_FALLBACK, BIOMETRY_LOCKOUT, BIOMETRY_NOT_AVAILABLE, BIOMETRY_NOT_ENROLLED, UNKNOWN
 }
 
 object Utils {
     private val IPV4_PATTERN: Pattern = Pattern.compile(
         "^(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}$"
     )
-
-    private fun isIPv4Address(input: String?): Boolean {
-        return IPV4_PATTERN.matcher(input).matches()
-    }
 
     fun getStatusBarHeight(activity: Activity): Int {
         val rectangle = Rect()
@@ -69,12 +63,20 @@ object Utils {
         return rectangle.top
     }
 
+    @SuppressLint("DiscouragedApi")
     fun getSoftNavigationHeight(context: Context): Int {
-        val resources: Resources = context.resources
-        val resourceId: Int = resources.getIdentifier("navigation_bar_height", "dimen", "android")
-        return if (resourceId > 0) {
-            resources.getDimensionPixelSize(resourceId)
-        } else 0
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && context is Activity) {
+            // Dùng WindowInsets cho API 30+ (Android 11 và mới hơn)
+            context.window.decorView.rootWindowInsets
+                ?.getInsets(WindowInsets.Type.navigationBars())
+                ?.bottom ?: 0
+        } else {
+            // Với API cũ, sử dụng nội bộ resource "navigation_bar_height"
+            val resources: Resources = context.resources
+            val resourceId: Int =
+                resources.getIdentifier("navigation_bar_height", "dimen", "android")
+            if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
+        }
     }
 
     fun unzipFile(filePath: String, destination: String) {
@@ -105,7 +107,7 @@ object Utils {
                     )
                     val bufout = BufferedOutputStream(fout)
                     val buffer = ByteArray(1024)
-                    var read = 0
+                    var read: Int
                     while (zipStream.read(buffer).also { read = it } != -1) {
                         bufout.write(buffer, 0, read)
                     }
@@ -121,42 +123,6 @@ object Utils {
         }
     }
 
-    @Throws(java.lang.Exception::class)
-    private fun ensureZipPathSafety(outputFile: File, destDirectory: String) {
-        val destDirCanonicalPath = File(destDirectory).canonicalPath
-        val outputFileCanonicalPath = outputFile.canonicalPath
-        if (!outputFileCanonicalPath.startsWith(destDirCanonicalPath)) {
-            throw java.lang.Exception(
-                java.lang.String.format(
-                    "Found Zip Path Traversal Vulnerability with %s",
-                    outputFileCanonicalPath
-                )
-            )
-        }
-    }
-
-    fun getLocalIpAddress(): String? {
-        try {
-            val en = NetworkInterface.getNetworkInterfaces()
-            while (en.hasMoreElements()) {
-                val intf = en.nextElement()
-                val enumIpAddr = intf.inetAddresses
-                while (enumIpAddr.hasMoreElements()) {
-                    val inetAddress = enumIpAddr.nextElement()
-                    if (!inetAddress.isLoopbackAddress) {
-                        val ip = inetAddress.hostAddress
-                        if (isIPv4Address(ip)) {
-                            return ip
-                        }
-                    }
-                }
-            }
-        } catch (ex: SocketException) {
-            Log.e(PayMEMiniApp.TAG, ex.toString())
-        }
-        return "127.0.0.1"
-    }
-
     fun evaluateJSWebView(
         activity: Activity,
         webView: WebView,
@@ -164,12 +130,8 @@ object Utils {
         data: String,
         callback: ((String) -> Unit)?
     ) {
-        val injectedJS = "       const script = document.createElement('script');\n" +
-                "          script.type = 'text/javascript';\n" +
-                "          script.async = true;\n" +
-                "          script.text = '${functionName}($data)';\n" +
-                "          document.body.appendChild(script);\n" +
-                "          true; // note: this is required, or you'll sometimes get silent failures\n"
+        val injectedJS =
+            "       const script = document.createElement('script');\n" + "          script.type = 'text/javascript';\n" + "          script.async = true;\n" + "          script.text = '${functionName}($data)';\n" + "          document.body.appendChild(script);\n" + "          true; // note: this is required, or you'll sometimes get silent failures\n"
         activity.runOnUiThread {
             webView.evaluateJavascript("(function() {\n$injectedJS;\n})();", callback)
             Log.d(PayMEMiniApp.TAG, "[EVALUATE_JS] $functionName  $data")
@@ -235,29 +197,23 @@ object Utils {
     }
 
     fun isEmulator(): Boolean {
-        return (Build.FINGERPRINT.startsWith("generic")
-                || Build.FINGERPRINT.startsWith("unknown")
-                || Build.MODEL.contains("google_sdk")
-                || Build.MODEL.lowercase(Locale.ROOT).contains("droid4x")
-                || Build.MODEL.contains("Emulator")
-                || Build.MODEL.contains("Android SDK built for x86")
-                || Build.MANUFACTURER.contains("Genymotion")
-                || Build.HARDWARE.contains("goldfish")
-                || Build.HARDWARE.contains("ranchu")
-                || Build.HARDWARE.contains("vbox86")
-                || Build.PRODUCT.contains("sdk")
-                || Build.PRODUCT.contains("google_sdk")
-                || Build.PRODUCT.contains("sdk_google")
-                || Build.PRODUCT.contains("sdk_x86")
-                || Build.PRODUCT.contains("vbox86p")
-                || Build.PRODUCT.contains("emulator")
-                || Build.PRODUCT.contains("simulator")
-                || Build.BOARD.lowercase(Locale.ROOT).contains("nox")
-                || Build.BOOTLOADER.lowercase(Locale.ROOT).contains("nox")
-                || Build.HARDWARE.lowercase(Locale.ROOT).contains("nox")
-                || Build.PRODUCT.lowercase(Locale.ROOT).contains("nox")
-                || Build.SERIAL.lowercase(Locale.ROOT).contains("nox")
-                || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+        return (Build.FINGERPRINT.startsWith("generic") || Build.FINGERPRINT.startsWith("unknown") || Build.MODEL.contains(
+            "google_sdk"
+        ) || Build.MODEL.lowercase(Locale.ROOT)
+            .contains("droid4x") || Build.MODEL.contains("Emulator") || Build.MODEL.contains("Android SDK built for x86") || Build.MANUFACTURER.contains(
+            "Genymotion"
+        ) || Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains(
+            "vbox86"
+        ) || Build.PRODUCT.contains("sdk") || Build.PRODUCT.contains("google_sdk") || Build.PRODUCT.contains(
+            "sdk_google"
+        ) || Build.PRODUCT.contains("sdk_x86") || Build.PRODUCT.contains("vbox86p") || Build.PRODUCT.contains(
+            "emulator"
+        ) || Build.PRODUCT.contains("simulator") || Build.BOARD.lowercase(Locale.ROOT)
+            .contains("nox") || Build.BOOTLOADER.lowercase(Locale.ROOT)
+            .contains("nox") || Build.HARDWARE.lowercase(Locale.ROOT)
+            .contains("nox") || Build.PRODUCT.lowercase(Locale.ROOT)
+            .contains("nox") || Build.SERIAL.lowercase(Locale.ROOT)
+            .contains("nox") || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
     }
 
     fun sendNativePref(context: Context, webView: WebView) {
@@ -298,8 +254,7 @@ object Utils {
     }
 
     private fun hasBiometricCapability(
-        context: Context,
-        authenticator: Int = BiometricManager.Authenticators.BIOMETRIC_WEAK
+        context: Context, authenticator: Int = BiometricManager.Authenticators.BIOMETRIC_WEAK
     ): Int {
         val biometricManager = BiometricManager.from(context)
         return biometricManager.canAuthenticate(authenticator)
@@ -331,12 +286,9 @@ object Utils {
                 val description =
                     jsonData.optString("description", "Dùng sinh trắc học để xác thực")
                 val title = jsonData.optString("title", "Yêu cầu xác thực")
-                val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                    .setDescription(description)
-                    .setNegativeButtonText(cancelTitle)
-                    .setConfirmationRequired(true)
-                    .setTitle(title)
-                    .build()
+                val promptInfo = BiometricPrompt.PromptInfo.Builder().setDescription(description)
+                    .setNegativeButtonText(cancelTitle).setConfirmationRequired(true)
+                    .setTitle(title).build()
 
                 val executor = ContextCompat.getMainExecutor(activity)
 
@@ -396,17 +348,12 @@ object Utils {
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun getRootWindowInsetsCompatR(rootView: View): Float? {
-        val insets =
-            rootView.rootWindowInsets?.getInsets(
-                WindowInsets.Type.statusBars() or
-                        WindowInsets.Type.displayCutout() or
-                        WindowInsets.Type.navigationBars()
-            )
-                ?: return null
+        val insets = rootView.rootWindowInsets?.getInsets(
+            WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.navigationBars()
+        ) ?: return null
         return insets.bottom.toFloat()
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     @Suppress("DEPRECATION")
     private fun getRootWindowInsetsCompatM(rootView: View): Float? {
         val insets = rootView.rootWindowInsets ?: return null
@@ -422,7 +369,6 @@ object Utils {
     fun getRootWindowInsetsCompat(rootView: View): Float? {
         return when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> getRootWindowInsetsCompatR(rootView)
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> getRootWindowInsetsCompatM(rootView)
             else -> getRootWindowInsetsCompatBase(rootView)
         }
     }
@@ -442,16 +388,9 @@ object Utils {
             val rotationMatrix = Matrix()
             rotationMatrix.postRotate((rotationDegree).toFloat())
             if (rotationDegree != 0) {
-                bitmap =
-                    Bitmap.createBitmap(
-                        bitmap,
-                        0,
-                        0,
-                        bitmap.width,
-                        bitmap.height,
-                        rotationMatrix,
-                        true
-                    )
+                bitmap = Bitmap.createBitmap(
+                    bitmap, 0, 0, bitmap.width, bitmap.height, rotationMatrix, true
+                )
             }
             bitmap
         } catch (e: Exception) {
@@ -460,7 +399,7 @@ object Utils {
         }
     }
 
-    fun handleImageProxy(context: Context, image: ImageProxy, previewView: View): Bitmap? {
+    fun handleImageProxy(context: Context, image: ImageProxy): Bitmap? {
         try {
             val rotationDegree = image.imageInfo.rotationDegrees
             Log.d(PayMEMiniApp.TAG, "rotation $rotationDegree")
@@ -469,32 +408,34 @@ object Utils {
             val rotationMatrix = Matrix()
             rotationMatrix.postRotate((rotationDegree).toFloat())
             if (rotationDegree != 0) {
-                bitmap =
-                    Bitmap.createBitmap(
-                        bitmap,
-                        0,
-                        0,
-                        bitmap.width,
-                        bitmap.height,
-                        rotationMatrix,
-                        true
-                    )
+                bitmap = Bitmap.createBitmap(
+                    bitmap, 0, 0, bitmap.width, bitmap.height, rotationMatrix, true
+                )
             }
-            val viewportMargin = dpToPx(context, 20)
-            val displayMetrics = DisplayMetrics()
-            val display = previewView.display
-            val metrics = DisplayMetrics().also { display.getMetrics(it) }
-            (context as Activity).windowManager.defaultDisplay.getMetrics(displayMetrics)
-//    val width = displayMetrics.widthPixels.toFloat() - viewportMargin
+            val metrics = DisplayMetrics()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Dùng currentWindowMetrics để lấy kích thước màn hình
+                val windowMetrics = context.getSystemService(Context.WINDOW_SERVICE)
+                        as WindowManager
+                val bounds = windowMetrics.currentWindowMetrics.bounds
+                metrics.widthPixels = bounds.width()
+                metrics.heightPixels = bounds.height()
+                // Lấy xdpi và ydpi từ resources vì giá trị này không thay đổi
+                metrics.xdpi = context.resources.displayMetrics.xdpi
+                metrics.ydpi = context.resources.displayMetrics.ydpi
+            } else {
+                @Suppress("DEPRECATION")
+                (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+                    .defaultDisplay.getMetrics(metrics)
+            }
+
             val bitmapHeight = bitmap.height
             val windowHeight = metrics.heightPixels
-            val width = bitmap.width - viewportMargin * 2
             val top = dpToPx(context, 86) * bitmapHeight / windowHeight
             val height = bitmap.width * 0.7
-//    Log.d(PayMEMiniApp.TAG, "x $viewportMargin y $top x $width x $height ")
             Log.d(
                 "PAYME",
-                "screeheight ${displayMetrics.heightPixels} bitmapHeight $bitmapHeight windowHeight $windowHeight"
+                "screenHeight ${metrics.heightPixels} bitmapHeight $bitmapHeight windowHeight $windowHeight"
             )
             bitmap = Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height.toInt())
             return bitmap
@@ -522,20 +463,13 @@ object Utils {
     }
 
     fun nativePermissionStatus(
-        activity: Activity,
-        webView: WebView,
-        permissionType: String,
-        permissionState: String
+        activity: Activity, webView: WebView, permissionType: String, permissionState: String
     ) {
         val responsePermissions = JSONObject()
         responsePermissions.put("type", permissionType)
         responsePermissions.put("state", permissionState)
         evaluateJSWebView(
-            activity,
-            webView,
-            "nativePermissionStatus",
-            responsePermissions.toString(),
-            null
+            activity, webView, "nativePermissionStatus", responsePermissions.toString(), null
         )
     }
 
@@ -554,16 +488,13 @@ object Utils {
     fun getContacts(context: Context, webView: WebView) {
         try {
             if (ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_CONTACTS
-                )
-                == PackageManager.PERMISSION_GRANTED
+                    context, Manifest.permission.READ_CONTACTS
+                ) == PackageManager.PERMISSION_GRANTED
             ) {
                 val contacts = JSONArray()
                 val cr: ContentResolver = context.contentResolver
                 val cur = cr.query(
-                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                    null, null, null, null
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, null
                 )
 
                 if ((cur?.count ?: 0) > 0) {
@@ -582,11 +513,7 @@ object Utils {
                 }
                 cur?.close()
                 evaluateJSWebView(
-                    context as Activity,
-                    webView,
-                    "nativeContacts",
-                    contacts.toString(),
-                    null
+                    context as Activity, webView, "nativeContacts", contacts.toString(), null
                 )
             }
         } catch (e: Exception) {
@@ -663,17 +590,26 @@ object Utils {
         return values
     }
 
-    fun saveImage(bitmap: Bitmap, context: Context, folderName: String, onSuccess: () -> Unit, onError: () -> Unit) {
+    fun saveImage(
+        bitmap: Bitmap,
+        context: Context,
+        folderName: String,
+        onSuccess: () -> Unit,
+        onError: () -> Unit
+    ) {
         try {
             if (Build.VERSION.SDK_INT >= 29) {
                 val values = contentValues()
                 values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/$folderName")
                 values.put(MediaStore.Images.Media.IS_PENDING, true)
 
-                val uri: Uri? =
-                    context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                val uri: Uri? = context.contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                )
                 if (uri != null) {
-                    saveImageToStream(bitmap, context.contentResolver.openOutputStream(uri), onSuccess, onError)
+                    saveImageToStream(
+                        bitmap, context.contentResolver.openOutputStream(uri), onSuccess, onError
+                    )
                     values.put(MediaStore.Images.Media.IS_PENDING, false)
                     context.contentResolver.update(uri, values, null, null)
                 }
@@ -698,7 +634,9 @@ object Utils {
         }
     }
 
-    private fun saveImageToStream(bitmap: Bitmap, outputStream: OutputStream?, onSuccess: () -> Unit, onError: () -> Unit) {
+    private fun saveImageToStream(
+        bitmap: Bitmap, outputStream: OutputStream?, onSuccess: () -> Unit, onError: () -> Unit
+    ) {
         if (outputStream != null) {
             try {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
@@ -713,13 +651,17 @@ object Utils {
     }
 
     fun formatStringToValidJsonString(dataRaw: String): String {
-        var dataRaw = dataRaw
-        dataRaw = dataRaw.replace("\\r", "")
-        dataRaw = dataRaw.replace("\\n", "")
-        dataRaw = dataRaw.replace("\\\\\"".toRegex(), "\"")
-        dataRaw = dataRaw.replace("\\\\\\\"".toRegex(), "\"")
-        dataRaw = dataRaw.replace("\\\\", "\\")
-        return dataRaw.substring(1, dataRaw.length - 1)
+        var formatted = dataRaw
+        formatted = formatted.replace("\\r", "")
+        formatted = formatted.replace("\\n", "")
+        // Phép thay thế thứ nhất
+        formatted = formatted.replace("\\\\\"".toRegex(), "\"")
+        // Nếu cảnh báo escape thừa xảy ra, bạn có thể thêm suppression cho dòng này:
+        @Suppress("RegExpRedundantEscape") run {
+            formatted = formatted.replace("\\\\\\\"".toRegex(), "\"")
+        }
+        formatted = formatted.replace("\\\\", "\\")
+        return formatted.substring(1, formatted.length - 1)
     }
 
 }

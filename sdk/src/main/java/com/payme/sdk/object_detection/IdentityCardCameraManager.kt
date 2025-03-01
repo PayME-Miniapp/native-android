@@ -4,13 +4,9 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
 import android.view.View
-import android.widget.ImageView
-import androidx.annotation.RequiresApi
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -31,7 +27,6 @@ class IdentityCardCameraManager(
     private val graphicOverlay: GraphicOverlay,
     private val activeFrame: IdentityCardActiveFrame,
     private val button: View,
-    private val imageTaken: ImageView,
     private val identityCardType: String,
     private val identityCardViewModel: IdentityCardViewModel,
 ) {
@@ -54,14 +49,13 @@ class IdentityCardCameraManager(
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
                 val display = finderView.display
                 val rotation = display.rotation
-                val metrics = DisplayMetrics().also { display?.getMetrics(it) }
+                val metrics = context.resources.displayMetrics
 
                 cameraProvider = cameraProviderFuture.get()
                 preview = Preview.Builder()
@@ -132,7 +126,7 @@ class IdentityCardCameraManager(
                     object : ImageCapture.OnImageCapturedCallback() {
                         @SuppressLint("UnsafeOptInUsageError")
                         override fun onCaptureSuccess(image: ImageProxy) {
-                            val imageBitmap = Utils.handleImageProxy(context, image, finderView)
+                            val imageBitmap = Utils.handleImageProxy(context, image)
                             val fileName =
                                 if (identityCardType == "FRONT") "kycFrontIdCard.jpeg" else "kycBackIdCard.jpeg"
                             if (imageBitmap != null) {

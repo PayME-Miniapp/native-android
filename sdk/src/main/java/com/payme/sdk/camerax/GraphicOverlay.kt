@@ -95,18 +95,11 @@ open class GraphicOverlay(context: Context?, attrs: AttributeSet?) :
         synchronized(lock) { graphics.add(graphic) }
     }
 
-    fun remove(graphic: Graphic) {
-        synchronized(lock) { graphics.remove(graphic) }
-        postInvalidate()
-    }
-
-    override fun onDraw(canvas: Canvas?) {
-        super.onDraw(canvas)
+    override fun onDraw(canvas: Canvas) {
         synchronized(lock) {
             for (graphic in graphics) {
                 graphic.draw(canvas)
             }
         }
     }
-
 }

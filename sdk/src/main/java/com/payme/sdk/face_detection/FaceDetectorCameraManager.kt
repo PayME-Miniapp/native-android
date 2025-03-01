@@ -42,12 +42,12 @@ class FaceDetectorCameraManager(
 ) {
     private var preview: Preview? = null
     private var camera: Camera? = null
-    lateinit var cameraExecutor: ExecutorService
+    private lateinit var cameraExecutor: ExecutorService
     private var cameraSelectorOption = CameraSelector.LENS_FACING_FRONT
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalyzer: ImageAnalysis? = null
-    var imageCapture: ImageCapture? = null
-    var isClosedEyes = false
+    private var imageCapture: ImageCapture? = null
+    private var isClosedEyes = false
 
     init {
         createNewExecutor()
@@ -57,19 +57,21 @@ class FaceDetectorCameraManager(
                 2 -> {
                     progressBar.setProgress(0.33F)
                     textHint.text =
-                        (hint2 ?: context.getString(R.string.face_detector_hint2)) as CharSequence?
+                        (hint2 ?: context.getString(R.string.face_detector_hint2))
                     takePicture("kycFace1.jpeg", null)
                     lottieView.setAnimation(R.raw.chop_mat)
                     lottieView.playAnimation()
                 }
+
                 3 -> {
                     progressBar.setProgress(0.67F)
                     textHint.text =
-                        (hint3 ?: context.getString(R.string.face_detector_hint3)) as CharSequence?
+                        (hint3 ?: context.getString(R.string.face_detector_hint3))
                     takePicture("kycFace2.jpeg", null)
                     lottieView.setAnimation(R.raw.cuoi)
                     lottieView.playAnimation()
                 }
+
                 4 -> {
                     progressBar.setProgress(1F)
                     takePicture("kycFace3.jpeg") {
@@ -110,19 +112,21 @@ class FaceDetectorCameraManager(
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.d(PayMEMiniApp.TAG, "error capture image face detector: ${exception.message}")
+                    Log.d(
+                        PayMEMiniApp.TAG,
+                        "error capture image face detector: ${exception.message}"
+                    )
                 }
             })
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
                 val display = finderView.display
                 val rotation = display.rotation
-                val metrics = DisplayMetrics().also { display?.getMetrics(it) }
+                val metrics = context.resources.displayMetrics
                 cameraProvider = cameraProviderFuture.get()
 
                 preview = Preview.Builder()
@@ -155,7 +159,6 @@ class FaceDetectorCameraManager(
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     private fun selectAnalyzer(): ImageAnalysis.Analyzer {
         return FaceContourDetectionProcessor(
             context,

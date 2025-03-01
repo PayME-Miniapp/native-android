@@ -8,11 +8,11 @@ def sdk_version = "1.0.23"
 def version_code = 667
 
 android {
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         minSdk 26
-        targetSdk 33
+        targetSdkVersion 33
         versionCode version_code
         versionName sdk_version
 
@@ -40,6 +40,9 @@ android {
         jvmTarget = '1.8'
     }
     namespace 'com.payme.sdk'
+    buildFeatures {
+        buildConfig true
+    }
 }
 
 dependencies {

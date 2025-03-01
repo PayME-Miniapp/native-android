@@ -12,4 +12,6 @@
   <string name="force_updating">Đang tải dữ liệu</string>
   <string name="version_checking">Đang kiểm tra phiên bản</string>
   <string name="wait">Chờ một chút...</string>
+  <string name="loading_data">Đang tải dữ liệu (%1$s.%2$d)…</string>
+  <string name="progress_value">%d%%</string>
 </resources>

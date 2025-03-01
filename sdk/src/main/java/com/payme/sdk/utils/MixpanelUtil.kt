@@ -1,5 +1,6 @@
 package com.payme.sdk.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import com.mixpanel.android.mpmetrics.MixpanelAPI
@@ -7,10 +8,12 @@ import com.payme.sdk.PayMEMiniApp
 import org.json.JSONObject
 
 object MixpanelUtil {
+    @SuppressLint("StaticFieldLeak")
     private var mixpanelAPI: MixpanelAPI? = null
 
     fun initializeMixpanel(context: Context, token: String) {
-        mixpanelAPI = MixpanelAPI.getInstance(context, token, false)
+        // Sử dụng applicationContext để tránh rò rỉ bộ nhớ
+        mixpanelAPI = MixpanelAPI.getInstance(context.applicationContext, token, false)
         mixpanelAPI?.flushBatchSize = 20
     }
 
@@ -20,7 +23,6 @@ object MixpanelUtil {
 
     fun flushEvents() {
         mixpanelAPI?.flush()
-
     }
 
     fun setPeople(name: String, phone: String, email: String, accountId: Number) {

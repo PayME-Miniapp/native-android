@@ -43,12 +43,11 @@ class IdentityCardActivity : FragmentActivity() {
     private lateinit var identityCardViewModel: IdentityCardViewModel
 
     private lateinit var timerEnableButton: TimerTask
-    var doneTimerEnable: Boolean = false
+    private var doneTimerEnable: Boolean = false
     private var description = ""
 
     private var identityCardType: String = "FRONT"
 
-    @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_identity_card)
@@ -115,18 +114,16 @@ class IdentityCardActivity : FragmentActivity() {
             finish()
         }
 
-        cameraManager =
-            IdentityCardCameraManager(
-                this,
-                preview,
-                this,
-                graphicOverlay,
-                activeFrame,
-                buttonTakePic,
-                reviewImage,
-                identityCardType,
-                identityCardViewModel
-            )
+        cameraManager = IdentityCardCameraManager(
+            this,
+            preview,
+            this,
+            graphicOverlay,
+            activeFrame,
+            buttonTakePic,
+            identityCardType,
+            identityCardViewModel
+        )
 
         if (PermissionCameraUtil().isGrantedCamera(this)) {
             cameraManager.startCamera()
@@ -136,6 +133,7 @@ class IdentityCardActivity : FragmentActivity() {
             finish()
         }
     }
+
     override fun onDestroy() {
         super.onDestroy()
         timer.cancel()
@@ -169,7 +167,15 @@ class IdentityCardActivity : FragmentActivity() {
     private fun adjustLayout() {
         // text hint
         val displayMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            windowManager.currentWindowMetrics.bounds.let { bounds ->
+                displayMetrics.widthPixels = bounds.width()
+                displayMetrics.heightPixels = bounds.height()
+            }
+        } else {
+            @Suppress("DEPRECATION") windowManager.defaultDisplay.getMetrics(displayMetrics)
+        }
+        
         val viewportMargin = Utils.dpToPx(this, 20)
         val width = displayMetrics.widthPixels.toFloat() - viewportMargin
         val bottom = width * 0.7 + Utils.dpToPx(this, 66)

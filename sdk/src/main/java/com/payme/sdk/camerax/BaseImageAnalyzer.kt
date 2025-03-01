@@ -24,14 +24,14 @@ abstract class BaseImageAnalyzer<T> : ImageAnalysis.Analyzer {
                         imageProxy.imageInfo.rotationDegrees
                     )
                 ).addOnSuccessListener { results ->
-                        onSuccess(
-                            results, graphicOverlay, it.cropRect
-                        )
-                        imageProxy.close()
-                    }.addOnFailureListener {
-                        onFailure(it)
-                        imageProxy.close()
-                    }
+                    onSuccess(
+                        results, graphicOverlay, it.cropRect
+                    )
+                    imageProxy.close()
+                }.addOnFailureListener {
+                    onFailure(it)
+                    imageProxy.close()
+                }
             }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, e.toString())

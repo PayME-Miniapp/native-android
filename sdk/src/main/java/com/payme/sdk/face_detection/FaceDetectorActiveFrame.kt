@@ -12,9 +12,7 @@ class FaceDetectorActiveFrame : ViewGroup {
     constructor(context: Context?) : super(context)
     constructor(context: Context?, attrs: AttributeSet?) : this(context, attrs, 0)
     constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(
-        context,
-        attrs,
-        defStyle
+        context, attrs, defStyle
     )
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

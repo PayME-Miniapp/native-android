@@ -63,13 +63,13 @@ class MainActivity : AppCompatActivity() {
 //            ENV.DEV,
 //        )
 
-       payMEMiniApp = PayMEMiniApp(
-           this,
-           "143090043042",
-           """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK//Ost3vYkmPXuAlIf0jVnfJjVraljwgY52hx6I1R3de1zLxIMOZPIYaDa+yxuMyyxNy/iDqcnE5GbKh/GHdn8CAwEAAQ==-----END PUBLIC KEY-----""",
-           """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBALnXgEAHajptceS3CA1PZVCypx4tkNTUdRsY+vgCwkzx21Qj/7g9FV7sVRvivUZ4mt/zbAHQtc5gm1bMIQZJa9UCAwEAAQJADH/qKGRXSMbDulZ1PC/y6JKbmvQFocsIdWIgvz2wQ+yDKfgwIWH9qP17dMvwUfd01dNai/LtK4IQNdLs+C3EAQIhAOYKusFQRcsCYauMcBXMfU6Ov7Byeam5g93AWyXRMUH1AiEAzs/0CkdR8emZvHocZ3tjcLbwzqZArlI8O/fTx+uG9mECIQCRI7Hi6Aew50bCWrAZQNTKrMwKwp86U578WTHo8Uy3xQIgMWu2SKKEbYfCKi0QDpaIy82bu/Y0rLOQG1B8tmCNLuECIFBKEdpz9mhjTDmL6yEyewBFWaD+GyY2C4WvvTI+N8tk-----END RSA PRIVATE KEY-----""",
-           ENV.SANDBOX,
-       )
+        payMEMiniApp = PayMEMiniApp(
+            this,
+            "143090043042",
+            """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK//Ost3vYkmPXuAlIf0jVnfJjVraljwgY52hx6I1R3de1zLxIMOZPIYaDa+yxuMyyxNy/iDqcnE5GbKh/GHdn8CAwEAAQ==-----END PUBLIC KEY-----""",
+            """-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBALnXgEAHajptceS3CA1PZVCypx4tkNTUdRsY+vgCwkzx21Qj/7g9FV7sVRvivUZ4mt/zbAHQtc5gm1bMIQZJa9UCAwEAAQJADH/qKGRXSMbDulZ1PC/y6JKbmvQFocsIdWIgvz2wQ+yDKfgwIWH9qP17dMvwUfd01dNai/LtK4IQNdLs+C3EAQIhAOYKusFQRcsCYauMcBXMfU6Ov7Byeam5g93AWyXRMUH1AiEAzs/0CkdR8emZvHocZ3tjcLbwzqZArlI8O/fTx+uG9mECIQCRI7Hi6Aew50bCWrAZQNTKrMwKwp86U578WTHo8Uy3xQIgMWu2SKKEbYfCKi0QDpaIy82bu/Y0rLOQG1B8tmCNLuECIFBKEdpz9mhjTDmL6yEyewBFWaD+GyY2C4WvvTI+N8tk-----END RSA PRIVATE KEY-----""",
+            ENV.SANDBOX,
+        )
 
 //          payMEMiniApp = PayMEMiniApp(
 //              this,
@@ -79,13 +79,13 @@ class MainActivity : AppCompatActivity() {
 //              ENV.STAGING,
 //          )
 
-//         payMEMiniApp = PayMEMiniApp(
-//             this,
-//             "app",
-//             """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQ==-----END PUBLIC KEY-----""",
-//             """-----BEGIN RSA PRIVATE KEY-----MIIBPAIBAAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQJBAJSfTrSCqAzyAo59Ox+mQ1ZdsYWBhxc2084DwTHM8QN/TZiyF4fbVYtjvyhG8ydJ37CiG7d9FY1smvNG3iDC\ndwECIQDygv2UOuR1ifLTDo4YxOs2cK3+dAUy6s54mSuGwUeo4QIhAK7SiYDyGwGoCwqjOdgOsQkJTGoUkDs8MST0MtmPAAs9AiEAjLT1/nBhJ9V/X3f9eF+g/bhJK+8TKSTV4WE1wP0Z3+ECIA9E3DWi77DpWG2JbBfu0I+VfFMXkLFbxH8RxQ8zajGRAiEA8Ly1xJ7UW3up25h9aa9SILBpGqWtJlNQgfVKBoabzsU=-----END RSA PRIVATE KEY-----""",
-//             ENV.SANDBOX,
-//         )
+//        payMEMiniApp = PayMEMiniApp(
+//            this,
+//            "app",
+//            """-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQ==-----END PUBLIC KEY-----""",
+//            """-----BEGIN RSA PRIVATE KEY-----MIIBPAIBAAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQJBAJSfTrSCqAzyAo59Ox+mQ1ZdsYWBhxc2084DwTHM8QN/TZiyF4fbVYtjvyhG8ydJ37CiG7d9FY1smvNG3iDC\ndwECIQDygv2UOuR1ifLTDo4YxOs2cK3+dAUy6s54mSuGwUeo4QIhAK7SiYDyGwGoCwqjOdgOsQkJTGoUkDs8MST0MtmPAAs9AiEAjLT1/nBhJ9V/X3f9eF+g/bhJK+8TKSTV4WE1wP0Z3+ECIA9E3DWi77DpWG2JbBfu0I+VfFMXkLFbxH8RxQ8zajGRAiEA8Ly1xJ7UW3up25h9aa9SILBpGqWtJlNQgfVKBoabzsU=-----END RSA PRIVATE KEY-----""",
+//            ENV.SANDBOX,
+//        )
 
         payMEMiniApp!!.setUpListener(
             onResponse = { actionOpenMiniApp: ActionOpenMiniApp, json: JSONObject? ->
@@ -135,14 +135,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        payMEMiniApp!!.setMode("pm_sandbox")
+        payMEMiniApp!!.setMode("miniapp_sandbox")
         // payMEMiniApp!!.setLanguage(Locale.en)
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
         openSdkButton.setOnClickListener {
-            payMEMiniApp!!.getBalance("0795550300")
-            payMEMiniApp!!.getAccountInformation("0795550300")
+//            payMEMiniApp!!.getBalance("0795550300")
+//            payMEMiniApp!!.getAccountInformation("0795550300")
 //            payMEMiniApp!!.openMiniApp(
 //                OpenMiniAppType.modal,  OpenMiniAppPaymentDirectData("0795550301",
 //                    PaymentDirectData("348115135612",true)
@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity() {
 //                    PaymentData("348115135612", 10000, "", "", true)
 //                )
 //            )
-             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+             payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppOpenData("0795550301"))
 //                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayME("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }

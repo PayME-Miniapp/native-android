@@ -40,22 +40,6 @@ class ObjectContourGraphic(
             boundingBox
         )
         if (!overlay.isFrontMode()) {
-            val absLeft =
-                Utils.pxToDp(
-                    context,
-                    abs(boundingBox.left - activeFrame.boundingBox.left).toInt()
-                )
-            val absRight =
-                Utils.pxToDp(
-                    context,
-                    abs(boundingBox.right - activeFrame.boundingBox.right).toInt()
-                )
-
-            val absTop =
-                Utils.pxToDp(context, abs(rect.top - activeFrame.boundingBox.top).toInt())
-            val absBottom =
-                Utils.pxToDp(context, abs(rect.bottom - activeFrame.boundingBox.bottom).toInt())
-
             val rectWidth = Utils.pxToDp(context, abs(rect.right - rect.left).toInt())
             val rectHeight = Utils.pxToDp(context, abs(rect.bottom - rect.top).toInt())
 

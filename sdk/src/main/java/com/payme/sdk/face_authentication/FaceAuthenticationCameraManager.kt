@@ -4,12 +4,9 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
 import android.widget.TextView
-import androidx.annotation.RequiresApi
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -17,7 +14,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.airbnb.lottie.LottieAnimationView
 import com.payme.sdk.PayMEMiniApp
-import com.payme.sdk.R
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.face_detection.FaceDetectorActiveFrame
 import com.payme.sdk.utils.Utils
@@ -42,12 +38,12 @@ class FaceAuthenticationCameraManager(
 ) {
     private var preview: Preview? = null
     private var camera: Camera? = null
-    lateinit var cameraExecutor: ExecutorService
+    private lateinit var cameraExecutor: ExecutorService
     private var cameraSelectorOption = CameraSelector.LENS_FACING_FRONT
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalyzer: ImageAnalysis? = null
-    var imageCapture: ImageCapture? = null
-    var isClosedEyes = false
+    private var imageCapture: ImageCapture? = null
+    private var isClosedEyes = false
 
     init {
         createNewExecutor()
@@ -55,9 +51,8 @@ class FaceAuthenticationCameraManager(
         faceDetectorStepViewModel.getStep().observe(context as LifecycleOwner) {
             when (it) {
                 2 -> {
-                    takePicture("authenFace.jpeg") {
+                    takePicture() {
                         val intent = Intent()
-                        val fileName = "authenFace.jpeg"
                         intent.putExtra("image", "images/authenFace.jpeg")
                         (context as Activity).setResult(Activity.RESULT_OK, intent)
                         context.finish()
@@ -71,14 +66,14 @@ class FaceAuthenticationCameraManager(
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
-    fun takePicture(fileName: String, callback: (() -> Unit)? = null) {
+    private fun takePicture(callback: (() -> Unit)? = null) {
         imageCapture?.takePicture(cameraExecutor,
             object : ImageCapture.OnImageCapturedCallback() {
                 @SuppressLint("UnsafeOptInUsageError")
                 override fun onCaptureSuccess(image: ImageProxy) {
                     val imageBitmap = Utils.handleFaceImageProxy(image)
                     if (imageBitmap != null) {
-                        Utils.compressBitmapToFile(context, imageBitmap, fileName)
+                        Utils.compressBitmapToFile(context, imageBitmap, "authenFace.jpeg")
                     }
                     Log.d(PayMEMiniApp.TAG, "pic taken")
                     if (callback != null) {
@@ -88,19 +83,21 @@ class FaceAuthenticationCameraManager(
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.d(PayMEMiniApp.TAG, "error capture image face detector: ${exception.message}")
+                    Log.d(
+                        PayMEMiniApp.TAG,
+                        "error capture image face detector: ${exception.message}"
+                    )
                 }
             })
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
                 val display = finderView.display
                 val rotation = display.rotation
-                val metrics = DisplayMetrics().also { display?.getMetrics(it) }
+                val metrics = context.resources.displayMetrics
                 cameraProvider = cameraProviderFuture.get()
 
                 preview = Preview.Builder()
@@ -133,14 +130,11 @@ class FaceAuthenticationCameraManager(
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     private fun selectAnalyzer(): ImageAnalysis.Analyzer {
         return FaceContourAuthenticationProcessor(
             context,
             graphicOverlay,
             activeFrame,
-            isClosedEyes,
-            timerTask,
             faceDetectorStepViewModel
         )
     }

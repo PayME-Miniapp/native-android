@@ -27,30 +27,32 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
             bottomSheetDialog.setOnDismissListener {
                 val action = MiniAppFragment.getMiniAppAction()
                 MiniAppFragment.closeMiniApp()
-                PayMEMiniApp.onError(action, PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", "User đóng PayMEMiniApp"))
+                PayMEMiniApp.onError(
+                    action,
+                    PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", "User đóng PayMEMiniApp")
+                )
             }
             val parentLayout =
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            parentLayout?.let { it ->
-                val behaviour = BottomSheetBehavior.from(it)
-                val backgroundDrawable = context?.let { it1 ->
+            parentLayout?.let { parentView ->
+                val behaviour = BottomSheetBehavior.from(parentView)
+                val backgroundDrawable = context?.let { ctx ->
                     ContextCompat.getDrawable(
-                        it1,
-                        R.drawable.rounded_dialog
+                        ctx, R.drawable.rounded_dialog
                     )
                 }
-                it.background = backgroundDrawable
+                parentView.background = backgroundDrawable
 
-                it.layoutParams.height = convertContentHeight(MiniAppFragment.modalHeight)
+                parentView.layoutParams.height = convertContentHeight(MiniAppFragment.modalHeight)
                 MiniAppFragment.onSetModalHeight = { ot ->
-                    setupModalHeight(it, ot)
+                    setupModalHeight(parentView, ot)
                 }
 
                 behaviour.state = BottomSheetBehavior.STATE_EXPANDED
                 behaviour.skipCollapsed = true
                 behaviour.isHideable = false
                 behaviour.isDraggable = false
-                it.clipToOutline = true
+                parentView.clipToOutline = true
             }
         }
         return dialog
@@ -58,10 +60,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
 
     private fun isFullHeightModal(): Boolean {
         val action = MiniAppFragment.getMiniAppAction()
-        return action != ActionOpenMiniApp.PAY &&
-                action != ActionOpenMiniApp.SERVICE &&
-                action != ActionOpenMiniApp.PAYMENT &&
-                action != ActionOpenMiniApp.TRANSFER_QR
+        return action != ActionOpenMiniApp.PAY && action != ActionOpenMiniApp.SERVICE && action != ActionOpenMiniApp.PAYMENT && action != ActionOpenMiniApp.TRANSFER_QR
         //khác các action này thì để max height default
     }
 
@@ -77,7 +76,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         else {
             val convertHeight = context?.let { Utils.dpToPx(it, contentHeight + 10) }
             if (convertHeight!! > maxHeight) // giới hạn ở 90% màn hình
-                return maxHeight else return convertHeight!!
+                return maxHeight else return convertHeight
         }
     }
 
@@ -99,7 +98,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val view: View = inflater.inflate(R.layout.bottom_sheet_dialog_miniapp, container, false)
         return view
     }

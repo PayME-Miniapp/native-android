@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import com.payme.sdk.utils.Utils
 
 class FaceAuthenticationActiveFrame : ViewGroup {
-    lateinit var boundingBox: RectF
+    private lateinit var boundingBox: RectF
 
     constructor(context: Context?) : super(context)
     constructor(context: Context?, attrs: AttributeSet?) : this(context, attrs, 0)

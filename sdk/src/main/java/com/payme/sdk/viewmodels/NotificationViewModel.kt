@@ -6,26 +6,26 @@ import androidx.lifecycle.ViewModel
 import org.json.JSONObject
 
 class NotificationViewModel() : ViewModel() {
-  private val notificationData: MutableLiveData<JSONObject> =
-    MutableLiveData<JSONObject>(JSONObject())
+    private val notificationData: MutableLiveData<JSONObject> =
+        MutableLiveData<JSONObject>(JSONObject())
 
-  private val notificationJSON: MutableLiveData<JSONObject> =
-    MutableLiveData<JSONObject>(JSONObject())
+    private val notificationJSON: MutableLiveData<JSONObject> =
+        MutableLiveData<JSONObject>(JSONObject())
 
-  fun getNotificationData(): LiveData<JSONObject> {
-    return notificationData
-  }
+    fun getNotificationData(): LiveData<JSONObject> {
+        return notificationData
+    }
 
-  fun setNotificationData(data: JSONObject) {
-    this.notificationData.postValue(data)
-  }
+    fun setNotificationData(data: JSONObject) {
+        this.notificationData.postValue(data)
+    }
 
-  fun getNotificationJSON(): LiveData<JSONObject> {
-    return notificationJSON
-  }
+    fun getNotificationJSON(): LiveData<JSONObject> {
+        return notificationJSON
+    }
 
-  fun setNotificationJSON(data: JSONObject) {
-    this.notificationJSON.postValue(data)
-  }
+    fun setNotificationJSON(data: JSONObject) {
+        this.notificationJSON.postValue(data)
+    }
 
 }

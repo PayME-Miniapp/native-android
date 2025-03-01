@@ -59,5 +59,4 @@ class PayMEUpdatePatchViewModel() : ViewModel() {
     fun setWebLoaded(value: Boolean) {
         this.webLoaded.postValue(value)
     }
-
 }

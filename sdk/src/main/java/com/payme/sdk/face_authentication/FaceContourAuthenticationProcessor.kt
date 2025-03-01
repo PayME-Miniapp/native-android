@@ -11,19 +11,14 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.camerax.BaseImageAnalyzer
 import com.payme.sdk.camerax.GraphicOverlay
-import com.payme.sdk.face_authentication.FaceContourGraphic
 import com.payme.sdk.face_detection.FaceDetectorActiveFrame
 import com.payme.sdk.viewmodels.FaceDetectorStepViewModel
 import java.io.IOException
-import java.util.*
-import kotlin.concurrent.schedule
 
 class FaceContourAuthenticationProcessor(
     private val context: Context,
     private val graphicOverlayView: GraphicOverlay,
     private val activeFrame: FaceDetectorActiveFrame,
-    private var isClosedEyes: Boolean,
-    private var timerTask: TimerTask?,
     private val faceDetectorStepViewModel: FaceDetectorStepViewModel,
 ) :
     BaseImageAnalyzer<List<Face>>() {

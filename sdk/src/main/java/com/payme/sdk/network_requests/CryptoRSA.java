@@ -1,8 +1,6 @@
 package com.payme.sdk.network_requests;
 
-import android.os.Build;
 import android.util.Base64;
-import androidx.annotation.RequiresApi;
 
 import com.payme.sdk.PayMEMiniApp;
 
@@ -14,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.*;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -26,11 +25,8 @@ public class CryptoRSA {
     Cipher cipher, cipher1;
     String decrypted;
 
-    private final static String CRYPTO_METHOD = "RSA";
-    private final static int CRYPTO_BITS = 512;
-
     public CryptoRSA() throws NoSuchAlgorithmException, InvalidKeySpecException {
-            generateKeyPair();
+        generateKeyPair();
     }
 
     private void generateKeyPair()
@@ -39,7 +35,6 @@ public class CryptoRSA {
         publicKey = stringToPublicKey(PayMEMiniApp.publicKey);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public String encrypt(Object... args)
             throws NoSuchAlgorithmException,
             NoSuchPaddingException,
@@ -54,26 +49,26 @@ public class CryptoRSA {
         } else {
             rsaPublicKey = (PublicKey) args[1];
         }
-        cipher =  Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+        cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
         encryptedBytes = cipher.doFinal(plain.getBytes(StandardCharsets.UTF_8));
         return Base64.encodeToString(encryptedBytes, Base64.NO_WRAP);
     }
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    public String encryptWebView(String key,String plainText)
+
+    public String encryptWebView(String key, String plainText)
             throws NoSuchAlgorithmException,
             NoSuchPaddingException,
             InvalidKeyException,
             IllegalBlockSizeException,
             BadPaddingException, InvalidKeySpecException {
-        PublicKey rsaPublicKey =  stringToPublicKey(key);
-        cipher =  Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+        PublicKey rsaPublicKey = stringToPublicKey(key);
+        cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
         encryptedBytes = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
         return Base64.encodeToString(encryptedBytes, Base64.NO_WRAP);
     }
 
-    public String decrypt(String result,PrivateKey... args)
+    public String decrypt(String result, PrivateKey... args)
             throws NoSuchAlgorithmException,
             NoSuchPaddingException,
             InvalidKeyException,
@@ -85,9 +80,9 @@ public class CryptoRSA {
         } else {
             rsaPrivateKey = this.privateKey;
         }
-        cipher1 =  Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+        cipher1 = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher1.init(Cipher.DECRYPT_MODE, rsaPrivateKey);
-        byte[] decoded = Base64.decode(result,Base64.DEFAULT);
+        byte[] decoded = Base64.decode(result, Base64.DEFAULT);
         decryptedBytes = cipher1.doFinal(decoded);
         decrypted = new String(decryptedBytes);
 
@@ -99,19 +94,19 @@ public class CryptoRSA {
         privateKeyPEM = privateKeyPEM.replace("-----END PRIVATE KEY-----", "");
         privateKeyPEM = privateKeyPEM.replace("-----BEGIN RSA PRIVATE KEY-----", "");
         privateKeyPEM = privateKeyPEM.replace("-----END RSA PRIVATE KEY-----", "");
-        byte[] encoded = Base64.decode(privateKeyPEM,Base64.DEFAULT);
+        byte[] encoded = Base64.decode(privateKeyPEM, Base64.DEFAULT);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
         return kf.generatePrivate(keySpec);
     }
+
     public static PublicKey stringToPublicKey(String privateKeyPEM) throws NoSuchAlgorithmException, InvalidKeySpecException {
         privateKeyPEM = privateKeyPEM.replace("-----BEGIN PUBLIC KEY-----", "");
         privateKeyPEM = privateKeyPEM.replace("-----END PUBLIC KEY-----", "");
-        byte[] encoded = Base64.decode(privateKeyPEM,Base64.DEFAULT);
+        byte[] encoded = Base64.decode(privateKeyPEM, Base64.DEFAULT);
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey pubKey = keyFactory.generatePublic(keySpec);
-        return pubKey;
+        return keyFactory.generatePublic(keySpec);
     }
 
     static PublicKey getPublicKey(PrivateKey privKey) throws NoSuchAlgorithmException, InvalidKeySpecException {

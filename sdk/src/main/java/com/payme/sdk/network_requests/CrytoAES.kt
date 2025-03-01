@@ -12,8 +12,8 @@ import kotlin.text.Charsets.US_ASCII
 import kotlin.text.Charsets.UTF_8
 
 internal class CryptoAES {
-    private val SALTED_STR = "Salted__"
-    private val SALTED_MAGIC: ByteArray = SALTED_STR.toByteArray(US_ASCII)
+    private val saltedString = "Salted__"
+    private val saltedMagic: ByteArray = saltedString.toByteArray(US_ASCII)
 
     fun encryptAES(password: String, clearText: String): String {
         val pass: ByteArray = password.toByteArray(US_ASCII)
@@ -36,16 +36,16 @@ internal class CryptoAES {
         val cipher: Cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
         cipher.init(Cipher.ENCRYPT_MODE, key, IvParameterSpec(iv))
         var data: ByteArray? = cipher.doFinal(inBytes)
-        data = arrayConcat(SALTED_MAGIC, salt).let { data?.let { it1 -> arrayConcat(it, it1) } }
+        data = arrayConcat(saltedMagic, salt).let { data?.let { it1 -> arrayConcat(it, it1) } }
         return Base64.encodeToString(data, Base64.NO_WRAP)
     }
 
-    fun decryptAES(password: String, source: String?): String? {
+    fun decryptAES(password: String, source: String?): String {
         val pass: ByteArray = password.toByteArray(US_ASCII)
         val inBytes: ByteArray = Base64.decode(source, Base64.DEFAULT)
-        val shouldBeMagic = inBytes.copyOfRange(0, SALTED_MAGIC.size)
-        require(shouldBeMagic.contentEquals(SALTED_MAGIC)) { "Initial bytes from input do not match OpenSSL SALTED_MAGIC salt value." }
-        val salt = inBytes.copyOfRange(SALTED_MAGIC.size, SALTED_MAGIC.size + 8)
+        val shouldBeMagic = inBytes.copyOfRange(0, saltedMagic.size)
+        require(shouldBeMagic.contentEquals(saltedMagic)) { "Initial bytes from input do not match OpenSSL SALTED_MAGIC salt value." }
+        val salt = inBytes.copyOfRange(saltedMagic.size, saltedMagic.size + 8)
         val passAndSalt = arrayConcat(pass, salt)
         var hash = ByteArray(0)
         var keyAndIv = ByteArray(0)

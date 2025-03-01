@@ -1,13 +1,15 @@
 package com.payme.sdk.webServer;
 
+import android.os.Build;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,7 +29,6 @@ import fi.iki.elonen.util.ServerRunner;
 
 public class MySimpleWebServer extends NanoHTTPD {
 
-    @SuppressWarnings("serial")
     public static final List<String> INDEX_FILE_NAMES = new ArrayList<String>() {
         {
             add("index.html");
@@ -43,20 +44,27 @@ public class MySimpleWebServer extends NanoHTTPD {
     private static final String LICENCE;
     private final static String ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS, HEAD";
     private final static int MAX_AGE = 42 * 60 * 60;
-    private static Map<String, WebServerPlugin> mimeTypeHandlers = new HashMap<String, WebServerPlugin>();
+    private static final Map<String, WebServerPlugin> mimeTypeHandlers = new HashMap<String, WebServerPlugin>();
 
     static {
         mimeTypes();
-        String text;
+        String text = "";
         try {
             InputStream stream = MySimpleWebServer.class.getResourceAsStream("/LICENSE.txt");
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int count;
-            while ((count = stream.read(buffer)) >= 0) {
-                bytes.write(buffer, 0, count);
+            if (stream != null) {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int count;
+                while ((count = stream.read(buffer)) >= 0) {
+                    bytes.write(buffer, 0, count);
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    text = bytes.toString(StandardCharsets.UTF_8);
+                }
+                stream.close();  // Optionally close the stream
+            } else {
+                text = "unknown";
             }
-            text = bytes.toString("UTF-8");
         } catch (Exception e) {
             text = "unknown";
         }
@@ -123,7 +131,7 @@ public class MySimpleWebServer extends NanoHTTPD {
                 int dot = args[i].indexOf('=');
                 if (dot > 0) {
                     String name = args[i].substring(0, dot);
-                    String value = args[i].substring(dot + 1, args[i].length());
+                    String value = args[i].substring(dot + 1);
                     options.put(name, value);
                 }
             }
@@ -186,8 +194,8 @@ public class MySimpleWebServer extends NanoHTTPD {
         plugin.initialize(commandLineOptions);
     }
 
-    public static NanoHTTPD.Response newFixedLengthResponse(NanoHTTPD.Response.IStatus status, String mimeType, String message) {
-        NanoHTTPD.Response response = NanoHTTPD.newFixedLengthResponse(status, mimeType, message);
+    public static Response newFixedLengthResponse(Response.IStatus status, String mimeType, String message) {
+        Response response = NanoHTTPD.newFixedLengthResponse(status, mimeType, message);
         response.addHeader("Accept-Ranges", "bytes");
         return response;
     }
@@ -210,22 +218,19 @@ public class MySimpleWebServer extends NanoHTTPD {
      * instead of '+'.
      */
     private String encodeUri(String uri) {
-        String newUri = "";
+        StringBuilder newUri = new StringBuilder();
         StringTokenizer st = new StringTokenizer(uri, "/ ", true);
         while (st.hasMoreTokens()) {
             String tok = st.nextToken();
             if ("/".equals(tok)) {
-                newUri += "/";
+                newUri.append("/");
             } else if (" ".equals(tok)) {
-                newUri += "%20";
-            } else {
-                try {
-                    newUri += URLEncoder.encode(tok, "UTF-8");
-                } catch (UnsupportedEncodingException ignored) {
-                }
+                newUri.append("%20");
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                newUri.append(URLEncoder.encode(tok, StandardCharsets.UTF_8));
             }
         }
-        return newUri;
+        return newUri.toString();
     }
 
     private String findIndexFileInDirectory(File directory) {
@@ -238,16 +243,16 @@ public class MySimpleWebServer extends NanoHTTPD {
         return null;
     }
 
-    protected NanoHTTPD.Response getForbiddenResponse(String s) {
-        return newFixedLengthResponse(NanoHTTPD.Response.Status.FORBIDDEN, NanoHTTPD.MIME_PLAINTEXT, "FORBIDDEN: " + s);
+    protected Response getForbiddenResponse(String s) {
+        return newFixedLengthResponse(Response.Status.FORBIDDEN, NanoHTTPD.MIME_PLAINTEXT, "FORBIDDEN: " + s);
     }
 
-    protected NanoHTTPD.Response getInternalErrorResponse(String s) {
-        return newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, "INTERNAL ERROR: " + s);
+    protected Response getInternalErrorResponse(String s) {
+        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, "INTERNAL ERROR: " + s);
     }
 
-    protected NanoHTTPD.Response getNotFoundResponse() {
-        return newFixedLengthResponse(NanoHTTPD.Response.Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT, "Error 404, file not found.");
+    protected Response getNotFoundResponse() {
+        return newFixedLengthResponse(Response.Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT, "Error 404, file not found.");
     }
 
     /**
@@ -258,15 +263,13 @@ public class MySimpleWebServer extends NanoHTTPD {
 
     protected String listDirectory(String uri, File f) {
         String heading = "Directory " + uri;
-        StringBuilder msg =
-                new StringBuilder("<html><head><title>" + heading + "</title><style><!--\n" + "span.dirname { font-weight: bold; }\n" + "span.filesize { font-size: 75%; }\n"
-                        + "// -->\n" + "</style>" + "</head><body><h1>" + heading + "</h1>");
+        StringBuilder msg = new StringBuilder("<html><head><title>" + heading + "</title><style><!--\n" + "span.dirname { font-weight: bold; }\n" + "span.filesize { font-size: 75%; }\n" + "// -->\n" + "</style>" + "</head><body><h1>" + heading + "</h1>");
 
         String up = null;
         if (uri.length() > 1) {
             String u = uri.substring(0, uri.length() - 1);
             int slash = u.lastIndexOf('/');
-            if (slash >= 0 && slash < u.length()) {
+            if (slash >= 0) {
                 up = uri.substring(0, slash + 1);
             }
         }
@@ -277,7 +280,7 @@ public class MySimpleWebServer extends NanoHTTPD {
         Collections.sort(directories);
         if (up != null || directories.size() + files.size() > 0) {
             msg.append("<ul>");
-            if (up != null || directories.size() > 0) {
+            if (up != null || !directories.isEmpty()) {
                 msg.append("<section class=\"directories\">");
                 if (up != null) {
                     msg.append("<li><a rel=\"directory\" href=\"").append(up).append("\"><span class=\"dirname\">..</span></a></li>");
@@ -288,7 +291,7 @@ public class MySimpleWebServer extends NanoHTTPD {
                 }
                 msg.append("</section>");
             }
-            if (files.size() > 0) {
+            if (!files.isEmpty()) {
                 msg.append("<section class=\"files\">");
                 for (String file : files) {
                     msg.append("<li><a href=\"").append(encodeUri(uri + file)).append("\"><span class=\"filename\">").append(file).append("</span></a>");
@@ -312,9 +315,9 @@ public class MySimpleWebServer extends NanoHTTPD {
         return msg.toString();
     }
 
-    private NanoHTTPD.Response respond(Map<String, String> headers, NanoHTTPD.IHTTPSession session, String uri) {
+    private Response respond(Map<String, String> headers, IHTTPSession session, String uri) {
         // First let's handle CORS OPTION query
-        NanoHTTPD.Response r;
+        Response r;
 //    if (cors != null && NanoHTTPD.Method.OPTIONS.equals(session.getMethod())) {
 //      r = new NanoHTTPD.Response(NanoHTTPD.Response.Status.OK, MIME_PLAINTEXT, null, 0);
 //    } else {
@@ -327,7 +330,7 @@ public class MySimpleWebServer extends NanoHTTPD {
         return r;
     }
 
-    private NanoHTTPD.Response defaultRespond(Map<String, String> headers, NanoHTTPD.IHTTPSession session, String uri) {
+    private Response defaultRespond(Map<String, String> headers, IHTTPSession session, String uri) {
         // Remove URL arguments
         uri = uri.trim().replace(File.separatorChar, '/');
         if (uri.indexOf('?') >= 0) {
@@ -361,8 +364,7 @@ public class MySimpleWebServer extends NanoHTTPD {
         File f = new File(homeDir, uri);
         if (f.isDirectory() && !uri.endsWith("/")) {
             uri += "/";
-            NanoHTTPD.Response res =
-                    newFixedLengthResponse(NanoHTTPD.Response.Status.REDIRECT, NanoHTTPD.MIME_HTML, "<html><body>Redirected: <a href=\"" + uri + "\">" + uri + "</a></body></html>");
+            Response res = newFixedLengthResponse(Response.Status.REDIRECT, NanoHTTPD.MIME_HTML, "<html><body>Redirected: <a href=\"" + uri + "\">" + uri + "</a></body></html>");
             res.addHeader("Location", uri);
             return res;
         }
@@ -374,7 +376,7 @@ public class MySimpleWebServer extends NanoHTTPD {
             if (indexFile == null) {
                 if (f.canRead()) {
                     // No index file, list the directory if it is readable
-                    return newFixedLengthResponse(NanoHTTPD.Response.Status.OK, NanoHTTPD.MIME_HTML, listDirectory(uri, f));
+                    return newFixedLengthResponse(Response.Status.OK, NanoHTTPD.MIME_HTML, listDirectory(uri, f));
                 } else {
                     return getForbiddenResponse("No directory listing.");
                 }
@@ -384,10 +386,10 @@ public class MySimpleWebServer extends NanoHTTPD {
         }
         String mimeTypeForFile = getMimeTypeForFile(uri);
         WebServerPlugin plugin = MySimpleWebServer.mimeTypeHandlers.get(mimeTypeForFile);
-        NanoHTTPD.Response response = null;
+        Response response = null;
         if (plugin != null && plugin.canServeUri(uri, homeDir)) {
             response = plugin.serveFile(uri, headers, session, f, mimeTypeForFile);
-            if (response != null && response instanceof InternalRewrite) {
+            if (response instanceof InternalRewrite) {
                 InternalRewrite rewrite = (InternalRewrite) response;
                 return respond(rewrite.getHeaders(), session, rewrite.getUri());
             }
@@ -398,9 +400,10 @@ public class MySimpleWebServer extends NanoHTTPD {
     }
 
     @Override
-    public NanoHTTPD.Response serve(NanoHTTPD.IHTTPSession session) {
+    @SuppressWarnings("deprecation")
+    public Response serve(IHTTPSession session) {
         Map<String, String> header = session.getHeaders();
-        Map<String, String> parms = session.getParms();
+        Map<String, String> params = session.getParms();
         String uri = session.getUri();
 
         if (!this.quiet) {
@@ -411,10 +414,10 @@ public class MySimpleWebServer extends NanoHTTPD {
                 String value = e.next();
                 System.out.println("  HDR: '" + value + "' = '" + header.get(value) + "'");
             }
-            e = parms.keySet().iterator();
+            e = params.keySet().iterator();
             while (e.hasNext()) {
                 String value = e.next();
-                System.out.println("  PRM: '" + value + "' = '" + parms.get(value) + "'");
+                System.out.println("  PRM: '" + value + "' = '" + params.get(value) + "'");
             }
         }
 
@@ -431,11 +434,11 @@ public class MySimpleWebServer extends NanoHTTPD {
      * Serves file from homeDir and its' subdirectories (only). Uses only URI,
      * ignores all headers and HTTP parameters.
      */
-    NanoHTTPD.Response serveFile(String uri, Map<String, String> header, File file, String mime) {
-        NanoHTTPD.Response res;
+    Response serveFile(String uri, Map<String, String> header, File file, String mime) {
+        Response res;
         try {
             // Calculate etag
-            String etag = Integer.toHexString((file.getAbsolutePath() + file.lastModified() + "" + file.length()).hashCode());
+            String etag = Integer.toHexString((file.getAbsolutePath() + file.lastModified() + file.length()).hashCode());
 
             // Support (simple) skipping:
             long startFrom = 0;
@@ -475,7 +478,7 @@ public class MySimpleWebServer extends NanoHTTPD {
                     // and the startFrom of the range is satisfiable
                     // would return range from file
                     // respond with not-modified
-                    res = newFixedLengthResponse(NanoHTTPD.Response.Status.NOT_MODIFIED, mime, "");
+                    res = newFixedLengthResponse(Response.Status.NOT_MODIFIED, mime, "");
                     res.addHeader("ETag", etag);
                 } else {
                     if (endAt < 0) {
@@ -487,34 +490,31 @@ public class MySimpleWebServer extends NanoHTTPD {
                     }
 
                     FileInputStream fis = new FileInputStream(file);
-                    fis.skip(startFrom);
-
-                    res = newFixedLengthResponse(NanoHTTPD.Response.Status.PARTIAL_CONTENT, mime, fis, newLen);
+                    res = newFixedLengthResponse(Response.Status.PARTIAL_CONTENT, mime, fis, newLen);
                     res.addHeader("Accept-Ranges", "bytes");
                     res.addHeader("Content-Length", "" + newLen);
                     res.addHeader("Content-Range", "bytes " + startFrom + "-" + endAt + "/" + fileLen);
                     res.addHeader("ETag", etag);
                 }
             } else {
-
                 if (headerIfRangeMissingOrMatching && range != null && startFrom >= fileLen) {
                     // return the size of the file
                     // 4xx responses are not trumped by if-none-match
-                    res = newFixedLengthResponse(NanoHTTPD.Response.Status.RANGE_NOT_SATISFIABLE, NanoHTTPD.MIME_PLAINTEXT, "");
+                    res = newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, NanoHTTPD.MIME_PLAINTEXT, "");
                     res.addHeader("Content-Range", "bytes */" + fileLen);
                     res.addHeader("ETag", etag);
                 } else if (range == null && headerIfNoneMatchPresentAndMatching) {
                     // full-file-fetch request
                     // would return entire file
                     // respond with not-modified
-                    res = newFixedLengthResponse(NanoHTTPD.Response.Status.NOT_MODIFIED, mime, "");
+                    res = newFixedLengthResponse(Response.Status.NOT_MODIFIED, mime, "");
                     res.addHeader("ETag", etag);
                 } else if (!headerIfRangeMissingOrMatching && headerIfNoneMatchPresentAndMatching) {
                     // range request that doesn't match current etag
                     // would return entire (different) file
                     // respond with not-modified
 
-                    res = newFixedLengthResponse(NanoHTTPD.Response.Status.NOT_MODIFIED, mime, "");
+                    res = newFixedLengthResponse(Response.Status.NOT_MODIFIED, mime, "");
                     res.addHeader("ETag", etag);
                 } else {
                     // supply the file
@@ -530,14 +530,14 @@ public class MySimpleWebServer extends NanoHTTPD {
         return res;
     }
 
-    private NanoHTTPD.Response newFixedFileResponse(File file, String mime) throws FileNotFoundException {
-        NanoHTTPD.Response res;
-        res = newFixedLengthResponse(NanoHTTPD.Response.Status.OK, mime, new FileInputStream(file), (int) file.length());
+    private Response newFixedFileResponse(File file, String mime) throws FileNotFoundException {
+        Response res;
+        res = newFixedLengthResponse(Response.Status.OK, mime, new FileInputStream(file), (int) file.length());
         res.addHeader("Accept-Ranges", "bytes");
         return res;
     }
 
-    protected NanoHTTPD.Response addCORSHeaders(Map<String, String> queryHeaders, NanoHTTPD.Response resp, String cors) {
+    protected Response addCORSHeaders(Map<String, String> queryHeaders, Response resp, String cors) {
         resp.addHeader("Access-Control-Allow-Origin", cors);
         resp.addHeader("Access-Control-Allow-Headers", calculateAllowHeaders(queryHeaders));
         resp.addHeader("Access-Control-Allow-Credentials", "true");

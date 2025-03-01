@@ -62,18 +62,10 @@ internal class NetworkRequest(
                     val decryptedMessage =
                         cryptoAES.decryptAES(decryptedKey, response.getString("x-api-message"))
 
-                    val finalJSONObject = decryptedMessage?.let { JSONObject(it) }
+                    val finalJSONObject = JSONObject(decryptedMessage)
                     Log.d(PayMEMiniApp.TAG, "PARAMS $params")
                     Log.d(PayMEMiniApp.TAG, "RESPONSE $finalJSONObject")
-                    finalJSONObject?.let { onSuccess(it) } ?: run {
-                        // Handle the case where finalJSONObject is null
-                        onError(
-                            action, PayMEError(
-                                PayMEErrorType.Network,
-                                PayMENetworkErrorCode.CONNECTION_LOST.toString()
-                            )
-                        )
-                    }
+                    onSuccess(finalJSONObject)
                 } catch (error: Exception) {
                     Log.d(PayMEMiniApp.TAG, "error ${error.message}")
                     onError(

@@ -29,9 +29,7 @@ class ProgressDetectBar : View {
     }
 
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(
-        context,
-        attrs,
-        defStyleAttr
+        context, attrs, defStyleAttr
     ) {
         initial()
     }
@@ -47,9 +45,7 @@ class ProgressDetectBar : View {
     }
 
     @SuppressLint("DrawAllocation")
-    override fun onDraw(canvas: Canvas?) {
-        super.onDraw(canvas)
-
+    override fun onDraw(canvas: Canvas) {
         val width = this.width.toFloat()
 
         val viewportMargin = Utils.dpToPx(context, 40)
@@ -70,7 +66,7 @@ class ProgressDetectBar : View {
         milesStonesPaint.strokeWidth = 14F
         milesStonesPaint.strokeCap = Paint.Cap.ROUND
 
-        canvas?.drawLine(
+        canvas.drawLine(
             viewportMargin.toFloat() + radius,
             Utils.dpToPx(context, 79).toFloat() - paddingMilesStones,
             viewportMargin.toFloat() + radius,
@@ -78,7 +74,7 @@ class ProgressDetectBar : View {
             milesStonesPaint
         )
 
-        canvas?.drawLine(
+        canvas.drawLine(
             viewportMargin.toFloat() + radius + (radius * cos((PI / 6).toFloat())),
             Utils.dpToPx(context, 79).toFloat() + radius + (radius * cos((PI / 3).toFloat())),
             viewportMargin.toFloat() + radius + ((radius + paddingMilesStones) * cos((PI / 6).toFloat())),
@@ -87,7 +83,7 @@ class ProgressDetectBar : View {
             milesStonesPaint
         )
 
-        canvas?.drawLine(
+        canvas.drawLine(
             viewportMargin.toFloat() + radius - radius * cos(PI / 6).toFloat(),
             Utils.dpToPx(context, 79).toFloat() + radius + (radius * cos((PI / 3).toFloat())),
             viewportMargin.toFloat() + radius - (radius + paddingMilesStones) * cos((PI / 6).toFloat()),
@@ -96,14 +92,10 @@ class ProgressDetectBar : View {
             milesStonesPaint
         )
 
-        canvas?.drawArc(
-            oval,
-            -90F + progress * 360f,
-            (1 - progress) * 360f,
-            false,
-            placeholderPaint
+        canvas.drawArc(
+            oval, -90F + progress * 360f, (1 - progress) * 360f, false, placeholderPaint
         )
-        canvas?.drawArc(oval, -90F, progress * 360f, false, paint)
+        canvas.drawArc(oval, -90F, progress * 360f, false, paint)
     }
 
     fun setProgress(progress: Float) {
