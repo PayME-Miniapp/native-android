@@ -5,10 +5,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import android.util.Size
 import android.view.View
-import androidx.camera.core.*
+import androidx.camera.core.Camera
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -55,32 +61,19 @@ class IdentityCardCameraManager(
             {
                 val display = finderView.display
                 val rotation = display.rotation
-                val metrics = context.resources.displayMetrics
-
                 cameraProvider = cameraProviderFuture.get()
-                preview = Preview.Builder()
-                    .setTargetRotation(rotation)
-                    .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
-                    .build()
+                preview = Preview.Builder().setTargetRotation(rotation).build()
 
-                imageCapture = ImageCapture.Builder()
-                    .setTargetRotation(rotation)
-                    .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
-                    .setCaptureMode(CAPTURE_MODE_MAXIMIZE_QUALITY)
-                    .build()
+                imageCapture = ImageCapture.Builder().setTargetRotation(rotation)
+                    .setCaptureMode(CAPTURE_MODE_MAXIMIZE_QUALITY).build()
 
-                imageAnalyzer = ImageAnalysis.Builder()
-                    .setTargetRotation(rotation)
-                    .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also {
+                imageAnalyzer = ImageAnalysis.Builder().setTargetRotation(rotation)
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build().also {
                         it.setAnalyzer(cameraExecutor, selectAnalyzer())
                     }
 
-                val cameraSelector = CameraSelector.Builder()
-                    .requireLensFacing(cameraSelectorOption)
-                    .build()
+                val cameraSelector =
+                    CameraSelector.Builder().requireLensFacing(cameraSelectorOption).build()
 
                 setCameraConfig(cameraProvider, cameraSelector)
 
@@ -88,31 +81,23 @@ class IdentityCardCameraManager(
         )
     }
 
+    // Lựa chọn Analyzer xử lý ảnhÏ
     private fun selectAnalyzer(): ImageAnalysis.Analyzer {
         return ObjectDetectionProcessor(
-            context,
-            graphicOverlay,
-            activeFrame,
-            button,
-            this,
-            identityCardViewModel
+            context, graphicOverlay, activeFrame, button, this, identityCardViewModel
         )
     }
 
     private fun setCameraConfig(
-        cameraProvider: ProcessCameraProvider?,
-        cameraSelector: CameraSelector
+        cameraProvider: ProcessCameraProvider?, cameraSelector: CameraSelector
     ) {
         try {
             finderView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
             cameraProvider?.unbindAll()
 
-            val useCaseGroup = UseCaseGroup.Builder()
-                .addUseCase(preview!!)
-                .addUseCase(imageAnalyzer!!)
-                .addUseCase(imageCapture!!)
-                .setViewPort(finderView.viewPort!!)
-                .build()
+            val useCaseGroup =
+                UseCaseGroup.Builder().addUseCase(preview!!).addUseCase(imageAnalyzer!!)
+                    .addUseCase(imageCapture!!).setViewPort(finderView.viewPort!!).build()
 
             camera = cameraProvider?.bindToLifecycle(lifecycleOwner, cameraSelector, useCaseGroup)
             preview?.setSurfaceProvider(
@@ -121,8 +106,7 @@ class IdentityCardCameraManager(
             button.setOnClickListener {
                 val imageCapture = imageCapture ?: return@setOnClickListener
 
-                imageCapture.takePicture(
-                    cameraExecutor,
+                imageCapture.takePicture(cameraExecutor,
                     object : ImageCapture.OnImageCapturedCallback() {
                         @SuppressLint("UnsafeOptInUsageError")
                         override fun onCaptureSuccess(image: ImageProxy) {

@@ -692,7 +692,7 @@ class MiniAppFragment : Fragment() {
                 changeLocale = { data: String -> changeLocale(data) },
                 setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) },
                 setModalHeight = { data: Int -> setModalHeight(data) },
-                requestNFCPermission = { data: String -> requestNFCPermission() })
+                requestNFCPermission = { _: String -> requestNFCPermission() })
             addJavascriptInterface(javaScriptInterface, "messageHandlers")
 
             WebStorage.getInstance().deleteAllData()

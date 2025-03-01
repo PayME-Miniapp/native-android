@@ -83,7 +83,7 @@ object Utils {
         try {
             val inputStream = FileInputStream(filePath)
             val zipStream = ZipInputStream(inputStream)
-            var zEntry: ZipEntry? = null
+            var zEntry: ZipEntry?
             while (zipStream.nextEntry.also { zEntry = it } != null) {
                 val outputFile = File(destination, zEntry!!.name)
                 val destDirCanonicalPath = File(destination).canonicalPath
