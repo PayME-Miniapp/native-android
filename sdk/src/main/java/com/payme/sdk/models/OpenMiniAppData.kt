@@ -222,10 +222,12 @@ fun getPhoneFromOpenMiniAppData(openMiniAppData: OpenMiniAppDataInterface): Stri
     }
 }
 
-private fun addExtraData(jsonObject: JsonObject, extraData: Map<String, Any>) {
+private fun addExtraData(jsonObject: JsonObject, extraData: Map<String, Any?>) {
     val extraDataObject = JsonObject().apply {
         extraData.forEach { (key, value) ->
-            addPropertyRecursively(this, key, value)
+            if (value != null) {
+                addPropertyRecursively(this, key, value)
+            }
         }
     }
     jsonObject.add("extraData", extraDataObject)
