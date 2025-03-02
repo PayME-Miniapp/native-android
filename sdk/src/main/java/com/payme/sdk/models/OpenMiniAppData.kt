@@ -163,7 +163,7 @@ data class PaymentData(
     val amount: Int,
     val note: String?,
     val ipnUrl: String?,
-    val extraData: HashMap<String, Any>?,
+    val extraData: Map<String, Any>?,
     val isShowResult: Boolean?
 )
 
@@ -194,7 +194,7 @@ data class DepositWithdrawTransferData(
 
 data class ServiceData(
     val service: String,
-    val extraData: HashMap<String, Any>?,
+    val extraData: Map<String, Any>?,
     val isBackToApp: Boolean?,
     val isShowResult: Boolean?
 )
