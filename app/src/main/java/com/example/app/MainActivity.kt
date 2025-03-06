@@ -120,12 +120,15 @@ class MainActivity : AppCompatActivity() {
             "PRODUCTION" -> {
                 payMEMiniApp!!.setMode("pm_product")
             }
+
             "STAGING" -> {
                 payMEMiniApp!!.setMode("pm_staging")
             }
+
             "SANDBOX" -> {
                 payMEMiniApp!!.setMode("pm_sandbox")
             }
+
             else -> {
                 payMEMiniApp!!.setMode("pm_product")
             }
@@ -145,13 +148,30 @@ class MainActivity : AppCompatActivity() {
 //                )
 //            )
 
+
             payMEMiniApp!!.openMiniApp(
-                OpenMiniAppType.modal,  OpenMiniAppTransferQRData("0567777801",
+                OpenMiniAppType.modal, OpenMiniAppTransferQRData(
+                    "0567777801",
                     TransferQRData(
-                        amount = 2000000, bankNumber = "9704000000000018", swiftCode = "SBITVNVX", cardHolder = "NGUYEN VAN A", note = "Test", partnerTransaction = "123456", null, isShowResult = true)
+                        amount = 2000000,
+                        bankNumber = "9704000000000018",
+                        swiftCode = "SBITVNVX",
+                        cardHolder = "NGUYEN VAN A",
+                        note = "Test",
+                        partnerTransaction = "123456",
+                        extraData = mapOf(
+                            "key1" to "value1",
+                            "key2" to 123,
+                            "key3" to mapOf(
+                                "street" to "123 Main St",
+                                "city" to "New York",
+                                "country" to "USA"
+                            )
+                        ),
+                        isShowResult = true
+                    )
                 )
             )
-
 //            payMEMiniApp!!.openMiniApp(
 //                OpenMiniAppType.modal,  OpenMiniAppPaymentData("0795550301",
 //                    PaymentData("348115135612", 10000, "", "", true)

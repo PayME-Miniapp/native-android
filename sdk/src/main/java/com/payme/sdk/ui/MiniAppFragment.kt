@@ -1843,6 +1843,10 @@ class MiniAppFragment : Fragment() {
             return ::openMiniAppData.isInitialized
         }
 
+        fun setDeepLink(data: String) {
+            deepLinkViewModel.setDeepLinkUrl(data)
+        }
+
         fun setLoadUrl(data: String) {
             loadUrl = data
         }
