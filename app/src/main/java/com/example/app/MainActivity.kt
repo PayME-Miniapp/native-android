@@ -12,8 +12,7 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.ENV
 import com.payme.sdk.models.Locale
-import com.payme.sdk.models.OpenMiniAppPayMEData
-import com.payme.sdk.models.OpenMiniAppPaymentData
+import com.payme.sdk.models.OpenMiniAppOpenData
 import com.payme.sdk.models.OpenMiniAppTransferQRData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
@@ -161,11 +160,34 @@ class MainActivity : AppCompatActivity() {
 //            )
 
 //            payMEMiniApp!!.openMiniApp(
+//                OpenMiniAppType.modal, OpenMiniAppTransferQRData(
+//                    "0567777801",
+//                    TransferQRData(
+//                        amount = 2000000,
+//                        bankNumber = "9704000000000018",
+//                        swiftCode = "SBITVNVX",
+//                        cardHolder = "NGUYEN VAN A",
+//                        note = "Test",
+//                        partnerTransaction = "123456",
+//                        extraData = mapOf(
+//                            "key1" to "value1",
+//                            "key2" to 123,
+//                            "key3" to mapOf(
+//                                "street" to "123 Main St",
+//                                "city" to "New York",
+//                                "country" to "USA"
+//                            )
+//                        ),
+//                        isShowResult = true
+//                    )
+//                )
+//            )
+//            payMEMiniApp!!.openMiniApp(
 //                OpenMiniAppType.modal,  OpenMiniAppPaymentData("0795550301",
 //                    PaymentData("348115135612", 10000, "", "", true)
 //                )
 //            )
-             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
+             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData("0328001141"))
 //                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayME("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }
