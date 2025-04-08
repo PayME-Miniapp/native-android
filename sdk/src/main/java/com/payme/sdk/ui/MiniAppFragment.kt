@@ -77,7 +77,6 @@ import vn.kalapa.ekyc.KalapaSDKResultCode
 import vn.kalapa.ekyc.KalapaScanNFCCallback
 import vn.kalapa.ekyc.KalapaScanNFCError
 import vn.kalapa.ekyc.models.KalapaResult
-import vn.kalapa.ekyc.models.PreferencesConfig
 import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
@@ -139,7 +138,6 @@ class MiniAppFragment : Fragment() {
     private lateinit var lottieContainerView: LinearLayout
     private lateinit var loadingView: View
 
-    private var preferencesConfig: PreferencesConfig? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var faceAuthenData: JSONObject? = null
 
@@ -1229,10 +1227,12 @@ class MiniAppFragment : Fragment() {
     private fun startEKYC(data: JSONObject) {
         val sessionId = data.optString("token", "")
         if (sessionId != "") {
-            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext() as Activity)
                 .withBackgroundColor("#FFFFFF").withMainColor("#33CB33").withBtnTextColor("#121212")
                 .withMainTextColor("#121212").withLivenessVersion(0).withNFCTimeoutInSeconds(180)
-                .withLanguage(PayMEMiniApp.locale.toString()).build()
+                .withLanguage(PayMEMiniApp.locale.toString())
+                .requireQRCode(true)
+                .build()
             val klpHandler = object : KalapaHandler() {
 
                 override fun onComplete(kalapaResult: KalapaResult) {
@@ -1389,10 +1389,12 @@ class MiniAppFragment : Fragment() {
     private fun startNFC(data: JSONObject) {
         val sessionId = data.optString("token", "")
         if (sessionId != "") {
-            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext())
+            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext() as Activity)
                 .withBackgroundColor("#FFFFFF").withMainColor("#33CB33").withBtnTextColor("#121212")
                 .withMainTextColor("#121212").withLivenessVersion(0).withNFCTimeoutInSeconds(180)
-                .withLanguage(PayMEMiniApp.locale.toString()).build()
+                .withLanguage(PayMEMiniApp.locale.toString())
+                .requireQRCode(true)
+                .build()
             val klpHandler = object : KalapaHandler() {
 
                 override fun onComplete(kalapaResult: KalapaResult) {
