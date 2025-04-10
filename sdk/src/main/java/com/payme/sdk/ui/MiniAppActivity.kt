@@ -8,23 +8,24 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.payme.sdk.R
 import com.payme.sdk.utils.MixpanelUtil
 
 class MiniAppActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    
+    // Cho phép layout kéo dài vào khu vực của hệ thống (ví dụ: status bar, navigation bar)
+    WindowCompat.setDecorFitsSystemWindows(window, false)
+    
+    // Sử dụng WindowInsetsControllerCompat để thiết lập hệ thống thanh
+    val insetsController = WindowInsetsControllerCompat(window, window.decorView)
+    insetsController.systemBarsBehavior =
+        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      // Cho phép layout kéo dài vào khu vực của hệ thống (ví dụ: status bar, navigation bar)
-      WindowCompat.setDecorFitsSystemWindows(window, false)
-      window.insetsController?.apply {
-        // Thiết lập hành vi của thanh hệ thống: cho phép hiển thị tạm thời khi vuốt
-        systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-      }
-    } else {
-      // Phương pháp cũ cho các phiên bản Android trước API 30:
-      // Mở rộng layout vào khu vực hệ thống bằng cách sử dụng systemUiVisibility
+    // Phương pháp cũ cho Android dưới API 30 nếu cần
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
       window.decorView.systemUiVisibility =
           View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
     }
