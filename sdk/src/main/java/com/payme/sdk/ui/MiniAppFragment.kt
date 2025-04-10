@@ -1355,10 +1355,13 @@ class MiniAppFragment : Fragment() {
         val sessionId = data.optString("token", "")
         if (sessionId != "") {
             val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext() as Activity)
-                .withBackgroundColor("#FFFFFF").withMainColor("#33CB33").withBtnTextColor("#121212")
-                .withMainTextColor("#121212").withLivenessVersion(0).withNFCTimeoutInSeconds(180)
+                .withBackgroundColor("#FFFFFF")
+                .withMainColor("#33CB33")
+                .withLivenessVersion(0)
+                .withNFCTimeoutInSeconds(180)
                 .withLanguage(PayMEMiniApp.locale.toString())
                 .requireQRCode(true)
+                .withSpecificLanguageForCustomer("payme")
                 .build()
             val klpHandler = object : KalapaHandler() {
 
@@ -1544,9 +1547,12 @@ class MiniAppFragment : Fragment() {
         val sessionId = data.optString("token", "")
         if (sessionId != "") {
             val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext() as Activity)
-                .withBackgroundColor("#FFFFFF").withMainColor("#33CB33").withBtnTextColor("#121212")
-                .withMainTextColor("#121212").withLivenessVersion(0).withNFCTimeoutInSeconds(180)
+                .withBackgroundColor("#FFFFFF")
+                .withMainColor("#33CB33")
+                .withLivenessVersion(0)
+                .withNFCTimeoutInSeconds(180)
                 .withLanguage(PayMEMiniApp.locale.toString())
+                .withSpecificLanguageForCustomer("payme")
                 .requireQRCode(true)
                 .build()
             val klpHandler = object : KalapaHandler() {
