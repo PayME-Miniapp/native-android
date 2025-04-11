@@ -187,11 +187,7 @@ class MainActivity : AppCompatActivity() {
 //                    PaymentData("348115135612", 10000, "", "", true)
 //                )
 //            )
-<<<<<<< HEAD
-             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
-=======
              payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData("0328001141"))
->>>>>>> 898bcc9 (feat: EWALLET-1468 Thêm flow scan QR trên Thẻ căn cước)
 //                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayME("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }
