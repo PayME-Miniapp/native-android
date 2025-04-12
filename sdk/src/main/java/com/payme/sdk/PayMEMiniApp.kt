@@ -17,8 +17,8 @@ class PayMEMiniApp(
     appId: String,
     publicKey: String,
     privateKey: String,
-    env: ENV? = ENV.PRODUCTION,
-    locale: Locale? = Locale.vi
+    env: ENV = ENV.PRODUCTION,
+    locale: Locale = Locale.vi
 ) {
     companion object {
         var TAG: String = "PAYMELOG"
@@ -27,14 +27,14 @@ class PayMEMiniApp(
         internal lateinit var privateKey: String
         internal lateinit var env: ENV
         internal lateinit var locale: Locale
-        internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _, _ -> run {} }
-        internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> run {} }
+        internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _, _ -> }
+        internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> }
 
         // only payme wallet
         internal var onOneSignalSendTags: ((String) -> Unit)? = null
         internal var onOneSignalDeleteTags: ((String) -> Unit)? = null
         internal var mode: String =
-            "miniapp_product" //miniapp_product, miniapp_sandbox, miniapp_staging, pm_product, pm_staging, pm_sandbox, bank
+            "miniapp_product" // miniapp_product, miniapp_sandbox, miniapp_staging, pm_product, pm_staging, pm_sandbox, bank
         internal var onChangeEnv: ((String) -> Unit)? = null
         internal var onChangeLocale: ((String) -> Unit)? = null
         internal var isOpen = false
@@ -44,24 +44,20 @@ class PayMEMiniApp(
         PayMEMiniApp.appId = appId
         PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\\n", "")
         PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\\n", "")
-        if (env != null) {
-            PayMEMiniApp.env = env
-        }
-        if (locale != null) {
-            PayMEMiniApp.locale = locale
-        }
+        PayMEMiniApp.env = env
+        PayMEMiniApp.locale = locale
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
     }
 
     fun setUpListener(
-        onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit)?,
-        onError: ((ActionOpenMiniApp, PayMEError) -> Unit)?
+        onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit)? = null,
+        onError: ((ActionOpenMiniApp, PayMEError) -> Unit)? = null
     ) {
-        if (onResponse != null) {
-            PayMEMiniApp.onResponse = onResponse
+        onResponse?.let {
+            PayMEMiniApp.onResponse = it
         }
-        if (onError != null) {
-            PayMEMiniApp.onError = onError
+        onError?.let {
+            PayMEMiniApp.onError = it
         }
     }
 
@@ -93,27 +89,27 @@ class PayMEMiniApp(
     ) {
         try {
             isOpen = true
-            if (openType == OpenMiniAppType.modal) {
-                val modal = MiniAppBottomSheetDialog()
-                MiniAppFragment.openType = openType
-                MiniAppFragment.openMiniAppData = openMiniAppData
-                MiniAppFragment.closeMiniApp = {
-                    modal.dismiss()
-                    isOpen = false
+            when (openType) {
+                OpenMiniAppType.modal -> {
+                    val modal = MiniAppBottomSheetDialog()
+                    MiniAppFragment.openType = openType
+                    MiniAppFragment.openMiniAppData = openMiniAppData
+                    MiniAppFragment.closeMiniApp = {
+                        modal.dismiss()
+                        isOpen = false
+                    }
+                    modal.show((context as FragmentActivity).supportFragmentManager, null)
                 }
-                modal.show((context as FragmentActivity).supportFragmentManager, null)
-                return
-            }
-            if (openType == OpenMiniAppType.screen) {
-                MiniAppFragment.openType = openType
-                MiniAppFragment.openMiniAppData = openMiniAppData
-                MiniAppFragment.closeMiniApp = {
-                    isOpen = false
+                OpenMiniAppType.screen -> {
+                    MiniAppFragment.openType = openType
+                    MiniAppFragment.openMiniAppData = openMiniAppData
+                    MiniAppFragment.closeMiniApp = {
+                        isOpen = false
+                    }
+                    val intent = Intent(context, MiniAppActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
                 }
-                val intent = Intent(context, MiniAppActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                return
             }
         } catch (e: Exception) {
             isOpen = false
