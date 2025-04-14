@@ -13,9 +13,9 @@ dependencyResolutionManagement {
         maven {
             url 'https://jitpack.io'
         }
+        maven { url 'https://raw.githubusercontent.com/iProov/android/master/maven/' }
     }
 }
 rootProject.name = "PayME-Android-Sdk"
 include ':app'
 include ':sdk'
-include ':kalapasdk'

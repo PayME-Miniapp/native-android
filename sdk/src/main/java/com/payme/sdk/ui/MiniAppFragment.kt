@@ -1,6 +1,5 @@
 package com.payme.sdk.ui
 
-//import vn.kalapa.ekyc.KalapaSDK.Companion.configure
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
