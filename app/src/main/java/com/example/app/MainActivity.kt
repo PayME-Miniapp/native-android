@@ -18,6 +18,7 @@ import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.TransferQRData
 import org.json.JSONObject
+import androidx.core.content.edit
 
 class MainActivity : AppCompatActivity() {
     private lateinit var openSdkButton: TextView
@@ -98,9 +99,9 @@ class MainActivity : AppCompatActivity() {
         )
 
         payMEMiniApp!!.setChangeEnvFunction(onChangeEnv = { data: String ->
-            val editor = sharedPreference.edit()
-            editor.putString("PAYME_WALLET_ENV", data.replace("\"", "").uppercase())
-            editor.apply()
+            sharedPreference.edit() {
+                putString("PAYME_WALLET_ENV", data.replace("\"", "").uppercase())
+            }
             val intent = Intent(applicationContext, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -108,9 +109,9 @@ class MainActivity : AppCompatActivity() {
         })
 
         payMEMiniApp!!.setChangeLocaleFunction(onChangeLocale = { data: String ->
-            val editor = sharedPreference.edit()
-            editor.putString("PAYME_WALLET_LOCALE", data.replace("\"", ""))
-            editor.apply()
+            sharedPreference.edit() {
+                putString("PAYME_WALLET_LOCALE", data.replace("\"", ""))
+            }
 //            val intent = Intent(applicationContext, MainActivity::class.java).apply {
 //                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
 //            }
@@ -136,7 +137,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         payMEMiniApp!!.setMode("miniapp_sandbox")
-        // payMEMiniApp!!.setLanguage(Locale.en)
+//          payMEMiniApp!!.setLanguage(Locale.en)
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 

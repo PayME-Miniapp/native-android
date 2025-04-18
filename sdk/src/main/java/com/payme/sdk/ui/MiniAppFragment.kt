@@ -3,6 +3,18 @@ package com.payme.sdk.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.net.NetworkCapabilities
+import android.os.Handler
+import android.os.Looper
+import android.widget.Button
+import java.io.BufferedReader
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStreamReader
+import java.net.ConnectException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -79,6 +91,9 @@ import vn.kalapa.ekyc.models.KalapaResult
 import java.io.File
 import java.net.URL
 import javax.net.ssl.SSLException
+import androidx.core.net.toUri
+import com.payme.sdk.models.Locale
+import com.payme.sdk.utils.LocaleUtils
 
 fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
     for (i in 0 until jsonArray.length()) {
@@ -150,7 +165,12 @@ class MiniAppFragment : Fragment() {
             if (!wwwDirectory.exists()) {
                 wwwDirectory.mkdir()
             }
-            Utils.unzipFile("${filesDir.path}/update/sdkWebapp3-main.zip", "${filesDir.path}/www")
+            val unzipResult = Utils.unzipFile("${filesDir.path}/update/sdkWebapp3-main.zip", "${filesDir.path}/www")
+            if (!unzipResult) {
+                Log.e(PayMEMiniApp.TAG, "Failed to unzip update file. Closing miniapp")
+                handleUnzipError()
+                return
+            }
             sourceWeb.delete()
             return
         }
@@ -165,7 +185,11 @@ class MiniAppFragment : Fragment() {
         val content = unzipped.listFiles()
         if (content == null || content.isEmpty()) {
             Utils.copyDir(requireContext(), path = "www")
-            Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
+            val unzipResult = Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
+            if (!unzipResult) {
+                Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
+                handleUnzipError()
+            }
         }
     }
 
@@ -177,7 +201,39 @@ class MiniAppFragment : Fragment() {
             wwwDirectory.mkdir()
         }
         Utils.copyDir(requireContext(), path = "www")
-        Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
+        val unzipResult = Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
+        if (!unzipResult) {
+            Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
+            handleUnzipError()
+        }
+    }
+    
+    private fun handleUnzipError() {
+        // Sử dụng LocaleUtils để lấy thông báo lỗi theo ngôn ngữ hiện tại
+        val errorDescription = when (PayMEMiniApp.locale) {
+            Locale.en -> "Failed to unzip source files. The app will be closed."
+            Locale.vi -> "Không thể giải nén tệp nguồn. Ứng dụng sẽ được đóng."
+        }
+        
+        // Tạo JSON error để gửi đến parent app
+        val errorJson = JSONObject().apply {
+            put("code", "UNZIP_FAILED")
+            put("description", errorDescription)
+            put("isCloseMiniApp", true)
+        }.toString()
+        
+        // Sử dụng UI thread để hiển thị thông báo và đóng app
+        activity?.runOnUiThread {
+            try {
+                // Không hiển thị Toast theo yêu cầu của user
+                // val toastMessage = LocaleUtils.ErrorMessages.unzipFailed()
+                // Toast.makeText(requireContext(), toastMessage, Toast.LENGTH_LONG).show()
+                returnError(errorJson)
+            } catch (e: Exception) {
+                Log.e(PayMEMiniApp.TAG, "Error handling unzip failure: ${e.message}")
+                closeMiniApp() // Đảm bảo app được đóng ngay cả khi có lỗi khi gửi thông báo
+            }
+        }
     }
 
     private fun startServer() {
@@ -263,7 +319,346 @@ class MiniAppFragment : Fragment() {
         }
     }
 
+    // Get current network connection type
+    private fun getConnectionType(): String {
+        val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return "No Connection"
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return "Unknown"
+
+        return when {
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WiFi"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Mobile Data"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> "Bluetooth"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "VPN"
+            else -> "Unknown"
+        }
+    }
+    
+    // Variable to track current network callback
+    private var activeNetworkCallback: ConnectivityManager.NetworkCallback? = null
+    
+    // Variable to track if download is in progress
+    private var isDownloadInProgress = false
+    
+    // Variable to store current download parameters for retry
+    private var currentDownloadUrl: String? = null
+    private var currentEditor: SharedPreferences.Editor? = null
+    private var currentPatch: Int = 0
+    
+    // Variables to track download speed and timeout
+    private var slowSpeedStartTime: Long = 0
+    private var downloadStartTime: Long = 0
+    private var downloadSpeedHandler: Handler? = null
+    private var speedCheckRunnable: Runnable? = null
+    private var timeoutCheckRunnable: Runnable? = null
+    
+    // Constants for speed and timeout thresholds
+    private val SLOW_SPEED_THRESHOLD = 1024L // 1 KB/s
+    private val SLOW_SPEED_DURATION = 5000L // 5 seconds
+    private val DOWNLOAD_TIMEOUT = 1 * 60 * 1000L // 1 minutes
+    
+    // Check network connectivity
+    private fun isNetworkConnected(): Boolean {
+        val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+        return capabilities != null && (
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
+    }
+    
+    // Register for network callbacks to monitor connectivity during download
+    private fun registerNetworkCallback() {
+        // Unregister any existing callback first
+        unregisterNetworkCallback()
+        
+        val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                Log.e(PayMEMiniApp.TAG, "Network connectivity lost during download")
+                
+                // Only handle if download is in progress
+                if (isDownloadInProgress) {
+                    activity?.runOnUiThread {
+                        handleNetworkDisconnection("Network connection lost")
+                    }
+                }
+            }
+            
+            override fun onUnavailable() {
+                super.onUnavailable()
+                Log.e(PayMEMiniApp.TAG, "Network unavailable during download")
+                
+                // Only handle if download is in progress
+                if (isDownloadInProgress) {
+                    activity?.runOnUiThread {
+                        handleNetworkDisconnection("Network unavailable")
+                    }
+                }
+            }
+        }
+        
+        // Keep reference to callback for later unregistering
+        activeNetworkCallback = networkCallback
+        
+        // Register the callback
+        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+    }
+    
+    // Unregister network callback
+    private fun unregisterNetworkCallback() {
+        activeNetworkCallback?.let {
+            try {
+                val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                connectivityManager.unregisterNetworkCallback(it)
+            } catch (e: Exception) {
+                Log.e(PayMEMiniApp.TAG, "Error unregistering network callback: ${e.message}")
+            }
+            activeNetworkCallback = null
+        }
+    }
+    
+    // Monitor download speed and check for slow connections
+    private fun startSpeedAndTimeoutMonitoring() {
+        // Reset monitoring values
+        slowSpeedStartTime = 0
+        downloadStartTime = System.currentTimeMillis()
+        
+        // Cancel existing handlers if any
+        stopSpeedAndTimeoutMonitoring()
+        
+        // Create new handler on main thread
+        downloadSpeedHandler = Handler(Looper.getMainLooper())
+        
+        // Create runnable for checking timeout
+        timeoutCheckRunnable = Runnable {
+            val currentTime = System.currentTimeMillis()
+            val elapsedTime = currentTime - downloadStartTime
+            val remainingTime = DOWNLOAD_TIMEOUT - elapsedTime
+            
+            // Log download time progress
+            if (isDownloadInProgress) {
+                val elapsedSeconds = elapsedTime / 1000
+                val remainingSeconds = remainingTime / 1000
+                
+                // Tạo thông báo thời gian còn lại theo locale
+                val timeRemainingMessage = LocaleUtils.DownloadMessages.downloadTimeRemaining(remainingSeconds)
+                
+                // Log thông tin thời gian chi tiết
+                Log.d(PayMEMiniApp.TAG, "$timeRemainingMessage (${elapsedSeconds}s đã trôi qua)")
+                
+                // Cảnh báo khi gần hết thời gian (<30 giây)
+                if (remainingTime in 1..29999) {
+                    val warningMessage = when (PayMEMiniApp.locale) {
+                        Locale.en -> "⚠️ Download warning: Only ${remainingSeconds}s remaining before timeout!"
+                        Locale.vi -> "⚠️ Cảnh báo tải xuống: Chỉ còn ${remainingSeconds}s trước khi hết thời gian chờ!"
+                    }
+                    Log.w(PayMEMiniApp.TAG, warningMessage)
+                }
+            }
+            
+            if (isDownloadInProgress && elapsedTime > DOWNLOAD_TIMEOUT) {
+                val timeoutMessage = when (PayMEMiniApp.locale) {
+                    Locale.en -> "Download timeout after ${elapsedTime / 1000}s - Cancelling download"
+                    Locale.vi -> "Tải xuống đã hết thời gian chờ sau ${elapsedTime / 1000}s - Đang hủy"
+                }
+                Log.e(PayMEMiniApp.TAG, timeoutMessage)
+                activity?.runOnUiThread {
+                    val timeoutErrorMessage = LocaleUtils.ErrorMessages.downloadTimeout()
+                    handleDownloadIssue(timeoutErrorMessage)
+                }
+            } else if (isDownloadInProgress) {
+                // Schedule next check
+                downloadSpeedHandler?.postDelayed(timeoutCheckRunnable!!, 10000) // Check every 10 seconds
+            }
+        }
+        
+        // Start checking timeout
+        downloadSpeedHandler?.postDelayed(timeoutCheckRunnable!!, 10000) // First check after 10 seconds
+    }
+    
+    // Stop monitoring speed and timeout
+    private fun stopSpeedAndTimeoutMonitoring() {
+        speedCheckRunnable?.let { downloadSpeedHandler?.removeCallbacks(it) }
+        timeoutCheckRunnable?.let { downloadSpeedHandler?.removeCallbacks(it) }
+        downloadSpeedHandler = null
+        speedCheckRunnable = null
+        timeoutCheckRunnable = null
+    }
+    
+    // Check download speed and track slow periods
+    private fun checkDownloadSpeed(bytePerSecond: Long) {
+        // Check if the speed is low and update UI with warning if needed
+        if (bytePerSecond < SLOW_SPEED_THRESHOLD) {
+            // First time we detect slow speed, log it and start the slow speed timer
+            if (slowSpeedStartTime == 0L) {
+                slowSpeedStartTime = System.currentTimeMillis()
+                
+                val formattedSpeed = Utils.formatSpeed(bytePerSecond)
+                val speedWarning = when (PayMEMiniApp.locale) {
+                    Locale.en -> "Slow download speed detected: ${formattedSpeed}/s"
+                    Locale.vi -> "Đã phát hiện tốc độ tải xuống chậm: ${formattedSpeed}/s"
+                }
+                Log.w(PayMEMiniApp.TAG, speedWarning)
+                
+            } else {
+                // Only log extended slow speed after 3 seconds of consistent slowness
+                val slowDuration = System.currentTimeMillis() - slowSpeedStartTime
+                if (slowDuration > 3000) {
+                    val formattedSpeed = Utils.formatSpeed(bytePerSecond)
+                    val speedMessage = when (PayMEMiniApp.locale) {
+                        Locale.en -> "Download speed remains slow: ${formattedSpeed}/s for ${slowDuration / 1000}s"
+                        Locale.vi -> "Tốc độ tải xuống vẫn chậm: ${formattedSpeed}/s trong ${slowDuration / 1000}s"
+                    }
+                    Log.w(PayMEMiniApp.TAG, speedMessage)
+                    
+                    // Hiển thị thông báo tốc độ chậm cho người dùng nếu phù hợp
+//                    val slowNetworkMessage = LocaleUtils.DownloadMessages.slowNetworkSpeed()
+                    
+                    // Nếu tốc độ quá chậm trong thời gian dài, có thể hủy tải xuống
+                    if (slowDuration > SLOW_SPEED_DURATION && isDownloadInProgress) {
+                        Log.e(PayMEMiniApp.TAG, "Download speed too slow (${formattedSpeed}/s) for ${slowDuration / 1000}s - aborting download")
+                        activity?.runOnUiThread {
+                            val errorMessage = LocaleUtils.ErrorMessages.downloadFailed("Tốc độ quá chậm")
+                            handleDownloadIssue(errorMessage)
+                        }
+                    }
+                }
+            }
+        } else if (bytePerSecond > 0) {
+            // Speed is acceptable
+            if (slowSpeedStartTime != 0L) {
+                // If we were previously in a slow period, log the recovery
+                val slowDuration = System.currentTimeMillis() - slowSpeedStartTime
+                val formattedSpeed = Utils.formatSpeed(bytePerSecond)
+                Log.d(PayMEMiniApp.TAG, "✅ Download speed recovered to $formattedSpeed/s after ${slowDuration / 1000}s of slow speed")
+            }
+            // Reset slow period timer
+            slowSpeedStartTime = 0
+        }
+    }
+    
+    // Handle download issues (slow speed or timeout)
+    private fun handleDownloadIssue(errorMessage: String) {
+        // Only handle once
+        if (!isDownloadInProgress) return
+        
+        // Stop speed and timeout monitoring
+        stopSpeedAndTimeoutMonitoring()
+        
+        // Stop the download progress tracking but keep download parameters for retry
+        isDownloadInProgress = false
+        
+        // Show error UI
+        val errorContainer = view?.findViewById<android.widget.LinearLayout>(R.id.error_container)
+        val errorMessageView = view?.findViewById<TextView>(R.id.error_message)
+        val retryButton = view?.findViewById<Button>(R.id.retry_button)
+        
+        errorContainer?.visibility = View.VISIBLE
+        errorMessageView?.text = getString(R.string.download_failed) + ": $errorMessage"
+        
+        // Log current parameters for debugging
+        Log.d(PayMEMiniApp.TAG, "Current download parameters - URL: $currentDownloadUrl, Patch: $currentPatch")
+        
+        // Store local copies of parameters to ensure they're not lost
+        val localUrl = currentDownloadUrl
+        val localEditor = currentEditor
+        val localPatch = currentPatch
+        
+        // Set up retry button to attempt download again
+        retryButton?.text = getString(R.string.retry)
+        retryButton?.setOnClickListener {
+            // Clear previous error message immediately
+           errorMessageView?.text = getString(R.string.wait)
+            
+            // Only retry if we have all parameters
+            if (localUrl != null && localEditor != null) {
+                if (isNetworkConnected()) {
+                    Log.d(PayMEMiniApp.TAG, "Retrying download with - URL: $localUrl, Patch: $localPatch")
+                    // Hide error container BEFORE starting download
+                    errorContainer?.visibility = View.GONE
+                    
+                    // Add a small delay to ensure UI updates before starting download
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        // Use local copies of parameters for retrying
+                        downloadSourceWeb(localUrl, localEditor, localPatch)
+                    }, 200)
+                } else {
+                    // If we don't have network when trying to retry
+                    Log.e(PayMEMiniApp.TAG, "Cannot retry - No network connection")
+                    errorMessageView?.text = "${getString(R.string.download_failed)}: ${getString(R.string.no_network_connection)}"
+                }
+            } else {
+                // Parameters missing, show error
+                Log.e(PayMEMiniApp.TAG, "Cannot retry - Missing parameters")
+                errorMessageView?.text = "${getString(R.string.download_failed)} - ${getString(R.string.wait)}"
+            }
+        }
+    }
+    
+    // Handle network disconnection
+    private fun handleNetworkDisconnection(errorMessage: String) {
+        // Stop the download progress tracking
+        isDownloadInProgress = false
+        
+        // Stop speed and timeout monitoring
+        stopSpeedAndTimeoutMonitoring()
+        
+        // Show error UI
+        val errorContainer = view?.findViewById<android.widget.LinearLayout>(R.id.error_container)
+        val errorMessageView = view?.findViewById<TextView>(R.id.error_message)
+        val retryButton = view?.findViewById<Button>(R.id.retry_button)
+        
+        errorContainer?.visibility = View.VISIBLE
+        errorMessageView?.text = "${getString(R.string.download_failed)}: $errorMessage"
+        
+        // Log current parameters for debugging
+        Log.d(PayMEMiniApp.TAG, "Network disconnection - Current download parameters - URL: $currentDownloadUrl, Patch: $currentPatch")
+        
+        // Store local copies of parameters to ensure they're not lost
+        val localUrl = currentDownloadUrl
+        val localEditor = currentEditor
+        val localPatch = currentPatch
+        
+        // Set up retry button to attempt download again when connectivity returns
+        retryButton?.text = getString(R.string.retry)
+        retryButton?.setOnClickListener {
+            // Clear previous error message immediately
+           errorMessageView?.text = getString(R.string.wait)
+            // Only retry if we have all parameters
+            if (localUrl != null && localEditor != null) {
+                if (isNetworkConnected()) {
+                    Log.d(PayMEMiniApp.TAG, "Network connection available, retrying download with - URL: $localUrl, Patch: $localPatch")
+                    // Hide error container BEFORE starting download
+                    errorContainer?.visibility = View.GONE
+                    
+                    // Add a small delay to ensure UI updates before starting download
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        // Use local copies of parameters for retrying
+                        downloadSourceWeb(localUrl, localEditor, localPatch)
+                    }, 200)
+                } else {
+                    // Still no connection
+                    Log.e(PayMEMiniApp.TAG, "Cannot retry - No network connection")
+                    errorMessageView?.text = "${getString(R.string.download_failed)}: ${getString(R.string.no_network_connection)}"
+                }
+            } else {
+                // Parameters missing, show error
+                Log.e(PayMEMiniApp.TAG, "Cannot retry - Missing parameters")
+                errorMessageView?.text = "${getString(R.string.download_failed)} - ${getString(R.string.wait)}"
+            }
+        }
+    }
+    
+    @SuppressLint("SetTextI18n")
     private fun downloadSourceWeb(url: String?, editor: SharedPreferences.Editor, patch: Int) {
+        // Log parameters for debugging
+        Log.d(PayMEMiniApp.TAG, "Starting download with URL: $url, Patch: $patch")
         val filesDir = requireContext().filesDir
         val updateDirectory = File(filesDir.path, "update")
         if (!updateDirectory.exists()) {
@@ -274,14 +669,66 @@ class MiniAppFragment : Fragment() {
             sourceWeb.delete()
         }
         sourceWeb.createNewFile()
+        
+        // Store current download parameters for retry functionality
+        currentDownloadUrl = url
+        currentEditor = editor
+        currentPatch = patch
+        
+        Log.d(PayMEMiniApp.TAG, "Stored download parameters - URL: $currentDownloadUrl, Patch: $currentPatch")
+        
+        // Check for network connectivity before starting download
+        if (!isNetworkConnected()) {
+            activity?.runOnUiThread {
+                handleNetworkDisconnection("No network connection available")
+            }
+            return
+        }
+        
+        // Register for network connectivity changes during download
+        registerNetworkCallback()
+        
+        // Start monitoring download speed and timeout
+        startSpeedAndTimeoutMonitoring()
+        
+        // Initialize UI elements
+        activity?.runOnUiThread {
+            // Show connection type
+            val connectionType = getConnectionType()
+            val connectionTypeTextView = view?.findViewById<TextView>(R.id.connection_type)
+            connectionTypeTextView?.text = getString(R.string.connection_type, connectionType)
+            
+            // Hide error container initially
+            val errorContainer = view?.findViewById<android.widget.LinearLayout>(R.id.error_container)
+            errorContainer?.visibility = View.GONE
+        }
+        
         url?.let {
-            Utils.download(
-                requireContext(), it, sourceWeb.absolutePath
-            ) { totalBytesCopied, length ->
-                val progressValuePercent = (totalBytesCopied * 100 / length).toInt()
-                activity?.runOnUiThread {
-                    progressBar.progress = progressValuePercent
-                    textProgress.text = getString(R.string.progress_value, progressValuePercent)
+            try {
+                // Set download in progress flag
+                isDownloadInProgress = true
+                
+                Utils.download(
+                    requireContext(), it, sourceWeb.absolutePath
+                ) { totalBytesCopied, length, speed ->
+                    // Check download speed for slow connection detection
+                    checkDownloadSpeed(speed)
+                    val progressValuePercent = (totalBytesCopied * 100 / length).toInt()
+                    activity?.runOnUiThread {
+                        progressBar.progress = progressValuePercent
+                        
+                        // Format the sizes and speed
+                        val downloadedSizeFormatted = Utils.formatFileSize(totalBytesCopied)
+                        val totalSizeFormatted = Utils.formatFileSize(length.toLong())
+                        val speedFormatted = Utils.formatSpeed(speed)
+                        
+                        // Update the text with the format: {downloadedSize} / {totalSize} ({speed}/s)
+                        textProgress.text = getString(R.string.download_progress, downloadedSizeFormatted, totalSizeFormatted, speedFormatted)
+                        
+                        // Update connection type in real-time
+                        val connectionType = getConnectionType()
+                        val connectionTypeTextView = view?.findViewById<TextView>(R.id.connection_type)
+                        connectionTypeTextView?.text = getString(R.string.connection_type, connectionType)
 
                     val layoutParams = lottieView.layoutParams as LinearLayout.LayoutParams
                     layoutParams.leftMargin =
@@ -291,7 +738,39 @@ class MiniAppFragment : Fragment() {
                     layoutParams.bottomMargin = 0
                     lottieView.requestLayout()
                 }
+                }
+                
+                // Download complete successfully
+                isDownloadInProgress = false
+                unregisterNetworkCallback()
+                stopSpeedAndTimeoutMonitoring()
+            } catch (e: Exception) {
+                Log.e(PayMEMiniApp.TAG, "Download error: ${e.message}")
+                
+                // Reset download flag
+                isDownloadInProgress = false
+                stopSpeedAndTimeoutMonitoring()
+                
+                // Determine error type
+                val errorMsg = when (e) {
+                    is UnknownHostException -> "Unable to connect to server"
+                    is SocketTimeoutException -> "Connection timed out"
+                    is ConnectException -> "Failed to connect to server"
+                    is SocketException -> "Network connection lost"
+                    is javax.net.ssl.SSLException -> "Secure connection failed"
+                    is IOException -> "Network error occurred"
+                    else -> e.message ?: "Unknown error"
+                }
+                
+                // Show error UI
+                activity?.runOnUiThread {
+                    handleNetworkDisconnection(errorMsg)
+                }
+                
+                // Return to prevent further execution
+                return@let
             }
+            
             Log.d(PayMEMiniApp.TAG, "source web length ${sourceWeb.length()}")
             if (sourceWeb.length() > 0) {
                 editor.putInt("PAYME_PATCH", patch)
@@ -303,6 +782,13 @@ class MiniAppFragment : Fragment() {
                 }
             }
             backgroundDownload = false
+        }
+        
+        // Unregister network callback in case we exit without completing the download
+        if (isDownloadInProgress) {
+            isDownloadInProgress = false
+            unregisterNetworkCallback()
+            stopSpeedAndTimeoutMonitoring()
         }
     }
 
@@ -509,7 +995,7 @@ class MiniAppFragment : Fragment() {
                         view.loadUrl(url)
                         false
                     } else try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                         view.context.startActivity(intent)
                         true
                     } catch (e: Exception) {
@@ -530,7 +1016,7 @@ class MiniAppFragment : Fragment() {
                     } else if (url.startsWith("http://") || url.startsWith("https://")) {
                         false
                     } else try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                         view?.context?.startActivity(intent)
                         true
                     } catch (e: Exception) {
@@ -542,10 +1028,60 @@ class MiniAppFragment : Fragment() {
                 override fun onReceivedHttpError(
                     view: WebView, request: WebResourceRequest?, errorResponse: WebResourceResponse
                 ) {
+                    val statusCode = errorResponse.statusCode
+                    val errorUrl = request?.url.toString()
+                    val errorData = errorResponse.reasonPhrase ?: ""
+                    
                     Log.d(
                         PayMEMiniApp.TAG,
-                        "HTTP error " + errorResponse.statusCode + errorResponse.data
+                        "HTTP error $statusCode for URL: $errorUrl, Reason: $errorData"
                     )
+                    
+                    // Kiểm tra trường hợp 404 từ local server
+                    if (statusCode == 404 && errorUrl.startsWith("http://localhost") == true) {
+                        try {
+                            // Đọc nội dung của lỗi để kiểm tra xem có phải là "Error 404, file not found."
+                            val inputStream = errorResponse.data
+                            if (inputStream != null) {
+                                val reader = BufferedReader(InputStreamReader(inputStream))
+                                val responseText = reader.readText()
+                                Log.e(PayMEMiniApp.TAG, "404 error content: $responseText")
+                                
+                                if (responseText.contains("Error 404, file not found") || errorData.contains("Not Found")) {
+                                    val errorMessage = when (PayMEMiniApp.locale) {
+                                    Locale.en -> "Resource not found error detected from local server - closing mini app"
+                                    Locale.vi -> "Phát hiện lỗi không tìm thấy tài nguyên từ local server - đóng mini app"
+                                    }
+                                Log.e(PayMEMiniApp.TAG, errorMessage)
+                                    
+                                    // Chạy trên UI thread để cập nhật UI và đóng ứng dụng
+                                    activity?.runOnUiThread {
+                                        // Hiển thị thông báo lỗi
+                                        val errorDescription = when (PayMEMiniApp.locale) {
+                                            Locale.en -> "Error 404: Resource not found at path: $errorUrl"
+                                            Locale.vi -> "Lỗi 404: Không tìm thấy tài nguyên tại: $errorUrl"
+                                        }
+                                        
+                                        try {
+                                            // Tạo JSON string với định dạng phù hợp cho phương thức returnError
+                                            val errorJson = JSONObject().apply {
+                                                put("code", "RESOURCE_NOT_FOUND")
+                                                put("description", errorDescription)
+                                                put("isCloseMiniApp", true)
+                                            }.toString()
+                                            
+                                            // Sử dụng phương thức returnError để trả lỗi qua PayMEMiniApp.onError
+                                            returnError(errorJson)
+                                        } catch (e: Exception) {
+                                            Log.e(PayMEMiniApp.TAG, "Error sending error to parent: ${e.message}")
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(PayMEMiniApp.TAG, "Error analyzing 404 response: ${e.message}")
+                        }
+                    }
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
@@ -909,7 +1445,7 @@ class MiniAppFragment : Fragment() {
 
     private fun openUrl(data: String) {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data.substring(1, data.length - 1)))
+            val intent = Intent(Intent.ACTION_VIEW, data.substring(1, data.length - 1).toUri())
             (requireContext() as Activity).startActivity(intent)
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "openurl e ${e.message}")

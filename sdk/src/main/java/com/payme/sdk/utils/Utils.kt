@@ -79,47 +79,81 @@ object Utils {
         }
     }
 
-    fun unzipFile(filePath: String, destination: String) {
+    fun unzipFile(filePath: String, destination: String): Boolean {
         try {
             val inputStream = FileInputStream(filePath)
             val zipStream = ZipInputStream(inputStream)
             var zEntry: ZipEntry?
+            var unzipSuccess = false  // Đặt cờ hiệu để kiểm tra xem có file nào được giải nén thành công không
+            
             while (zipStream.nextEntry.also { zEntry = it } != null) {
+                val entryName = zEntry!!.name
+                
+                // Bỏ qua các file trong thư mục __MACOSX hoặc các file bắt đầu bằng ._
+                if (entryName.contains("__MACOSX") || 
+                    File(entryName).name.startsWith("._")) {
+                    Log.d(PayMEMiniApp.TAG, "Skipping macOS special file: $entryName")
+                    continue
+                }
+                
                 val outputFile = File(destination, zEntry!!.name)
                 val destDirCanonicalPath = File(destination).canonicalPath
-                val outputFileCanonicalPath = outputFile.canonicalPath
-                if (!outputFileCanonicalPath.startsWith(destDirCanonicalPath)) {
-                    throw java.lang.Exception(
-                        java.lang.String.format(
-                            "Found Zip Path Traversal Vulnerability with %s",
-                            outputFileCanonicalPath
-                        )
-                    )
+                
+                try {
+                    val outputFileCanonicalPath = outputFile.canonicalPath
+                    if (!outputFileCanonicalPath.startsWith(destDirCanonicalPath)) {
+                        Log.e(PayMEMiniApp.TAG, "Security warning: Path traversal detected with $outputFileCanonicalPath")
+                        continue
+                    }
+                } catch (e: Exception) {
+                    Log.e(PayMEMiniApp.TAG, "Error checking path for: $entryName - ${e.message}")
+                    continue
                 }
+                
                 if (zEntry!!.isDirectory) {
                     val f = File(destination + "/" + zEntry!!.name)
                     if (!f.isDirectory) {
                         f.mkdirs()
                     }
                 } else {
-                    val fout = FileOutputStream(
-                        destination + "/" + zEntry!!.name
-                    )
-                    val bufout = BufferedOutputStream(fout)
-                    val buffer = ByteArray(1024)
-                    var read: Int
-                    while (zipStream.read(buffer).also { read = it } != -1) {
-                        bufout.write(buffer, 0, read)
+                    try {
+                        // Đảm bảo thư mục cha tồn tại
+                        val parent = outputFile.parentFile
+                        if (parent != null && !parent.exists()) {
+                            parent.mkdirs()
+                        }
+                        
+                        val fout = FileOutputStream(outputFile)
+                        val bufout = BufferedOutputStream(fout)
+                        val buffer = ByteArray(1024)
+                        var read: Int
+                        
+                        while (zipStream.read(buffer).also { read = it } != -1) {
+                            bufout.write(buffer, 0, read)
+                        }
+                        
+                        bufout.close()
+                        fout.close()
+                        unzipSuccess = true  // Đánh dấu ít nhất một file đã được giải nén thành công
+                    } catch (e: Exception) {
+                        Log.e(PayMEMiniApp.TAG, "Error extracting file: $entryName - ${e.message}")
                     }
-                    zipStream.closeEntry()
-                    bufout.close()
-                    fout.close()
                 }
             }
+            
             zipStream.close()
-            Log.d(PayMEMiniApp.TAG, "Unzipping complete. path : $destination")
-        } catch (e: java.lang.Exception) {
-            Log.d(PayMEMiniApp.TAG, "Unzipping failed ${e.message}")
+            inputStream.close()
+            
+            if (unzipSuccess) {
+                Log.d(PayMEMiniApp.TAG, "Unzipping complete. path: $destination")
+                return true
+            } else {
+                Log.e(PayMEMiniApp.TAG, "No files were successfully extracted to $destination")
+                return false
+            }
+        } catch (e: Exception) {
+            Log.e(PayMEMiniApp.TAG, "Unzipping failed: ${e.message}")
+            return false
         }
     }
 
@@ -536,15 +570,40 @@ object Utils {
         context: Context,
         link: String,
         path: String,
-        onCopy: (totalBytesCopied: Long, length: Int) -> Unit
+        onCopy: (totalBytesCopied: Long, length: Int, speed: Long) -> Unit
     ) {
         val sourceTemp = File("${context.filesDir.path}/update", "sdkWebapp3-mainTemp.zip")
         val destSource = File(path)
         val length = URL(link).openConnection().contentLength
+        var lastUpdateTime = System.currentTimeMillis()
+        var lastBytes: Long = 0
+        var currentSpeed: Long = 0
+        
         URL(link).openStream().use { input ->
             FileOutputStream(sourceTemp).use { output ->
                 input.copyTo(output, onCopy = { totalBytesCopied ->
-                    onCopy(totalBytesCopied, length)
+                    val currentTime = System.currentTimeMillis()
+                    val timeDiff = currentTime - lastUpdateTime
+                    
+                    // Calculate speed in bytes per second if at least 50ms have passed
+                    if (timeDiff >= 50) {
+                        val bytesDiff = totalBytesCopied - lastBytes
+                        // Calculate instantaneous speed
+                        val instantSpeed = (bytesDiff * 1000) / timeDiff
+                        
+                        // Apply some smoothing (weighted average with previous speed)
+                        currentSpeed = if (currentSpeed == 0L) {
+                            instantSpeed
+                        } else {
+                            (currentSpeed * 2 + instantSpeed) / 3
+                        }
+                        
+                        // Reset tracking variables
+                        lastBytes = totalBytesCopied
+                        lastUpdateTime = currentTime
+                    }
+                    
+                    onCopy(totalBytesCopied, length, currentSpeed)
                 })
             }
         }
@@ -553,7 +612,7 @@ object Utils {
             Log.d(PayMEMiniApp.TAG, "done download")
             sourceTemp.delete()
         } else {
-            Log.d(PayMEMiniApp.TAG, "downlaod fail")
+            Log.d(PayMEMiniApp.TAG, "download fail")
         }
     }
 
@@ -663,7 +722,22 @@ object Utils {
         formatted = formatted.replace("\\\\", "\\")
         return formatted.substring(1, formatted.length - 1)
     }
+    fun formatFileSize(size: Long): String {
+        val kb = 1024L
+        val mb = kb * 1024L
+        val gb = mb * 1024L
 
+        return when {
+            size >= gb -> String.format("%.2f GB", size.toDouble() / gb)
+            size >= mb -> String.format("%.2f MB", size.toDouble() / mb)
+            size >= kb -> String.format("%.2f KB", size.toDouble() / kb)
+            else -> "$size B"
+        }
+    }
+
+    fun formatSpeed(bytesPerSecond: Long): String {
+        return formatFileSize(bytesPerSecond)
+    }
 }
 
 fun InputStream.copyTo(out: OutputStream, onCopy: (totalBytesCopied: Long) -> Any): Long {

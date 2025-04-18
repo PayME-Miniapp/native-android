@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -201,16 +202,40 @@ public class MySimpleWebServer extends NanoHTTPD {
     }
 
     private boolean canServeUri(String uri, File homeDir) {
-        boolean canServeUri;
-        File f = new File(homeDir, uri);
-        canServeUri = f.exists();
-        if (!canServeUri) {
-            WebServerPlugin plugin = MySimpleWebServer.mimeTypeHandlers.get(getMimeTypeForFile(uri));
-            if (plugin != null) {
-                canServeUri = plugin.canServeUri(uri, homeDir);
+        try {
+            if (homeDir == null) {
+                return false;
             }
+            
+            boolean canServeUri;
+            File f = new File(homeDir, uri);
+            
+            try {
+                canServeUri = f.exists();
+            } catch (Exception e) {
+                // Handle file system errors safely
+                System.err.println("Error checking if file exists: " + e.getMessage());
+                return false;
+            }
+            
+            if (!canServeUri) {
+                try {
+                    WebServerPlugin plugin = MySimpleWebServer.mimeTypeHandlers.get(getMimeTypeForFile(uri));
+                    if (plugin != null) {
+                        canServeUri = plugin.canServeUri(uri, homeDir);
+                    }
+                } catch (Exception e) {
+                    // Handle plugin errors safely
+                    System.err.println("Error in plugin handler: " + e.getMessage());
+                    return false;
+                }
+            }
+            return canServeUri;
+        } catch (Exception e) {
+            // Catch all other exceptions
+            System.err.println("Unexpected error in canServeUri: " + e.getMessage());
+            return false;
         }
-        return canServeUri;
     }
 
     /**
@@ -234,13 +259,29 @@ public class MySimpleWebServer extends NanoHTTPD {
     }
 
     private String findIndexFileInDirectory(File directory) {
-        for (String fileName : MySimpleWebServer.INDEX_FILE_NAMES) {
-            File indexFile = new File(directory, fileName);
-            if (indexFile.isFile()) {
-                return fileName;
+        try {
+            // Check if directory exists and is accessible
+            if (directory == null || !directory.exists() || !directory.isDirectory()) {
+                return null;
             }
+            
+            for (String fileName : MySimpleWebServer.INDEX_FILE_NAMES) {
+                try {
+                    File indexFile = new File(directory, fileName);
+                    // Safe check for file existence that won't crash
+                    if (indexFile.isFile()) {
+                        return fileName;
+                    }
+                } catch (Exception e) {
+                    // Skip this file if there's an error, try next one
+                    continue;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            // Return null if we can't access the directory at all
+            return null;
         }
-        return null;
     }
 
     protected Response getForbiddenResponse(String s) {
@@ -330,104 +371,235 @@ public class MySimpleWebServer extends NanoHTTPD {
         return r;
     }
 
+    // Add a recursion counter to prevent stack overflow
+    private static final ThreadLocal<Integer> recursionCounter = new ThreadLocal<Integer>() {
+        @Override
+        protected Integer initialValue() {
+            return 0;
+        }
+    };
+
+    // Max recursion depth to prevent stack overflow
+    private static final int MAX_RECURSION_DEPTH = 10;
+
     private Response defaultRespond(Map<String, String> headers, IHTTPSession session, String uri) {
-        // Remove URL arguments
-        uri = uri.trim().replace(File.separatorChar, '/');
-        if (uri.indexOf('?') >= 0) {
-            uri = uri.substring(0, uri.indexOf('?'));
-        }
-
-        // Prohibit getting out of current directory
-        if (uri.contains("../")) {
-            return getForbiddenResponse("Won't serve ../ for security reasons.");
-        }
-
-        File home = this.rootDirs.get(0);
-        File file = new File(home, uri);
-        if (uri.endsWith("/") || !file.exists()) {
-            String indexFile = findIndexFileInDirectory(home);
-            return respond(headers, session, "/" + indexFile);
-        }
-
-        boolean canServeUri = false;
-        File homeDir = null;
-        for (int i = 0; !canServeUri && i < this.rootDirs.size(); i++) {
-            homeDir = this.rootDirs.get(i);
-            canServeUri = canServeUri(uri, homeDir);
-        }
-        if (!canServeUri) {
-            return getNotFoundResponse();
-        }
-
-        // Browsers get confused without '/' after the directory, send a
-        // redirect.
-        File f = new File(homeDir, uri);
-        if (f.isDirectory() && !uri.endsWith("/")) {
-            uri += "/";
-            Response res = newFixedLengthResponse(Response.Status.REDIRECT, NanoHTTPD.MIME_HTML, "<html><body>Redirected: <a href=\"" + uri + "\">" + uri + "</a></body></html>");
-            res.addHeader("Location", uri);
-            return res;
-        }
-
-        if (f.isDirectory()) {
-            // First look for index files (index.html, index.htm, etc) and if
-            // none found, list the directory if readable.
-            String indexFile = findIndexFileInDirectory(f);
-            if (indexFile == null) {
-                if (f.canRead()) {
-                    // No index file, list the directory if it is readable
-                    return newFixedLengthResponse(Response.Status.OK, NanoHTTPD.MIME_HTML, listDirectory(uri, f));
-                } else {
-                    return getForbiddenResponse("No directory listing.");
-                }
-            } else {
-                return respond(headers, session, uri + indexFile);
-            }
-        }
-        String mimeTypeForFile = getMimeTypeForFile(uri);
-        WebServerPlugin plugin = MySimpleWebServer.mimeTypeHandlers.get(mimeTypeForFile);
+        // Increment and check recursion counter to prevent stack overflow
+        Integer depth = recursionCounter.get();
+        int currentDepth = (depth != null) ? depth : 0; // Safely unbox with null check
         Response response = null;
-        if (plugin != null && plugin.canServeUri(uri, homeDir)) {
-            response = plugin.serveFile(uri, headers, session, f, mimeTypeForFile);
-            if (response instanceof InternalRewrite) {
-                InternalRewrite rewrite = (InternalRewrite) response;
-                return respond(rewrite.getHeaders(), session, rewrite.getUri());
+        try {
+            // Check if recursion is too deep, return error response if it is
+            if (currentDepth > MAX_RECURSION_DEPTH) {
+                response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR, 
+                        NanoHTTPD.MIME_PLAINTEXT, 
+                        "Error: Maximum recursion depth exceeded");
+                return response;
             }
-        } else {
-            response = serveFile(uri, headers, f, mimeTypeForFile);
+            
+            // Increment the recursion counter
+            recursionCounter.set(currentDepth + 1);
+            
+            // Remove URL arguments
+            uri = uri.trim().replace(File.separatorChar, '/');
+            if (uri.indexOf('?') >= 0) {
+                uri = uri.substring(0, uri.indexOf('?'));
+            }
+
+            // Prohibit getting out of current directory
+            if (uri.contains("../")) {
+                response = getForbiddenResponse("Won't serve ../ for security reasons.");
+                return response;
+            }
+
+            // Safe file existence check that won't crash when file system access has issues
+            try {
+                File home = this.rootDirs.get(0);
+                File file = new File(home, uri);
+                boolean fileExists;
+                try {
+                    fileExists = file.exists();
+                } catch (Exception e) {
+                    // File system error, possibly due to network issues
+                    response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR,
+                            NanoHTTPD.MIME_PLAINTEXT,
+                            "Error accessing file system: " + e.getMessage());
+                    return response;
+                }
+                
+                if (uri.endsWith("/") || !fileExists) {
+                    try {
+                        String indexFile = findIndexFileInDirectory(home);
+                        if (indexFile == null) {
+                            response = getNotFoundResponse();
+                            return response;
+                        }
+                        response = respond(headers, session, "/" + indexFile);
+                        return response;
+                    } catch (Exception e) {
+                        // Handle exceptions during index file lookup
+                        response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR,
+                                NanoHTTPD.MIME_PLAINTEXT,
+                                "Error finding index file: " + e.getMessage());
+                        return response;
+                    }
+                }
+            } catch (Exception e) {
+                // Handle any other exceptions
+                response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR,
+                        NanoHTTPD.MIME_PLAINTEXT,
+                        "Server error: " + e.getMessage());
+                return response;
+            }
+
+            // Check if the URI can be served by any of the root directories
+            try {
+                boolean canServeUri = false;
+                File homeDir = null;
+                for (int i = 0; !canServeUri && i < this.rootDirs.size(); i++) {
+                    try {
+                        homeDir = this.rootDirs.get(i);
+                        canServeUri = canServeUri(uri, homeDir);
+                    } catch (Exception e) {
+                        // Log error but continue checking other dirs
+                        System.err.println("Error checking directory " + i + ": " + e.getMessage());
+                    }
+                }
+                if (!canServeUri) {
+                    response = getNotFoundResponse();
+                    return response;
+                }
+                
+                // Browsers get confused without '/' after the directory, send a redirect
+                File f = new File(homeDir, uri);
+                if (f.isDirectory() && !uri.endsWith("/")) {
+                    uri += "/";
+                    response = newFixedLengthResponse(Response.Status.REDIRECT, NanoHTTPD.MIME_HTML, 
+                            "<html><body>Redirected: <a href=\"" + uri + "\">" + uri + "</a></body></html>");
+                    response.addHeader("Location", uri);
+                    return response;
+                }
+
+                if (f.isDirectory()) {
+                    // Look for index files first
+                    String indexFile = findIndexFileInDirectory(f);
+                    if (indexFile == null) {
+                        if (f.canRead()) {
+                            // No index file, list the directory if readable
+                            response = newFixedLengthResponse(Response.Status.OK, NanoHTTPD.MIME_HTML, listDirectory(uri, f));
+                        } else {
+                            response = getForbiddenResponse("No directory listing.");
+                        }
+                    } else {
+                        response = respond(headers, session, uri + indexFile);
+                    }
+                    return response;
+                }
+
+                // Handle file serving through plugins or default mechanism
+                String mimeTypeForFile = getMimeTypeForFile(uri);
+                WebServerPlugin plugin = MySimpleWebServer.mimeTypeHandlers.get(mimeTypeForFile);
+                if (plugin != null && plugin.canServeUri(uri, homeDir)) {
+                    try {
+                        response = plugin.serveFile(uri, headers, session, f, mimeTypeForFile);
+                        if (response instanceof InternalRewrite) {
+                            InternalRewrite rewrite = (InternalRewrite) response;
+                            response = respond(rewrite.getHeaders(), session, rewrite.getUri());
+                            return response;
+                        }
+                    } catch (Exception e) {
+                        response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR,
+                                NanoHTTPD.MIME_PLAINTEXT,
+                                "Plugin error: " + e.getMessage());
+                        return response;
+                    }
+                } else {
+                    try {
+                        response = serveFile(uri, headers, f, mimeTypeForFile);
+                    } catch (Exception e) {
+                        response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR,
+                                NanoHTTPD.MIME_PLAINTEXT,
+                                "File service error: " + e.getMessage());
+                        return response;
+                    }
+                }
+                return response != null ? response : getNotFoundResponse();
+            } catch (Exception e) {
+                response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR,
+                        NanoHTTPD.MIME_PLAINTEXT,
+                        "Server processing error: " + e.getMessage());
+                return response;
+            }
+        } catch (Exception e) {
+            // Catch all for the outer try block
+            response = newFixedLengthResponse(Response.Status.INTERNAL_ERROR,
+                    NanoHTTPD.MIME_PLAINTEXT,
+                    "Critical error: " + e.getMessage());
+            return response;
+        } finally {
+            // Always reset the recursion counter when we're done
+            recursionCounter.set(currentDepth);
         }
-        return response != null ? response : getNotFoundResponse();
+
+        // Compiler confirms all paths return a response, so no need for a fallback return
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public Response serve(IHTTPSession session) {
-        Map<String, String> header = session.getHeaders();
-        Map<String, String> params = session.getParms();
-        String uri = session.getUri();
+        // Reset recursion counter for each new request
+        recursionCounter.set(0); // Safe because we're setting a value, not unboxing
+        
+        try {
+            Map<String, String> header = session.getHeaders();
+            Map<String, String> parms = session.getParms();
+            String uri = session.getUri();
 
-        if (!this.quiet) {
-            System.out.println(session.getMethod() + " '" + uri + "' ");
+            if (!this.quiet) {
+                System.out.println(session.getMethod() + " '" + uri + "' ");
 
-            Iterator<String> e = header.keySet().iterator();
-            while (e.hasNext()) {
-                String value = e.next();
-                System.out.println("  HDR: '" + value + "' = '" + header.get(value) + "'");
+                Iterator<String> e = header.keySet().iterator();
+                while (e.hasNext()) {
+                    String value = e.next();
+                    System.out.println("  HDR: '" + value + "' = '" + header.get(value) + "'");
+                }
+                e = parms.keySet().iterator();
+                while (e.hasNext()) {
+                    String value = e.next();
+                    System.out.println("  PRM: '" + value + "' = '" + parms.get(value) + "'");
+                }
             }
-            e = params.keySet().iterator();
-            while (e.hasNext()) {
-                String value = e.next();
-                System.out.println("  PRM: '" + value + "' = '" + params.get(value) + "'");
+
+            try {
+                for (File homeDir : this.rootDirs) {
+                    try {
+                        // Make sure we won't die of an exception later
+                        if (!homeDir.isDirectory()) {
+                            return getInternalErrorResponse("given path is not a directory (" + homeDir + ").");
+                        }
+                    } catch (Exception e) {
+                        // Handle file system access errors
+                        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, 
+                            NanoHTTPD.MIME_PLAINTEXT, 
+                            "Error checking directory: " + e.getMessage());
+                    }
+                }
+
+                return respond(Collections.unmodifiableMap(header), session, uri);
+            } catch (Exception e) {
+                // Handle any exceptions during directory checking or response
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, 
+                    NanoHTTPD.MIME_PLAINTEXT, 
+                    "Server error: " + e.getMessage());
             }
+        } catch (Throwable t) {
+            // Catch any other errors to prevent app crash
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, 
+                NanoHTTPD.MIME_PLAINTEXT, 
+                "Critical server error: " + t.getMessage());
+        } finally {
+            // Always reset the recursion counter when done
+            recursionCounter.set(0); // Safe because we're setting a value, not unboxing
         }
-
-        for (File homeDir : this.rootDirs) {
-            // Make sure we won't die of an exception later
-            if (!homeDir.isDirectory()) {
-                return getInternalErrorResponse("given path is not a directory (" + homeDir + ").");
-            }
-        }
-        return respond(Collections.unmodifiableMap(header), session, uri);
     }
 
     /**
@@ -530,9 +702,9 @@ public class MySimpleWebServer extends NanoHTTPD {
         return res;
     }
 
-    private Response newFixedFileResponse(File file, String mime) throws FileNotFoundException {
+    private Response newFixedFileResponse(File file, String mime) throws IOException {
         Response res;
-        res = newFixedLengthResponse(Response.Status.OK, mime, new FileInputStream(file), (int) file.length());
+        res = newFixedLengthResponse(Response.Status.OK, mime, Files.newInputStream(file.toPath()), (int) file.length());
         res.addHeader("Accept-Ranges", "bytes");
         return res;
     }

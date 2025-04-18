@@ -42,11 +42,40 @@ class PayMEMiniApp(
 
     init {
         PayMEMiniApp.appId = appId
-        PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\\n", "")
-        PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\\n", "")
+        PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\n", "")
+        PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\n", "")
         PayMEMiniApp.env = env
         PayMEMiniApp.locale = locale
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
+        
+        // Áp dụng cấu hình ngôn ngữ ngay khi khởi tạo
+        applyLanguageConfiguration(locale)
+    }
+    
+    /**
+     * Áp dụng cấu hình ngôn ngữ cho cả ứng dụng
+     */
+    private fun applyLanguageConfiguration(lang: Locale) {
+        // Chuyển đổi từ PayME.Locale sang java.util.Locale
+        val javaLocale = when (lang) {
+            Locale.vi -> java.util.Locale("vi", "VN")
+            Locale.en -> java.util.Locale("en", "US")
+            else -> java.util.Locale("vi", "VN")
+        }
+        
+        // Đặt Locale mặc định
+        java.util.Locale.setDefault(javaLocale)
+        
+        // Cập nhật cấu hình resources
+        try {
+            val config = android.content.res.Configuration()
+            config.setLocale(javaLocale)
+            context.resources.updateConfiguration(config, context.resources.displayMetrics)
+            
+            Log.d(TAG, "Language configuration applied: $lang")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error applying language configuration: ${e.message}")
+        }
     }
 
     fun setUpListener(
@@ -130,6 +159,12 @@ class PayMEMiniApp(
             error("PayMEMiniApp instance is not initialized")
         } else {
             locale = lang
+            
+            // Áp dụng cấu hình ngôn ngữ mới
+            applyLanguageConfiguration(lang)
+            
+            // Thông báo thay đổi ngôn ngữ cho các module khác nếu cần
+            onChangeLocale?.invoke(lang.toString())
         }
     }
 

@@ -11,7 +11,16 @@
   <string name="face_detector_hint3">Cuối cùng hãy cười thật tươi</string>
   <string name="force_updating">Đang tải dữ liệu</string>
   <string name="version_checking">Đang kiểm tra phiên bản</string>
-  <string name="wait">Chờ một chút...</string>
+  <string name="wait">Chờ một chút…</string>
   <string name="loading_data">Đang tải dữ liệu (%1$s.%2$d)…</string>
   <string name="progress_value">%d%%</string>
+  
+  <!-- Các chuỗi mới cho download và thông báo lỗi -->
+  <string name="download_failed">Tải xuống thất bại</string>
+  <string name="no_network_connection">Không có kết nối mạng</string>
+  <string name="retry">Thử lại</string>
+  <string name="error_404">Lỗi 404: Không tìm thấy tài nguyên</string>
+  <string name="unzip_failed">Không thể giải nén tệp nguồn</string>
+  <string name="download_progress">%1$s / %2$s (%3$s/s)</string>
+  <string name="connection_type">Kết nối: %s</string>
 </resources>

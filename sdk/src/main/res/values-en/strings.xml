@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">PayME Wallet</string>
+  <string name="identity_card_title">Take a photo of your ID card (front)</string>
+  <string name="identity_card_hint">Center the front of your ID card inside the frame.</string>
+  <string name="identity_card_hint2">The image is too far away, please move closer.</string>
+  <string name="identity_card_hint3">Hold the position for this image.</string>
+  <string name="identity_card_error">Invalid ID image.\nPlease check and retake the photo.</string>
+  <string name="face_detector_title">Face Verification</string>
+  <string name="face_detector_hint1">Look directly at the camera</string>
+  <string name="face_detector_hint2">Great! Now blink once</string>
+  <string name="face_detector_hint3">Finally, smile widely</string>
+  <string name="force_updating">Loading data</string>
+  <string name="version_checking">Checking version</string>
+  <string name="wait">Please wait…</string>
+  <string name="loading_data">Loading data (%1$s.%2$d)…</string>
+  <string name="progress_value">%d%%</string>
+  
+  <!-- New strings for download and error messages -->
+  <string name="download_failed">Download failed</string>
+  <string name="no_network_connection">No network connection available</string>
+  <string name="retry">Retry</string>
+  <string name="error_404">Error 404: Resource not found</string>
+  <string name="unzip_failed">Failed to unzip source files</string>
+  <string name="download_progress">%1$s / %2$s (%3$s/s)</string>
+  <string name="connection_type">Connection: %s</string>
+</resources>

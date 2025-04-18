@@ -104,7 +104,43 @@
         android:text="0%"
         android:textColor="@color/grey_text"
         android:textSize="16sp" />
-
+      
+      <TextView
+        android:id="@+id/connection_type"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:text="@string/connection_type"
+        android:textColor="@color/grey_text"
+        android:textSize="14sp" />
+        
+      <LinearLayout
+        android:id="@+id/error_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+        
+        <TextView
+          android:id="@+id/error_message"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_horizontal"
+          android:textColor="#E53935"
+          android:textSize="14sp" />
+          
+        <Button
+          android:id="@+id/retry_button"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_horizontal"
+          android:layout_marginTop="8dp"
+          android:text="@string/retry"
+          android:padding="8dp" />
+      </LinearLayout>
 
     </LinearLayout>
 
