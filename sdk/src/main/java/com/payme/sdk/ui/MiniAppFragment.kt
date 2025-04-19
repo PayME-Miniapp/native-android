@@ -128,6 +128,8 @@ class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCa
 class MiniAppFragment : Fragment() {
     private var rootView: View? = null
     private var myWebView: WebView? = null
+    private val refreshHandler = Handler(Looper.getMainLooper())
+    private var isWebViewRefreshCheckNeeded = false
     private var wwwRoot: File? = null
     private var server: com.payme.sdk.webServer.MySimpleWebServer? = null
 
@@ -950,6 +952,12 @@ class MiniAppFragment : Fragment() {
         }
 
         myWebView?.apply {
+            // Cải thiện cấu hình WebView để ngăn màn hình trắng
+            settings.domStorageEnabled = true
+            settings.cacheMode = WebSettings.LOAD_DEFAULT
+            setWillNotDraw(false) // Đảm bảo WebView luôn được vẽ
+            setLayerType(View.LAYER_TYPE_HARDWARE, null) // Hardware acceleration
+            
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView, newProgress: Int) {
                     val url = URL(view.url).toString().removePrefix(loadUrl)
@@ -2307,11 +2315,14 @@ class MiniAppFragment : Fragment() {
         if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
             return
         }
+        // Thông báo cho JavaScript về trạng thái
         activity?.let {
             Utils.evaluateJSWebView(
                 it, myWebView!!, "nativeAppState", "\"background\"", null
             )
         }
+        // Tạm dừng WebView để tối ưu tài nguyên
+        myWebView?.onPause()
         MixpanelUtil.flushEvents()
     }
 
@@ -2321,11 +2332,49 @@ class MiniAppFragment : Fragment() {
         if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
             return
         }
+        // Khôi phục WebView từ trạng thái tạm dừng
+        myWebView?.onResume()
+        myWebView?.requestFocus()
+        
+        // Thông báo cho JavaScript về trạng thái
         activity?.let {
             Utils.evaluateJSWebView(
                 it, myWebView!!, "nativeAppState", "\"active\"", null
             )
         }
+        
+        // Kiểm tra và khôi phục WebView nếu bị trắng màn hình
+        checkAndRefreshWebView()
+    }
+    
+    /**
+     * Kiểm tra và làm mới WebView nếu nó bị trắng màn hình
+     */
+    private fun checkAndRefreshWebView() {
+        // Đánh dấu cần kiểm tra WebView
+        isWebViewRefreshCheckNeeded = true
+        
+        // Lên lịch kiểm tra sau một khoảng thời gian ngắn để đảm bảo WebView đã được khởi tạo đầy đủ
+        refreshHandler.postDelayed({
+            if (isWebViewRefreshCheckNeeded && myWebView?.visibility == View.VISIBLE) {
+                if (!isWebViewContentVisible()) {
+                    Log.d(PayMEMiniApp.TAG, "WebView phát hiện màn hình trắng, đang làm mới...")
+                    // Thực hiện tải lại WebView để khôi phục nội dung
+                    val currentUrl = myWebView?.url
+                    if (!currentUrl.isNullOrEmpty()) {
+                        myWebView?.loadUrl(currentUrl)
+                    }
+                }
+                isWebViewRefreshCheckNeeded = false
+            }
+        }, 500) // Đợi 500ms sau khi onResume
+    }
+    
+    /**
+     * Kiểm tra xem nội dung WebView có đang hiển thị hay không
+     */
+    private fun isWebViewContentVisible(): Boolean {
+        return (myWebView?.contentHeight ?: 0) > 0 && myWebView?.progress == 100
     }
 
     override fun onDestroy() {
