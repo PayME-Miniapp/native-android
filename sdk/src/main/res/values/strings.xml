@@ -23,4 +23,8 @@
   <string name="unzip_failed">Không thể giải nén tệp nguồn</string>
   <string name="download_progress">%1$s / %2$s (%3$s/s)</string>
   <string name="connection_type">Kết nối: %s</string>
+
+  <!-- check vị trí quét chip kalapa -->
+  <string name="klp_guide_nfc_position_1" translatable="false">guide_nfc_position_1</string>
+  <string name="klp_guide_nfc_position_2" translatable="false">guide_nfc_position_2</string>
 </resources>

@@ -87,7 +87,7 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.3'
 
     // Kalapa
-    implementation 'vn.kalapa:ekyc:2.10.7.4'
+    implementation 'vn.kalapa:ekyc:2.10.7.8'
 }
 
 afterEvaluate {
