@@ -246,8 +246,16 @@ object Utils {
             .contains("nox") || Build.BOOTLOADER.lowercase(Locale.ROOT)
             .contains("nox") || Build.HARDWARE.lowercase(Locale.ROOT)
             .contains("nox") || Build.PRODUCT.lowercase(Locale.ROOT)
-            .contains("nox") || Build.SERIAL.lowercase(Locale.ROOT)
-            .contains("nox") || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+            .contains("nox") || (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    Build.getSerial().lowercase(Locale.ROOT).contains("nox")
+                } catch (e: SecurityException) {
+                    false
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                Build.SERIAL.lowercase(Locale.ROOT).contains("nox")
+            }) || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
     }
 
     fun sendNativePref(context: Context, webView: WebView) {
@@ -728,15 +736,27 @@ object Utils {
         val gb = mb * 1024L
 
         return when {
-            size >= gb -> String.format("%.2f GB", size.toDouble() / gb)
-            size >= mb -> String.format("%.2f MB", size.toDouble() / mb)
-            size >= kb -> String.format("%.2f KB", size.toDouble() / kb)
-            else -> "$size B"
+            size >= gb -> String.format("%.1fGB", size.toDouble() / gb) // Bỏ khoảng trắng để ngắn gọn như iOS
+            size >= mb -> String.format("%.1fMB", size.toDouble() / mb)
+            size >= kb -> String.format("%.1fKB", size.toDouble() / kb)
+            else -> "${size}B"
         }
     }
 
     fun formatSpeed(bytesPerSecond: Long): String {
-        return formatFileSize(bytesPerSecond)
+        val speedInBytes = bytesPerSecond
+        val speedInKB = speedInBytes.toFloat() / 1024.0f
+        val speedInMB = speedInKB / 1024.0f
+        val speedInGB = speedInMB / 1024.0f
+        
+        // Sử dụng 1000 làm ngưỡng để chuyển đơn vị, giảm số chữ số thập phân xuống còn 1
+        return when {
+            speedInGB >= 1.0f -> String.format("%.1fGB", speedInGB) // Bỏ khoảng trắng để ngắn gọn hơn
+            speedInMB >= 1.0f || speedInKB >= 1000.0f -> String.format("%.1fMB", speedInMB)
+            speedInKB >= 1.0f || speedInBytes >= 1000 -> String.format("%.1fKB", speedInKB)
+            speedInBytes > 0 -> String.format("%.0fB", speedInBytes.toFloat()) // Không cần số lẻ cho bytes
+            else -> "0B" // Khi tốc độ bằng 0
+        }
     }
 }
 

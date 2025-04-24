@@ -42,6 +42,7 @@ import android.webkit.WebSettings
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -69,6 +70,7 @@ import com.payme.sdk.models.PayMEVersion
 import com.payme.sdk.models.getPhoneFromOpenMiniAppData
 import com.payme.sdk.utils.DeviceTypeResolver
 import com.payme.sdk.utils.MixpanelUtil
+import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.Utils
 import com.payme.sdk.viewmodels.DeepLinkViewModel
@@ -140,6 +142,22 @@ class MiniAppFragment : Fragment() {
 
     private var paramsKyc: JSONObject? = null
     private var paramsSaveQr: String? = null
+    
+    // Biến mới cho tải xuống và hiển thị trạng thái
+    private var lastDownloadUrl: String? = null
+    private var lastDownloadEditor: SharedPreferences.Editor? = null
+    private var lastDownloadPatch = 0
+    private var previousBytesDownloaded = 0L
+    private var downloadSpeedSamples = mutableListOf<Long>() // Để tính tốc độ trung bình
+    private var networkError: Exception? = null
+    private var slowSpeedThresholdBytes = 5 * 1024L // 5 KB/s
+    private var slowSpeedWarningTimeMs = 5000L // 5 giây
+    private var downloadTimeoutMs = 60000L // 60 giây không có tiến độ
+    
+    // Biến cho các view UI mới
+    private lateinit var downloadDetailsText: TextView
+    private lateinit var connectionTypeIcon: ImageView
+    private lateinit var connectionStatusContainer: LinearLayout
     private var backgroundDownload = false
     private var versionCheckingTask: Thread? = null
 
@@ -323,18 +341,68 @@ class MiniAppFragment : Fragment() {
 
     // Get current network connection type
     private fun getConnectionType(): String {
-        val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return "No Connection"
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return "Unknown"
-
-        return when {
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WiFi"
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Mobile Data"
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> "Bluetooth"
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "VPN"
+        // Sử dụng NetworkMonitor để lấy thông tin loại kết nối mạng
+        return when (NetworkMonitor.shared.connectionType.value) {
+            NetworkMonitor.ConnectionType.WIFI -> "WiFi"
+            NetworkMonitor.ConnectionType.CELLULAR -> "Mobile Data"
+            NetworkMonitor.ConnectionType.ETHERNET -> "Ethernet"
             else -> "Unknown"
         }
+    }
+    
+    /**
+     * Cập nhật hiển thị thông tin kết nối mạng với icon phù hợp
+     */
+    private fun updateConnectionTypeDisplay() {
+        val connectionType = NetworkMonitor.shared.connectionType.value
+        val isConnected = NetworkMonitor.shared.isConnected.value
+        
+        // Cập nhật icon kết nối dựa trên loại kết nối
+        val iconResId = when (connectionType) {
+            NetworkMonitor.ConnectionType.WIFI -> R.drawable.ic_wifi
+            NetworkMonitor.ConnectionType.CELLULAR -> R.drawable.ic_network_cell
+            NetworkMonitor.ConnectionType.ETHERNET -> R.drawable.ic_network
+            else -> R.drawable.ic_network_unknown
+        }
+        
+        // Cập nhật màu sắc dựa trên trạng thái kết nối và lỗi
+        val isError = networkError != null
+        val isDownloadSlowOrInterrupted = slowSpeedStartTime > 0L
+        
+        val colorResId = when {
+            isError -> R.color.warning // Màu đỏ cho lỗi
+            isDownloadSlowOrInterrupted -> R.color.warning // Màu vàng cho cảnh báo
+            !isConnected -> R.color.warning // Màu đỏ cho mất kết nối
+            else -> R.color.grey_text // Màu xám bình thường
+        }
+        
+        // Cập nhật nội dung và màu sắc
+        val connectionText = when {
+            isError -> networkError?.let {
+                when (it) {
+                    is UnknownHostException -> LocaleUtils.ErrorMessages.serverUnavailable()
+                    is SocketTimeoutException -> LocaleUtils.ErrorMessages.connectionTimeout()
+                    is ConnectException -> LocaleUtils.ErrorMessages.serverConnectionFailed()
+                    is SocketException -> LocaleUtils.ErrorMessages.networkConnectionLost()
+                    is javax.net.ssl.SSLException -> LocaleUtils.ErrorMessages.secureConnectionFailed()
+                    is IOException -> LocaleUtils.ErrorMessages.networkError()
+                    else -> it.message ?: LocaleUtils.ErrorMessages.unknownError()
+                }
+            } ?: LocaleUtils.ErrorMessages.unknownError()
+            isDownloadSlowOrInterrupted -> LocaleUtils.DownloadMessages.slowNetworkSpeed()
+            !isConnected -> LocaleUtils.ErrorMessages.noNetworkConnection()
+            else -> getConnectionType() // Hiển thị chỉ loại kết nối khi bình thường
+        }
+        
+        // Cập nhật UI
+        connectionTypeIcon.setImageResource(iconResId)
+        connectionTypeIcon.setColorFilter(ContextCompat.getColor(requireContext(), colorResId))
+        val connectionTypeTextView = view?.findViewById<TextView>(R.id.connection_type)
+        connectionTypeTextView?.text = connectionText
+        connectionTypeTextView?.setTextColor(ContextCompat.getColor(requireContext(), colorResId))
+        
+        // Hiển thị container trạng thái kết nối
+        connectionStatusContainer.visibility = View.VISIBLE
     }
     
     // Variable to track current network callback
@@ -565,12 +633,12 @@ class MiniAppFragment : Fragment() {
         errorMessageView?.text = getString(R.string.download_failed) + ": $errorMessage"
         
         // Log current parameters for debugging
-        Log.d(PayMEMiniApp.TAG, "Current download parameters - URL: $currentDownloadUrl, Patch: $currentPatch")
+        Log.d(PayMEMiniApp.TAG, "Current download parameters - URL: $lastDownloadUrl, Patch: $lastDownloadPatch")
         
         // Store local copies of parameters to ensure they're not lost
-        val localUrl = currentDownloadUrl
-        val localEditor = currentEditor
-        val localPatch = currentPatch
+        val localUrl = lastDownloadUrl
+        val localEditor = lastDownloadEditor
+        val localPatch = lastDownloadPatch
         
         // Set up retry button to attempt download again
         retryButton?.text = getString(R.string.retry)
@@ -620,12 +688,12 @@ class MiniAppFragment : Fragment() {
         errorMessageView?.text = "${getString(R.string.download_failed)}: $errorMessage"
         
         // Log current parameters for debugging
-        Log.d(PayMEMiniApp.TAG, "Network disconnection - Current download parameters - URL: $currentDownloadUrl, Patch: $currentPatch")
+        Log.d(PayMEMiniApp.TAG, "Network disconnection - Current download parameters - URL: $lastDownloadUrl, Patch: $lastDownloadPatch")
         
         // Store local copies of parameters to ensure they're not lost
-        val localUrl = currentDownloadUrl
-        val localEditor = currentEditor
-        val localPatch = currentPatch
+        val localUrl = lastDownloadUrl
+        val localEditor = lastDownloadEditor
+        val localPatch = lastDownloadPatch
         
         // Set up retry button to attempt download again when connectivity returns
         retryButton?.text = getString(R.string.retry)
@@ -659,7 +727,11 @@ class MiniAppFragment : Fragment() {
     
     @SuppressLint("SetTextI18n")
     private fun downloadSourceWeb(url: String?, editor: SharedPreferences.Editor, patch: Int) {
-        // Log parameters for debugging
+        // Lưu lại các tham số tải xuống cho tính năng thử lại
+        lastDownloadUrl = url
+        lastDownloadEditor = editor
+        lastDownloadPatch = patch
+        
         Log.d(PayMEMiniApp.TAG, "Starting download with URL: $url, Patch: $patch")
         val filesDir = requireContext().filesDir
         val updateDirectory = File(filesDir.path, "update")
@@ -672,104 +744,111 @@ class MiniAppFragment : Fragment() {
         }
         sourceWeb.createNewFile()
         
-        // Store current download parameters for retry functionality
-        currentDownloadUrl = url
-        currentEditor = editor
-        currentPatch = patch
-        
-        Log.d(PayMEMiniApp.TAG, "Stored download parameters - URL: $currentDownloadUrl, Patch: $currentPatch")
-        
-        // Check for network connectivity before starting download
+        // Kiểm tra kết nối mạng trước khi tải xuống
         if (!isNetworkConnected()) {
             activity?.runOnUiThread {
-                handleNetworkDisconnection("No network connection available")
+                val message = LocaleUtils.ErrorMessages.noNetworkConnection()
+                handleNetworkDisconnection(message)
             }
             return
         }
         
-        // Register for network connectivity changes during download
+        // Cài đặt TextUpdateLabel
+        activity?.runOnUiThread {
+            textUpdateLabel.text = getString(R.string.loading_data, BuildConfig.SDK_VERSION, patch)
+        }
+        
+        // Đăng ký theo dõi kết nối mạng trong quá trình tải xuống
         registerNetworkCallback()
         
-        // Start monitoring download speed and timeout
+        // Bắt đầu theo dõi tốc độ tải xuống và thời gian tải
         startSpeedAndTimeoutMonitoring()
         
-        // Initialize UI elements
+        // Khởi tạo các thành phần UI
         activity?.runOnUiThread {
-            // Show connection type
-            val connectionType = getConnectionType()
-            val connectionTypeTextView = view?.findViewById<TextView>(R.id.connection_type)
-            connectionTypeTextView?.text = getString(R.string.connection_type, connectionType)
-            
-            // Hide error container initially
-            val errorContainer = view?.findViewById<android.widget.LinearLayout>(R.id.error_container)
+            // Ẩn container lỗi nếu hiển thị từ lần tải trước
+            val errorContainer = view?.findViewById<LinearLayout>(R.id.error_container)
             errorContainer?.visibility = View.GONE
+            
+            // Hiển thị loại kết nối ban đầu
+            updateConnectionTypeDisplay()
         }
         
         url?.let {
             try {
-                // Set download in progress flag
+                // Đặt cờ đang tải xuống
                 isDownloadInProgress = true
+                previousBytesDownloaded = 0L
+                downloadSpeedSamples.clear()
+                networkError = null
                 
                 Utils.download(
                     requireContext(), it, sourceWeb.absolutePath
                 ) { totalBytesCopied, length, speed ->
-                    // Check download speed for slow connection detection
+                    // Kiểm tra tốc độ tải xuống để phát hiện kết nối chậm
                     checkDownloadSpeed(speed)
+                    
                     val progressValuePercent = (totalBytesCopied * 100 / length).toInt()
+                    
+                    // Cập nhật UI trên luồng chính
                     activity?.runOnUiThread {
+                        // Cập nhật thanh tiến trình
                         progressBar.progress = progressValuePercent
                         
-                        // Format the sizes and speed
+                        // Định dạng kích thước và tốc độ
                         val downloadedSizeFormatted = Utils.formatFileSize(totalBytesCopied)
                         val totalSizeFormatted = Utils.formatFileSize(length.toLong())
                         val speedFormatted = Utils.formatSpeed(speed)
                         
-                        // Update the text with the format: {downloadedSize} / {totalSize} ({speed}/s)
-                        textProgress.text = getString(R.string.download_progress, downloadedSizeFormatted, totalSizeFormatted, speedFormatted)
+                        // Cập nhật văn bản với định dạng: {downloadedSize}/{totalSize} · {speed}/s · {percent}
+                        // Sử dụng cả textProgress và downloadDetailsText vì chúng trỏ đến cùng một view
+                        val percentFormatted = String.format("%.1f%%", progressValuePercent.toFloat())
+                        val downloadInfo = "$downloadedSizeFormatted/$totalSizeFormatted · ${speedFormatted}/s · $percentFormatted"
+                        textProgress.text = downloadInfo 
+                        downloadDetailsText.text = downloadInfo
                         
-                        // Update connection type in real-time
-                        val connectionType = getConnectionType()
-                        val connectionTypeTextView = view?.findViewById<TextView>(R.id.connection_type)
-                        connectionTypeTextView?.text = getString(R.string.connection_type, connectionType)
-
-                    val layoutParams = lottieView.layoutParams as LinearLayout.LayoutParams
-                    layoutParams.leftMargin =
-                        progressValuePercent * (lottieContainerView.width - lottieView.width) / 100
-                    layoutParams.topMargin = 0
-                    layoutParams.rightMargin = 0
-                    layoutParams.bottomMargin = 0
-                    lottieView.requestLayout()
-                }
+                        // Cập nhật thông tin kết nối theo thời gian thực
+                        updateConnectionTypeDisplay()
+                        
+                        // Di chuyển nhân vật (unicorn) theo tiến độ
+                        val layoutParams = lottieView.layoutParams as LinearLayout.LayoutParams
+                        layoutParams.leftMargin = progressValuePercent * (lottieContainerView.width - lottieView.width) / 100
+                        layoutParams.topMargin = 0
+                        layoutParams.rightMargin = 0
+                        layoutParams.bottomMargin = 0
+                        lottieView.requestLayout()
+                    }
                 }
                 
-                // Download complete successfully
+                // Tải xuống hoàn tất thành công
                 isDownloadInProgress = false
                 unregisterNetworkCallback()
                 stopSpeedAndTimeoutMonitoring()
             } catch (e: Exception) {
                 Log.e(PayMEMiniApp.TAG, "Download error: ${e.message}")
                 
-                // Reset download flag
+                // Đặt lại cờ tải xuống và lưu lỗi
                 isDownloadInProgress = false
                 stopSpeedAndTimeoutMonitoring()
+                networkError = e
                 
-                // Determine error type
+                // Xác định loại lỗi và hiển thị message phù hợp
                 val errorMsg = when (e) {
-                    is UnknownHostException -> "Unable to connect to server"
-                    is SocketTimeoutException -> "Connection timed out"
-                    is ConnectException -> "Failed to connect to server"
-                    is SocketException -> "Network connection lost"
-                    is javax.net.ssl.SSLException -> "Secure connection failed"
-                    is IOException -> "Network error occurred"
-                    else -> e.message ?: "Unknown error"
+                    is UnknownHostException -> LocaleUtils.ErrorMessages.serverUnavailable()
+                    is SocketTimeoutException -> LocaleUtils.ErrorMessages.connectionTimeout() 
+                    is ConnectException -> LocaleUtils.ErrorMessages.serverConnectionFailed()
+                    is SocketException -> LocaleUtils.ErrorMessages.networkConnectionLost()
+                    is javax.net.ssl.SSLException -> LocaleUtils.ErrorMessages.secureConnectionFailed()
+                    is IOException -> LocaleUtils.ErrorMessages.networkError()
+                    else -> e.message ?: LocaleUtils.ErrorMessages.unknownError()
                 }
                 
-                // Show error UI
+                // Hiển thị UI lỗi
                 activity?.runOnUiThread {
                     handleNetworkDisconnection(errorMsg)
                 }
                 
-                // Return to prevent further execution
+                // Dừng thực thi
                 return@let
             }
             
@@ -813,8 +892,20 @@ class MiniAppFragment : Fragment() {
         myWebView = view.findViewById(R.id.webview)
         updatingView = view.findViewById(R.id.updating_view)
         progressBar = view.findViewById(R.id.progress)
-        textProgress = view.findViewById(R.id.progress_text)
+        
+        // Khởi tạo các thành phần UI
+        textProgress = view.findViewById(R.id.download_details_text) // Dùng download_details_text thay cho progress_text cũ
         textUpdateLabel = view.findViewById(R.id.update_label_text)
+        
+        // Khởi tạo các thành phần UI mới
+        downloadDetailsText = view.findViewById(R.id.download_details_text) // textProgress và downloadDetailsText trỏ tới cùng view
+        connectionTypeIcon = view.findViewById(R.id.connection_type_icon)
+        connectionStatusContainer = view.findViewById(R.id.connection_status_container)
+        
+        // Khởi tạo NetworkMonitor để theo dõi kết nối
+        context?.let { ctx ->
+            NetworkMonitor.initialize(ctx)
+        }
         lottieView = view.findViewById(R.id.lottieView)
         lottieContainerView = view.findViewById(R.id.lottie_container_view)
         loadingView = view.findViewById(R.id.loading)

@@ -24,4 +24,14 @@
   <string name="unzip_failed">Failed to unzip source files</string>
   <string name="download_progress">%1$s / %2$s (%3$s/s)</string>
   <string name="connection_type">Connection: %s</string>
+  <string name="loading_interrupted">Download interrupted</string>
+  <string name="loading_error_occurred">An error occurred during loading</string>
+  <string name="download_slow_connection">Slow connection, downloading...</string>
+  <string name="download_timeout">Download timed out</string>
+  
+  <!-- Connection types -->
+  <string name="connection_wifi">WiFi</string>
+  <string name="connection_mobile">Mobile Data</string>
+  <string name="connection_ethernet">Ethernet</string>
+  <string name="connection_unknown">Unknown</string>
 </resources>

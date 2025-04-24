@@ -179,7 +179,7 @@ class MainActivity : AppCompatActivity() {
 //                    PaymentData("348115135612", 10000, "", "", true)
 //                )
 //            )
-             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData("0328001141"))
+             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData("0795550301"))
 //                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayME("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }

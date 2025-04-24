@@ -109,36 +109,96 @@ object LocaleUtils {
     object ErrorMessages {
         // Lỗi không tìm thấy tài nguyên
         fun resourceNotFound(path: String): String {
-            val viMessage = "Lỗi 404: Không tìm thấy tài nguyên tại $path"
-            val enMessage = "Error 404: Resource not found at $path"
-            return getLocalizedMessage(viMessage, enMessage)
+            val viFormat = "Lỗi 404: Không tìm thấy tài nguyên tại %s"
+            val enFormat = "Error 404: Resource not found at %s"
+            return formatMessage(viFormat, enFormat, path)
         }
-
+        
         // Lỗi giải nén
         fun unzipFailed(): String {
-            val viMessage = "Lỗi: Không thể giải nén tệp nguồn"
-            val enMessage = "Error: Failed to unzip source files"
+            val viMessage = "Không thể giải nén tệp nguồn"
+            val enMessage = "Failed to unzip source files"
             return getLocalizedMessage(viMessage, enMessage)
         }
-
+        
         // Lỗi không có kết nối mạng
         fun noNetworkConnection(): String {
             val viMessage = "Không có kết nối mạng"
             val enMessage = "No network connection available"
             return getLocalizedMessage(viMessage, enMessage)
         }
-
+        
         // Lỗi tải xuống
         fun downloadFailed(reason: String? = null): String {
-            val viMessage = if (reason != null) "Tải xuống thất bại: $reason" else "Tải xuống thất bại"
-            val enMessage = if (reason != null) "Download failed: $reason" else "Download failed"
-            return getLocalizedMessage(viMessage, enMessage)
+            val viBase = "Tải xuống thất bại"
+            val enBase = "Download failed"
+            return if (reason != null) {
+                "$viBase: $reason" // Giữ nguyên message lỗi bằng tiếng Anh vì thường là thông báo kỹ thuật
+            } else {
+                getLocalizedMessage(viBase, enBase)
+            }
         }
         
         // Lỗi timeout
         fun downloadTimeout(): String {
-            val viMessage = "Tải xuống bị hủy do quá thời gian chờ"
+            val viMessage = "Tải xuống quá thời gian"
             val enMessage = "Download timed out"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi kết nối gián đoạn
+        fun connectionInterrupted(): String {
+            val viMessage = "Tải xuống bị gián đoạn"
+            val enMessage = "Download interrupted"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi xảy ra khi tải
+        fun loadingErrorOccurred(): String {
+            val viMessage = "Đã xảy ra lỗi khi tải"
+            val enMessage = "An error occurred during loading"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi không thể kết nối tới server
+        fun serverUnavailable(): String {
+            val viMessage = "Không thể kết nối tới máy chủ"
+            val enMessage = "Unable to connect to server"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi hết thời gian kết nối
+        fun connectionTimeout(): String {
+            val viMessage = "Kết nối hết thời gian"
+            val enMessage = "Connection timed out"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi kết nối tới server thất bại
+        fun serverConnectionFailed(): String {
+            val viMessage = "Kết nối tới máy chủ thất bại"
+            val enMessage = "Failed to connect to server"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi mất kết nối mạng
+        fun networkConnectionLost(): String {
+            val viMessage = "Mất kết nối mạng"
+            val enMessage = "Network connection lost"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi kết nối bảo mật thất bại
+        fun secureConnectionFailed(): String {
+            val viMessage = "Kết nối bảo mật thất bại"
+            val enMessage = "Secure connection failed"
+            return getLocalizedMessage(viMessage, enMessage)
+        }
+        
+        // Lỗi mạng xảy ra
+        fun networkError(): String {
+            val viMessage = "Lỗi mạng đã xảy ra"
+            val enMessage = "Network error occurred"
             return getLocalizedMessage(viMessage, enMessage)
         }
         
@@ -151,8 +211,8 @@ object LocaleUtils {
         
         // Lỗi không xác định
         fun unknownError(): String {
-            val viMessage = "Lỗi không xác định"
-            val enMessage = "Unknown error"
+            val viMessage = "Đã xảy ra lỗi không xác định"
+            val enMessage = "An unknown error occurred"
             return getLocalizedMessage(viMessage, enMessage)
         }
     }
