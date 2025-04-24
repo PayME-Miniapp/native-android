@@ -33,4 +33,8 @@
   <string name="connection_mobile">Dữ liệu di động</string>
   <string name="connection_ethernet">Ethernet</string>
   <string name="connection_unknown">Không xác định</string>
+
+  <!-- check vị trí quét chip kalapa -->
+  <string name="klp_guide_nfc_position_1" translatable="false">guide_nfc_position_1</string>
+  <string name="klp_guide_nfc_position_2" translatable="false">guide_nfc_position_2</string>
 </resources>
