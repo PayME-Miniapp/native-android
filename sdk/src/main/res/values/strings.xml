@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">PayME Wallet</string>
+  <string name="qr_folder">QRCode</string>
   <string name="identity_card_title">Chụp mặt trước CMND/CCCD</string>
   <string name="identity_card_hint">Cân chỉnh mặt trước CMND/CCCD vào giữa khung.</string>
   <string name="identity_card_hint2">Ảnh hơi xa, bạn kéo lại gần chút nhé.</string>

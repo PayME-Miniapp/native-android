@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="app_name">PayME Wallet</string>
+  <string name="qr_folder">QRCode</string>
   <string name="identity_card_title">Take a photo of your ID card (front)</string>
   <string name="identity_card_hint">Center the front of your ID card inside the frame.</string>
   <string name="identity_card_hint2">The image is too far away, please move closer.</string>

@@ -1433,7 +1433,7 @@ class MiniAppFragment : Fragment() {
 
     private fun downloadImageQR(data: String) {
         val bitmap = Utils.generateQRCode(data)
-        Utils.saveImage(bitmap, requireContext(), getString(R.string.app_name), onSuccess = {
+        Utils.saveImage(bitmap, requireContext(), getString(R.string.qr_folder), onSuccess = {
             val response = JSONObject()
             response.put("succeeded", true)
             activity?.let {
