@@ -16,7 +16,6 @@ object LocaleUtils {
         return when (PayMEMiniApp.locale) {
             Locale.en -> enMessage
             Locale.vi -> viMessage
-            else -> viMessage // Mặc định là tiếng Việt
         }
     }
 
@@ -26,7 +25,6 @@ object LocaleUtils {
                 when (PayMEMiniApp.locale) {
                     Locale.en -> enFormat
                     Locale.vi -> viFormat
-                    else -> viFormat
                 }
         return String.format(format, *args)
     }

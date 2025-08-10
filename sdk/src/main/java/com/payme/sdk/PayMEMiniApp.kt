@@ -60,7 +60,6 @@ class PayMEMiniApp(
         val javaLocale = when (lang) {
             Locale.vi -> java.util.Locale("vi", "VN")
             Locale.en -> java.util.Locale("en", "US")
-            else -> java.util.Locale("vi", "VN")
         }
         
         // Đặt Locale mặc định
