@@ -94,7 +94,7 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.3'
 
     // Kalapa
-    implementation 'vn.kalapa.payme:ekyc:2.10.9.2'
+    implementation 'vn.kalapa.payme:ekyc:2.10.9.3'
     implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.29'
 }
 
