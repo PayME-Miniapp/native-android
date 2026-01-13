@@ -318,6 +318,7 @@ class MiniAppFragment : Fragment() {
             "buildNumber", buildNumber
         )
         deviceInfo.put("isEmulator", Utils.isEmulator())
+        deviceInfo.put("isRoot", Utils.isDeviceRooted(requireContext()))
         deviceInfo.put("brand", Build.BRAND)
         deviceInfo.put("model", Build.MODEL)
         deviceInfo.put("bundleId", requireContext().packageName)

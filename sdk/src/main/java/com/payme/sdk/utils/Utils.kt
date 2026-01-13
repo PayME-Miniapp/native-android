@@ -230,6 +230,96 @@ object Utils {
         }
     }
 
+    private fun hasSuBinary(): Boolean {
+        val suPaths = arrayOf(
+            "/system/app/Superuser.apk",
+            "/sbin/su",
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/system/sd/xbin/su",
+            "/system/bin/failsafe/su",
+            "/data/local/su",
+            "/data/local/bin/su",
+            "/data/local/xbin/su",
+            "/su/bin/su"
+        )
+        return suPaths.any { File(it).exists() }
+    }
+
+    private fun canExecuteSu(): Boolean {
+        var process: Process? = null
+        return try {
+            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
+            process.inputStream.bufferedReader().use { reader ->
+                reader.readLine() != null
+            }
+        } catch (t: Throwable) {
+            false
+        } finally {
+            process?.destroy()
+        }
+    }
+
+    private fun hasDangerousPackages(context: Context?): Boolean {
+        if (context == null) return false
+        val packages = arrayOf(
+            "com.noshufou.android.su",
+            "com.noshufou.android.su.elite",
+            "eu.chainfire.supersu",
+            "com.koushikdutta.superuser",
+            "com.thirdparty.superuser",
+            "com.yellowes.su",
+            "com.topjohnwu.magisk",
+            "com.kingroot.kinguser",
+            "com.kingo.root",
+            "com.smedialink.oneclickroot",
+            "com.zhiqupk.root.global",
+            "com.alephzain.framaroot"
+        )
+        return packages.any { packageName ->
+            try {
+                context.packageManager.getPackageInfo(packageName, 0)
+                true
+            } catch (e: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
+    }
+
+    private fun hasWritableSystemDir(): Boolean {
+        val paths = arrayOf(
+            "/system",
+            "/system/bin",
+            "/system/sbin",
+            "/system/xbin",
+            "/vendor/bin",
+            "/sbin",
+            "/etc"
+        )
+        return paths.any { path ->
+            try {
+                val file = File(path)
+                file.exists() && file.canWrite()
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
+    fun isDeviceRooted(context: Context? = null): Boolean {
+        val hasTestKeys = Build.TAGS?.contains("test-keys") == true
+        val debuggableBuild =
+            try {
+                Runtime.getRuntime().exec("getprop ro.debuggable").inputStream.bufferedReader()
+                    .use { it.readLine()?.trim() == "1" }
+            } catch (t: Throwable) {
+                false
+            }
+        return hasTestKeys || hasSuBinary() || canExecuteSu() || debuggableBuild || hasDangerousPackages(
+            context
+        ) || hasWritableSystemDir()
+    }
+
     fun isEmulator(): Boolean {
         return (Build.FINGERPRINT.startsWith("generic") || Build.FINGERPRINT.startsWith("unknown") || Build.MODEL.contains(
             "google_sdk"
