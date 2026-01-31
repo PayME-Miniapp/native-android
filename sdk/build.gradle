@@ -60,13 +60,13 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.13.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation 'androidx.webkit:webkit:1.14.0'
+    implementation 'androidx.webkit:webkit:1.15.0'
     
     // Third-party libraries
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     implementation 'org.nanohttpd:nanohttpd-webserver:2.3.1'
     implementation 'androidx.biometric:biometric:1.2.0-alpha05'
-    implementation 'com.airbnb.android:lottie:6.6.9'
+    implementation 'com.airbnb.android:lottie:6.7.1'
     implementation 'com.google.code.gson:gson:2.13.2'
     implementation 'com.android.volley:volley:1.2.1'
     implementation 'com.mixpanel.android:mixpanel-android:8+'
@@ -77,7 +77,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
 
     // CameraX - version 1.5.0 as required
-    def camerax_version = "1.5.0"
+    def camerax_version = "1.5.3"
     implementation "androidx.camera:camera-core:${camerax_version}"
     implementation "androidx.camera:camera-camera2:${camerax_version}"
     implementation "androidx.camera:camera-lifecycle:${camerax_version}"
@@ -91,7 +91,7 @@ dependencies {
     implementation 'com.google.mlkit:face-detection:16.1.7'
 
     // QR Code scanning
-    implementation 'com.google.zxing:core:3.5.3'
+    implementation 'com.google.zxing:core:3.5.4'
 
     // Kalapa
     implementation 'vn.kalapa.payme:ekyc:2.10.9.3'
