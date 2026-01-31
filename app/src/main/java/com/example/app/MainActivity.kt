@@ -8,17 +8,15 @@ import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.ENV
 import com.payme.sdk.models.Locale
 import com.payme.sdk.models.OpenMiniAppOpenData
-import com.payme.sdk.models.OpenMiniAppTransferQRData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
-import com.payme.sdk.models.TransferQRData
 import org.json.JSONObject
-import androidx.core.content.edit
 
 class MainActivity : AppCompatActivity() {
     private lateinit var openSdkButton: TextView
@@ -43,13 +41,13 @@ class MainActivity : AppCompatActivity() {
 
         val env = try {
             ENV.valueOf(savedEnv.replace("\"", "").uppercase())
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ENV.PRODUCTION
         }
 
         val locale = try {
             Locale.valueOf(savedLocale.replace("\"", ""))
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Locale.vi
         }
 
@@ -137,7 +135,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         payMEMiniApp!!.setMode("miniapp_sandbox")
-//          payMEMiniApp!!.setLanguage(Locale.en)
+        payMEMiniApp!!.setLanguage(Locale.en)
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
@@ -179,7 +177,7 @@ class MainActivity : AppCompatActivity() {
 //                    PaymentData("348115135612", 10000, "", "", true)
 //                )
 //            )
-             payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData("0795550301"))
+             payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppOpenData("0795550301"))
 //                        payMEMiniApp!!.openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayME("0795550300", ServiceData("POWE", isBackToApp = true, isShowResult = true)))
         }
     }

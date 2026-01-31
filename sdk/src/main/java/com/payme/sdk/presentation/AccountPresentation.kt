@@ -6,6 +6,7 @@ import android.provider.Settings
 import android.util.Log
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
+import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.PayMEErrorType
@@ -51,7 +52,8 @@ object AccountPresentation {
                         action,
                         PayMEError(
                             PayMEErrorType.Network,
-                            PayMENetworkErrorCode.CONNECTION_LOST.toString()
+                            PayMENetworkErrorCode.CONNECTION_LOST.toString(),
+                            context.getString(R.string.network_connection_failed)
                         )
                     )
                 }
@@ -61,7 +63,7 @@ object AccountPresentation {
             Log.e("AccountRepository", "Error registering device", e)
             onError(
                 action,
-                PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString())
+                PayMEError(PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString(), context.getString(R.string.network_connection_failed))
             )
         }
     }
@@ -97,7 +99,7 @@ object AccountPresentation {
                         PayMEError(
                             PayMEErrorType.MiniApp,
                             PayMENetworkErrorCode.OTHER.toString(),
-                            "Không lấy được thông tin tài khoản"
+                            context.getString(R.string.account_info_not_found)
                         )
                     )
                 }
@@ -131,7 +133,7 @@ object AccountPresentation {
                 val responseJson = JSONObject()
                 if (accessToken.isNullOrEmpty()) {
                     responseJson.put("linked", false)
-                    responseJson.put("message", "Tài khoản chưa được liên kết")
+                    responseJson.put("message", context.getString(R.string.account_not_linked))
                     onResponse(ActionOpenMiniApp.GET_BALANCE, responseJson)
                 } else {
                     val paramsBalance = mutableMapOf("clientId" to deviceId)
@@ -150,7 +152,7 @@ object AccountPresentation {
                         responseJson.put("balance", balance)
                         responseJson.put(
                             "message",
-                            balanceResponse.optString("message") ?: "Có lỗi xảy ra"
+                            balanceResponse.optString("message") ?: context.getString(R.string.error_occurred)
                         )
                         onResponse(ActionOpenMiniApp.GET_BALANCE, responseJson)
                     })

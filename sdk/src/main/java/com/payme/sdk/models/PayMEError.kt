@@ -1,37 +1,13 @@
 package com.payme.sdk.models
 
+import com.payme.sdk.R
+
 class PayMEError(
-    type: PayMEErrorType,
-    code: String,
-    description: String = "Có lỗi xảy ra",
-    isCloseMiniApp: Boolean = false
-) {
-    val code: String
-    val description: String
-    val isCloseMiniApp: Boolean
-
-    init {
-        when (type) {
-            PayMEErrorType.MiniApp -> {
-                this.code = code
-                this.description = description
-                this.isCloseMiniApp = isCloseMiniApp
-            }
-
-            PayMEErrorType.UserCancel -> {
-                this.code = "USER_CANCEL"
-                this.description = "Người dùng đóng PayMEMiniApp"
-                this.isCloseMiniApp = isCloseMiniApp
-            }
-
-            PayMEErrorType.Network -> {
-                this.code = code
-                this.description = getPayMENetworkErrorDescription(code)
-                this.isCloseMiniApp = isCloseMiniApp
-            }
-        }
-    }
-}
+    val type: PayMEErrorType,
+    val code: String,
+    val description: String,
+    val isCloseMiniApp: Boolean = false
+)
 
 enum class PayMEErrorType {
     MiniApp, UserCancel, Network
@@ -41,15 +17,15 @@ enum class PayMENetworkErrorCode {
     ENCODE_FAILED, DECODE_FAILED, CONNECTION_LOST, TIMED_OUT, NO_RESPONSE, OTHER, SERVER_ERROR
 }
 
-fun getPayMENetworkErrorDescription(code: String): String {
+fun getPayMENetworkErrorDescription(code: String): Int {
     return when (code) {
-        PayMENetworkErrorCode.ENCODE_FAILED.toString() -> "Mã hóa không thành công"
-        PayMENetworkErrorCode.DECODE_FAILED.toString() -> "Giải mã không thành công"
-        PayMENetworkErrorCode.CONNECTION_LOST.toString() -> "Kết nối mạng bị sự cố, vui lòng kiểm tra và thử lại. Xin cảm ơn!"
-        PayMENetworkErrorCode.TIMED_OUT.toString() -> "Kết nối tới máy chủ quá lâu, vui lòng kiểm tra và thử lại. Xin cảm ơn!"
-        PayMENetworkErrorCode.NO_RESPONSE.toString() -> "Không thể kết nối tới server"
-        PayMENetworkErrorCode.SERVER_ERROR.toString() -> "Máy chủ gặp lỗi. Vui lòng thử lại sau"
-        PayMENetworkErrorCode.OTHER.toString() -> "Có lỗi xảy ra"
-        else -> "Có lỗi xảy ra"
+        PayMENetworkErrorCode.ENCODE_FAILED.toString() -> R.string.encryption_failed
+        PayMENetworkErrorCode.DECODE_FAILED.toString() -> R.string.decryption_failed
+        PayMENetworkErrorCode.CONNECTION_LOST.toString() -> R.string.network_connection_failed
+        PayMENetworkErrorCode.TIMED_OUT.toString() -> R.string.server_connection_timed_out
+        PayMENetworkErrorCode.NO_RESPONSE.toString() -> R.string.cannot_connect_to_server
+        PayMENetworkErrorCode.SERVER_ERROR.toString() -> R.string.server_error_try_again
+        PayMENetworkErrorCode.OTHER.toString() -> R.string.error_occurred
+        else -> R.string.error_occurred
     }
 }

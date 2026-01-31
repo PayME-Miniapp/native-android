@@ -29,7 +29,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
                 MiniAppFragment.closeMiniApp()
                 PayMEMiniApp.onError(
                     action,
-                    PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", "User đóng PayMEMiniApp")
+                    PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
                 )
             }
             val parentLayout =

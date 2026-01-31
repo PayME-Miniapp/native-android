@@ -15,7 +15,7 @@
   <string name="wait">Please wait…</string>
   <string name="loading_data">Loading data (%1$s.%2$d)…</string>
   <string name="progress_value">%d%%</string>
-  
+
   <!-- New strings for download and error messages -->
   <string name="download_failed">Download failed</string>
   <string name="no_network_connection">No network connection available</string>
@@ -26,9 +26,9 @@
   <string name="connection_type">Connection: %s</string>
   <string name="loading_interrupted">Download interrupted</string>
   <string name="loading_error_occurred">An error occurred during loading</string>
-  <string name="download_slow_connection">Slow connection, downloading...</string>
+  <string name="download_slow_connection">Slow connection, downloading…</string>
   <string name="download_timeout">Download timed out</string>
-  
+
   <!-- Connection types -->
   <string name="connection_wifi">WiFi</string>
   <string name="connection_mobile">Mobile Data</string>
@@ -38,4 +38,19 @@
   <!-- check vị trí quét chip kalapa -->
   <string name="klp_guide_nfc_position_1" translatable="false">guide_nfc_position_1</string>
   <string name="klp_guide_nfc_position_2" translatable="false">guide_nfc_position_2</string>
+
+  <!-- General error strings -->
+  <string name="error_occurred">An error occurred</string>
+  <string name="user_closed_payme_miniapp">User closed PayMEMiniApp</string>
+  <string name="user_cancel_miniapp">User closed PayMEMiniApp</string>
+  <string name="encryption_failed">Encryption failed</string>
+  <string name="decryption_failed">Decryption failed</string>
+  <string name="network_connection_failed">Network connection failed, please check and try again. Thank you!</string>
+  <string name="server_connection_timed_out">Connection to the server timed out, please check and try again. Thank you!</string>
+  <string name="cannot_connect_to_server">Cannot connect to server</string>
+  <string name="server_error_try_again">The server encountered an error. Please try again later</string>
+
+  <!-- Account Presentation -->
+  <string name="account_info_not_found">Could not retrieve account information</string>
+  <string name="account_not_linked">Account is not linked</string>
 </resources>

@@ -70,7 +70,9 @@ internal class NetworkRequest(
                     Log.d(PayMEMiniApp.TAG, "error ${error.message}")
                     onError(
                         action, PayMEError(
-                            PayMEErrorType.Network, PayMENetworkErrorCode.CONNECTION_LOST.toString()
+                            PayMEErrorType.Network, 
+                            PayMENetworkErrorCode.CONNECTION_LOST.toString(),
+                            context.getString(getPayMENetworkErrorDescription(PayMENetworkErrorCode.CONNECTION_LOST.toString()))
                         )
                     )
                 }
@@ -89,7 +91,9 @@ internal class NetworkRequest(
                 Log.d(PayMEMiniApp.TAG, "error $errorCode")
                 onError(
                     action, PayMEError(
-                        PayMEErrorType.Network, errorCode
+                        PayMEErrorType.Network, 
+                        errorCode,
+                        context.getString(getPayMENetworkErrorDescription(errorCode))
                     )
                 )
             }) {

@@ -3,18 +3,6 @@ package com.payme.sdk.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.net.NetworkCapabilities
-import android.os.Handler
-import android.os.Looper
-import android.widget.Button
-import java.io.BufferedReader
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.InputStreamReader
-import java.net.ConnectException
-import java.net.SocketException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -23,10 +11,13 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.ConnectivityManager
 import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.nfc.NfcAdapter
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
@@ -42,6 +33,7 @@ import android.webkit.WebSettings
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -52,6 +44,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -61,6 +54,7 @@ import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
+import com.payme.sdk.models.Locale
 import com.payme.sdk.models.OpenMiniAppDataInterface
 import com.payme.sdk.models.OpenMiniAppKYCData
 import com.payme.sdk.models.OpenMiniAppType
@@ -69,6 +63,7 @@ import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.PayMEVersion
 import com.payme.sdk.models.getPhoneFromOpenMiniAppData
 import com.payme.sdk.utils.DeviceTypeResolver
+import com.payme.sdk.utils.LocaleUtils
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.utils.PermissionCameraUtil
@@ -90,12 +85,16 @@ import vn.kalapa.ekyc.KalapaSDKResultCode
 import vn.kalapa.ekyc.KalapaScanNFCCallback
 import vn.kalapa.ekyc.KalapaScanNFCError
 import vn.kalapa.ekyc.models.KalapaResult
+import java.io.BufferedReader
 import java.io.File
+import java.io.IOException
+import java.io.InputStreamReader
+import java.net.ConnectException
+import java.net.SocketException
+import java.net.SocketTimeoutException
 import java.net.URL
+import java.net.UnknownHostException
 import javax.net.ssl.SSLException
-import androidx.core.net.toUri
-import com.payme.sdk.models.Locale
-import com.payme.sdk.utils.LocaleUtils
 
 fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
     for (i in 0 until jsonArray.length()) {
@@ -266,7 +265,7 @@ class MiniAppFragment : Fragment() {
             loadUrl = "http://localhost:$port/"
         }
 
-//        loadUrl = "http://10.8.20.39:3000/"
+        // loadUrl = "https://3ffc77906f76.ngrok-free.app/"
         try {
             server = WebServer("localhost", port, wwwRoot)
             (server as WebServer).start()
@@ -1538,7 +1537,7 @@ class MiniAppFragment : Fragment() {
     private fun forceCloseMiniApp() {
         PayMEMiniApp.onError(
             openMiniAppData.action,
-            PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", "User đóng PayMEMiniApp")
+            PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
         )
         closeMiniApp()
     }

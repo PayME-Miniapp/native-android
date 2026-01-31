@@ -4,7 +4,8 @@
   <string name="identity_card_hint">Cân chỉnh mặt trước CMND/CCCD vào giữa khung.</string>
   <string name="identity_card_hint2">Ảnh hơi xa, bạn kéo lại gần chút nhé.</string>
   <string name="identity_card_hint3">Giữ nguyên vị trí cho hình ảnh này.</string>
-  <string name="identity_card_error">Ảnh giấy tờ không hợp lệ.\nBạn kiểm tra và chụp lại.</string>
+  <string name="identity_card_error">Ảnh giấy tờ không hợp lệ.
+Bạn kiểm tra và chụp lại.</string>
   <string name="face_detector_title">Xác thực khuôn mặt</string>
   <string name="face_detector_hint1">Nhìn thẳng vào camera</string>
   <string name="face_detector_hint2">Tốt lắm! Bây giờ bạn hãy chớp mắt 1 lần</string>
@@ -14,7 +15,7 @@
   <string name="wait">Chờ một chút…</string>
   <string name="loading_data">Đang tải dữ liệu (%1$s.%2$d)…</string>
   <string name="progress_value">%d%%</string>
-  
+
   <!-- Các chuỗi mới cho download và thông báo lỗi -->
   <string name="download_failed">Tải xuống thất bại</string>
   <string name="no_network_connection">Không có kết nối mạng</string>
@@ -27,7 +28,7 @@
   <string name="loading_error_occurred">Đã xảy ra lỗi khi tải</string>
   <string name="download_slow_connection">Kết nối chậm, đang tải...</string>
   <string name="download_timeout">Tải xuống quá thời gian</string>
-  
+
   <!-- Các loại kết nối -->
   <string name="connection_wifi">WiFi</string>
   <string name="connection_mobile">Dữ liệu di động</string>
@@ -37,4 +38,19 @@
   <!-- check vị trí quét chip kalapa -->
   <string name="klp_guide_nfc_position_1" translatable="false">guide_nfc_position_1</string>
   <string name="klp_guide_nfc_position_2" translatable="false">guide_nfc_position_2</string>
+
+  <!-- Các chuỗi lỗi chung -->
+  <string name="error_occurred">Có lỗi xảy ra</string>
+  <string name="user_closed_payme_miniapp">Người dùng đóng PayMEMiniApp</string>
+  <string name="user_cancel_miniapp">User đóng PayMEMiniApp</string>
+  <string name="encryption_failed">Mã hóa không thành công</string>
+  <string name="decryption_failed">Giải mã không thành công</string>
+  <string name="network_connection_failed">Kết nối mạng bị sự cố, vui lòng kiểm tra và thử lại. Xin cảm ơn!</string>
+  <string name="server_connection_timed_out">Kết nối tới máy chủ quá lâu, vui lòng kiểm tra và thử lại. Xin cảm ơn!</string>
+  <string name="cannot_connect_to_server">Không thể kết nối tới server</string>
+  <string name="server_error_try_again">Máy chủ gặp lỗi. Vui lòng thử lại sau</string>
+
+  <!-- Account Presentation -->
+  <string name="account_info_not_found">Không lấy được thông tin tài khoản</string>
+  <string name="account_not_linked">Tài khoản chưa được liên kết</string>
 </resources>
