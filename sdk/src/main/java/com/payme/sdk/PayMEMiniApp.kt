@@ -27,8 +27,8 @@ class PayMEMiniApp(
         internal lateinit var privateKey: String
         internal lateinit var env: ENV
         internal lateinit var locale: Locale
-        internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _, _ -> }
-        internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _, _ -> }
+        internal var onResponse: ((ActionOpenMiniApp, JSONObject?) -> Unit) = { _: ActionOpenMiniApp, _: JSONObject? -> }
+        internal var onError: ((ActionOpenMiniApp, PayMEError) -> Unit) = { _: ActionOpenMiniApp, _: PayMEError -> }
 
         // only payme wallet
         internal var onOneSignalSendTags: ((String) -> Unit)? = null

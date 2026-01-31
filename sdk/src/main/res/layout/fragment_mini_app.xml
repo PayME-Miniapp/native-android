@@ -122,7 +122,7 @@
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:layout_marginEnd="8dp"
-                    android:tint="@color/grey_text" />
+                    app:tint="@color/grey_text" />
 
                 <TextView
                     android:id="@+id/connection_type"

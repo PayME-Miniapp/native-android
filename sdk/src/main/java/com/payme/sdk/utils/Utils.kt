@@ -338,6 +338,7 @@ object Utils {
             .contains("nox") || Build.PRODUCT.lowercase(Locale.ROOT)
             .contains("nox") || (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 try {
+                    @Suppress("MissingPermission")
                     Build.getSerial().lowercase(Locale.ROOT).contains("nox")
                 } catch (e: SecurityException) {
                     false
