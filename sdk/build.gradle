@@ -102,14 +102,15 @@ dependencies {
     implementation libs.android.gif.drawable
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = "com.payme.sdk"
+            artifactId = "PayME-Android-Sdk"
+            version = '0.7.0'
+
+            afterEvaluate {
                 from components.release
-                groupId = "com.payme.sdk"
-                artifactId = "PayME-Android-Sdk"
-                version = '0.7.0'
             }
         }
     }
