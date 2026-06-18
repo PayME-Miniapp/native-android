@@ -49,10 +49,10 @@ android {
         buildConfig true
     }
     testOptions {
-        targetSdk 35
+        targetSdk 37
     }
     lint {
-        targetSdk 35
+        targetSdk 37
     }
     publishing {
         singleVariant("release")

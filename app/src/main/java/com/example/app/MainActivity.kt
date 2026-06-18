@@ -134,8 +134,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        payMEMiniApp!!.setMode("miniapp_sandbox")
-        payMEMiniApp!!.setLanguage(Locale.en)
+//        payMEMiniApp!!.setMode("miniapp_sandbox")
+//        payMEMiniApp!!.setLanguage(Locale.en)
 
 //        payMEMiniApp!!.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
 
