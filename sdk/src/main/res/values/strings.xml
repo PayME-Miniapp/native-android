@@ -15,14 +15,18 @@ Bạn kiểm tra và chụp lại.</string>
   <string name="wait">Chờ một chút…</string>
   <string name="loading_data">Đang tải dữ liệu (%1$s.%2$d)…</string>
   <string name="progress_value">%d%%</string>
+  <string name="download_decimal_percent">%1$.1f%%</string>
 
   <!-- Các chuỗi mới cho download và thông báo lỗi -->
   <string name="download_failed">Tải xuống thất bại</string>
+  <string name="download_failed_with_reason">Tải xuống thất bại: %1$s</string>
+  <string name="download_failed_wait">Tải xuống thất bại - %1$s</string>
   <string name="no_network_connection">Không có kết nối mạng</string>
   <string name="retry">Thử lại</string>
   <string name="error_404">Lỗi 404: Không tìm thấy tài nguyên</string>
   <string name="unzip_failed">Không thể giải nén tệp nguồn</string>
   <string name="download_progress">%1$s / %2$s (%3$s/s)</string>
+  <string name="download_progress_detail">%1$s/%2$s · %3$s/s · %4$s</string>
   <string name="connection_type">Kết nối: %s</string>
   <string name="loading_interrupted">Tải xuống bị gián đoạn</string>
   <string name="loading_error_occurred">Đã xảy ra lỗi khi tải</string>
@@ -49,6 +53,7 @@ Bạn kiểm tra và chụp lại.</string>
   <string name="server_connection_timed_out">Kết nối tới máy chủ quá lâu, vui lòng kiểm tra và thử lại. Xin cảm ơn!</string>
   <string name="cannot_connect_to_server">Không thể kết nối tới server</string>
   <string name="server_error_try_again">Máy chủ gặp lỗi. Vui lòng thử lại sau</string>
+  <string name="session_expired">Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại. Xin cảm ơn.</string>
 
   <!-- Account Presentation -->
   <string name="account_info_not_found">Không lấy được thông tin tài khoản</string>

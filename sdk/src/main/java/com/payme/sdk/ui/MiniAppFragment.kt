@@ -1,336 +1,78 @@
 package com.payme.sdk.ui
 
-import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.Rect
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.Uri
-import android.nfc.NfcAdapter
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.PermissionRequest
-import android.webkit.ValueCallback
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
-import android.webkit.WebStorage
 import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import com.airbnb.lottie.LottieAnimationView
 import com.google.gson.Gson
-import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
-import com.payme.sdk.models.Locale
 import com.payme.sdk.models.OpenMiniAppDataInterface
 import com.payme.sdk.models.OpenMiniAppKYCData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.PayMEErrorType
-import com.payme.sdk.models.PayMEVersion
 import com.payme.sdk.models.getPhoneFromOpenMiniAppData
-import com.payme.sdk.utils.DeviceTypeResolver
-import com.payme.sdk.utils.LocaleUtils
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.Utils
+import com.payme.sdk.ui.miniapp.MiniAppBackPressCallback
+import com.payme.sdk.ui.miniapp.MiniAppDeviceInfoBuilder
+import com.payme.sdk.ui.miniapp.MiniAppKycController
+import com.payme.sdk.ui.miniapp.MiniAppPermissionController
+import com.payme.sdk.ui.miniapp.MiniAppUpdateController
+import com.payme.sdk.ui.miniapp.MiniAppWebViewController
+import com.payme.sdk.ui.miniapp.MiniAppViews
 import com.payme.sdk.viewmodels.DeepLinkViewModel
 import com.payme.sdk.viewmodels.MiniappViewModel
 import com.payme.sdk.viewmodels.NotificationViewModel
 import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
 import com.payme.sdk.viewmodels.SubWebViewViewModel
 import com.payme.sdk.webServer.JavaScriptInterface
-import com.payme.sdk.webServer.WebServer
 import org.json.JSONArray
-import org.json.JSONException
 import org.json.JSONObject
-import vn.kalapa.ekyc.KalapaHandler
-import vn.kalapa.ekyc.KalapaSDK
-import vn.kalapa.ekyc.KalapaSDKConfig
-import vn.kalapa.ekyc.KalapaSDKResultCode
-import vn.kalapa.ekyc.KalapaScanNFCCallback
-import vn.kalapa.ekyc.KalapaScanNFCError
-import vn.kalapa.ekyc.models.KalapaResult
-import java.io.BufferedReader
-import java.io.File
-import java.io.IOException
-import java.io.InputStreamReader
-import java.net.ConnectException
-import java.net.SocketException
-import java.net.SocketTimeoutException
-import java.net.URL
-import java.net.UnknownHostException
-import javax.net.ssl.SSLException
-
-fun isStringInJsonArray(jsonArray: JSONArray, targetString: String): Boolean {
-    for (i in 0 until jsonArray.length()) {
-        val item = jsonArray.getString(i)
-        if (item == targetString) {
-            return true
-        }
-    }
-    return false
-}
-
-class BackPressCallback(private val fragment: MiniAppFragment) : OnBackPressedCallback(true) {
-    override fun handleOnBackPressed() {
-        Log.d(PayMEMiniApp.TAG, "onBackPressed Called")
-        val myWebView = fragment.view?.findViewById<WebView>(R.id.webview)
-        if (myWebView != null) {
-            if (myWebView.canGoBack()) {
-                val url = myWebView.url
-                val parts = URL(url)
-                val listPath = fragment.getListScreenBackBlocked()
-                val check = (url.isNullOrEmpty() || isStringInJsonArray(listPath, parts.path))
-
-                if (!check) {
-                    Log.d(PayMEMiniApp.TAG, "webview back")
-                    myWebView.goBack()
-                }
-            }
-        }
-    }
-}
 
 class MiniAppFragment : Fragment() {
+    private lateinit var views: MiniAppViews
     private var rootView: View? = null
     private var myWebView: WebView? = null
     private val refreshHandler = Handler(Looper.getMainLooper())
     private var isWebViewRefreshCheckNeeded = false
-    private var wwwRoot: File? = null
-    private var server: com.payme.sdk.webServer.MySimpleWebServer? = null
 
-    private var port = 4646
-    private var permissionType = ""
     private var nativeAppState = "active"
     private var listScreenBackBlocked = JSONArray()
+    private var isCloseMiniAppRequested = false
+    private var isTerminalMiniAppErrorHandled = false
 
-    private var paramsKyc: JSONObject? = null
-    private var paramsSaveQr: String? = null
-    
-    // Biến mới cho tải xuống và hiển thị trạng thái
-    private var lastDownloadUrl: String? = null
-    private var lastDownloadEditor: SharedPreferences.Editor? = null
-    private var lastDownloadPatch = 0
-    private var previousBytesDownloaded = 0L
-    private var downloadSpeedSamples = mutableListOf<Long>() // Để tính tốc độ trung bình
-    private var networkError: Exception? = null
-    private var slowSpeedThresholdBytes = 5 * 1024L // 5 KB/s
-    private var slowSpeedWarningTimeMs = 5000L // 5 giây
-    private var downloadTimeoutMs = 60000L // 60 giây không có tiến độ
-    
-    // Biến cho các view UI mới
-    private lateinit var downloadDetailsText: TextView
-    private lateinit var connectionTypeIcon: ImageView
-    private lateinit var connectionStatusContainer: LinearLayout
-    private var backgroundDownload = false
-    private var versionCheckingTask: Thread? = null
+    private lateinit var kycController: MiniAppKycController
+    private lateinit var permissionController: MiniAppPermissionController
+    private lateinit var updateController: MiniAppUpdateController
+    private lateinit var webViewController: MiniAppWebViewController
 
     private lateinit var payMEUpdatePatchViewModel: PayMEUpdatePatchViewModel
     private lateinit var miniappViewModel: MiniappViewModel
 
-    private lateinit var updatingView: CardView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var textProgress: TextView
-    private lateinit var textUpdateLabel: TextView
-    private lateinit var lottieView: LottieAnimationView
-    private lateinit var lottieContainerView: LinearLayout
-    private lateinit var loadingView: View
-
-    private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
-    private var faceAuthenData: JSONObject? = null
-
-    private fun unzip() {
-        val filesDir = requireContext().filesDir
-        val sourceWeb = File("${filesDir.path}/update", "sdkWebapp3-main.zip")
-        if (sourceWeb.exists() && !backgroundDownload && sourceWeb.length() > 0) {
-            Log.d(PayMEMiniApp.TAG, "chay vo copy update")
-            val wwwDirectory = File(filesDir.path, "www")
-            wwwDirectory.delete()
-            if (!wwwDirectory.exists()) {
-                wwwDirectory.mkdir()
-            }
-            val unzipResult = Utils.unzipFile("${filesDir.path}/update/sdkWebapp3-main.zip", "${filesDir.path}/www")
-            if (!unzipResult) {
-                Log.e(PayMEMiniApp.TAG, "Failed to unzip update file. Closing miniapp")
-                handleUnzipError()
-                return
-            }
-            sourceWeb.delete()
-            return
-        }
-
-        Log.d(PayMEMiniApp.TAG, "chay vo unzip source down san")
-
-        val wwwDirectory = File(filesDir.path, "www")
-        if (!wwwDirectory.exists()) {
-            wwwDirectory.mkdir()
-        }
-        val unzipped = File("${filesDir.path}/www", "sdkWebapp3-main")
-        val content = unzipped.listFiles()
-        if (content == null || content.isEmpty()) {
-            Utils.copyDir(requireContext(), path = "www")
-            val unzipResult = Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
-            if (!unzipResult) {
-                Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
-                handleUnzipError()
-            }
-        }
-    }
-
-    private fun unzipDefaultSource() {
-        val filesDir = requireContext().filesDir
-        Log.d(PayMEMiniApp.TAG, "chay vo unzipDefaultSource")
-        val wwwDirectory = File(filesDir.path, "www")
-        if (!wwwDirectory.exists()) {
-            wwwDirectory.mkdir()
-        }
-        Utils.copyDir(requireContext(), path = "www")
-        val unzipResult = Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
-        if (!unzipResult) {
-            Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
-            handleUnzipError()
-        }
-    }
-    
-    private fun handleUnzipError() {
-        // Sử dụng LocaleUtils để lấy thông báo lỗi theo ngôn ngữ hiện tại
-        val errorDescription = when (PayMEMiniApp.locale) {
-            Locale.en -> "Failed to unzip source files. The app will be closed."
-            Locale.vi -> "Không thể giải nén tệp nguồn. Ứng dụng sẽ được đóng."
-        }
-        
-        // Tạo JSON error để gửi đến parent app
-        val errorJson = JSONObject().apply {
-            put("code", "UNZIP_FAILED")
-            put("description", errorDescription)
-            put("isCloseMiniApp", true)
-        }.toString()
-        
-        // Sử dụng UI thread để hiển thị thông báo và đóng app
-        activity?.runOnUiThread {
-            try {
-                // Không hiển thị Toast theo yêu cầu của user
-                // val toastMessage = LocaleUtils.ErrorMessages.unzipFailed()
-                // Toast.makeText(requireContext(), toastMessage, Toast.LENGTH_LONG).show()
-                returnError(errorJson)
-            } catch (e: Exception) {
-                Log.e(PayMEMiniApp.TAG, "Error handling unzip failure: ${e.message}")
-                closeMiniApp() // Đảm bảo app được đóng ngay cả khi có lỗi khi gửi thông báo
-            }
-        }
-    }
-
-    private fun startServer() {
-        if (server != null) {
-            return
-        }
-        port = Utils.findRandomOpenPort() ?: 4646
-        wwwRoot = File("${requireContext().filesDir.path}/www", "sdkWebapp3-main")
-        if (loadUrl.contains("http://localhost") || loadUrl.isEmpty()) {
-            loadUrl = "http://localhost:$port/"
-        }
-
-        // loadUrl = "https://3ffc77906f76.ngrok-free.app/"
-        try {
-            server = WebServer("localhost", port, wwwRoot)
-            (server as WebServer).start()
-            Log.d(PayMEMiniApp.TAG, "start server with port $port")
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "error start server ${e.message}")
-        }
-    }
-
-    private fun stopServer() {
-        if (server != null) {
-            Log.d(PayMEMiniApp.TAG, "Stopped Server")
-            server!!.stop()
-            server = null
-        }
-    }
-
-    @SuppressLint("HardwareIds")
     private fun sendNativeDeviceInfo() {
-        val packageInfo =
-            requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-        val buildNumber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageInfo.longVersionCode
-        } else {
-            @Suppress("DEPRECATION") // Nếu cần hỗ trợ các API cũ hơn
-            packageInfo.versionCode.toLong()
-        }
-        val insets = JSONObject()
-        val statusHeight = activity?.let {
-            Utils.getStatusBarHeight(it)
-        }
-        if (openType == OpenMiniAppType.screen) {
-            insets.put("top", statusHeight?.let { Utils.pxToDp(requireContext(), it) })
-        }
-        val bottom = Utils.getRootWindowInsetsCompat(rootView!!) ?: 0
-        insets.put("bottom", Utils.pxToDp(requireContext(), bottom.toInt()))
-        val deviceInfo = JSONObject()
-        deviceInfo.put("platform", "android")
-        val deviceId =
-            Settings.Secure.getString(requireContext().contentResolver, Settings.Secure.ANDROID_ID)
-        deviceInfo.put("deviceId", deviceId)
-        deviceInfo.put("userAgent", Utils.getUserAgent(requireContext()))
-        deviceInfo.put(
-            "version", requireContext().packageManager.getPackageInfo(
-                requireContext().packageName, 0
-            ).versionName
+        val safeContext = context ?: return
+        val safeRootView = rootView ?: return
+        val deviceInfo = MiniAppDeviceInfoBuilder.build(
+            context = safeContext,
+            activity = activity,
+            rootView = safeRootView,
+            openType = openType
         )
-        deviceInfo.put(
-            "buildNumber", buildNumber
-        )
-        deviceInfo.put("isEmulator", Utils.isEmulator())
-        deviceInfo.put("isRoot", Utils.isDeviceRooted(requireContext()))
-        deviceInfo.put("brand", Build.BRAND)
-        deviceInfo.put("model", Build.MODEL)
-        deviceInfo.put("bundleId", requireContext().packageName)
-        deviceInfo.put("systemName", "Android")
-        deviceInfo.put("systemVersion", Build.VERSION.RELEASE)
-        deviceInfo.put("deviceType", DeviceTypeResolver(requireContext()).deviceType.value)
-        deviceInfo.put("insets", insets)
-        deviceInfo.put("miniAppVersion", BuildConfig.SDK_VERSION)
-
-        val biometric = JSONObject()
-        biometric.put("isSupport", Utils.isBiometricReady(requireContext()))
-        biometric.put("type", "UNKNOWN")
-        deviceInfo.put("biometric", biometric)
 
         activity?.let {
             Utils.evaluateJSWebView(
@@ -339,543 +81,73 @@ class MiniAppFragment : Fragment() {
         }
     }
 
-    // Get current network connection type
-    private fun getConnectionType(): String {
-        // Sử dụng NetworkMonitor để lấy thông tin loại kết nối mạng
-        return when (NetworkMonitor.shared.connectionType.value) {
-            NetworkMonitor.ConnectionType.WIFI -> "WiFi"
-            NetworkMonitor.ConnectionType.CELLULAR -> "Mobile Data"
-            NetworkMonitor.ConnectionType.ETHERNET -> "Ethernet"
-            else -> "Unknown"
-        }
+    private fun stopWebViewAfterTerminalError() {
+        refreshHandler.removeCallbacksAndMessages(null)
+        myWebView?.stopLoading()
+        myWebView?.removeJavascriptInterface("messageHandlers")
     }
-    
-    /**
-     * Cập nhật hiển thị thông tin kết nối mạng với icon phù hợp
-     */
-    private fun updateConnectionTypeDisplay() {
-        val connectionType = NetworkMonitor.shared.connectionType.value
-        val isConnected = NetworkMonitor.shared.isConnected.value
-        
-        // Cập nhật icon kết nối dựa trên loại kết nối
-        val iconResId = when (connectionType) {
-            NetworkMonitor.ConnectionType.WIFI -> R.drawable.ic_wifi
-            NetworkMonitor.ConnectionType.CELLULAR -> R.drawable.ic_network_cell
-            NetworkMonitor.ConnectionType.ETHERNET -> R.drawable.ic_network
-            else -> R.drawable.ic_network_unknown
-        }
-        
-        // Cập nhật màu sắc dựa trên trạng thái kết nối và lỗi
-        val isError = networkError != null
-        val isDownloadSlowOrInterrupted = slowSpeedStartTime > 0L
-        
-        val colorResId = when {
-            isError -> R.color.warning // Màu đỏ cho lỗi
-            isDownloadSlowOrInterrupted -> R.color.warning // Màu vàng cho cảnh báo
-            !isConnected -> R.color.warning // Màu đỏ cho mất kết nối
-            else -> R.color.grey_text // Màu xám bình thường
-        }
-        
-        // Cập nhật nội dung và màu sắc
-        val connectionText = when {
-            isError -> networkError?.let {
-                when (it) {
-                    is UnknownHostException -> LocaleUtils.ErrorMessages.serverUnavailable()
-                    is SocketTimeoutException -> LocaleUtils.ErrorMessages.connectionTimeout()
-                    is ConnectException -> LocaleUtils.ErrorMessages.serverConnectionFailed()
-                    is SocketException -> LocaleUtils.ErrorMessages.networkConnectionLost()
-                    is javax.net.ssl.SSLException -> LocaleUtils.ErrorMessages.secureConnectionFailed()
-                    is IOException -> LocaleUtils.ErrorMessages.networkError()
-                    else -> it.message ?: LocaleUtils.ErrorMessages.unknownError()
-                }
-            } ?: LocaleUtils.ErrorMessages.unknownError()
-            isDownloadSlowOrInterrupted -> LocaleUtils.DownloadMessages.slowNetworkSpeed()
-            !isConnected -> LocaleUtils.ErrorMessages.noNetworkConnection()
-            else -> getConnectionType() // Hiển thị chỉ loại kết nối khi bình thường
-        }
-        
-        // Cập nhật UI
-        connectionTypeIcon.setImageResource(iconResId)
-        connectionTypeIcon.setColorFilter(ContextCompat.getColor(requireContext(), colorResId))
-        val connectionTypeTextView = view?.findViewById<TextView>(R.id.connection_type)
-        connectionTypeTextView?.text = connectionText
-        connectionTypeTextView?.setTextColor(ContextCompat.getColor(requireContext(), colorResId))
-        
-        // Hiển thị container trạng thái kết nối
-        connectionStatusContainer.visibility = View.VISIBLE
-    }
-    
-    // Variable to track current network callback
-    private var activeNetworkCallback: ConnectivityManager.NetworkCallback? = null
-    
-    // Variable to track if download is in progress
-    private var isDownloadInProgress = false
-    
-    // Variable to store current download parameters for retry
-    private var currentDownloadUrl: String? = null
-    private var currentEditor: SharedPreferences.Editor? = null
-    private var currentPatch: Int = 0
-    
-    // Variables to track download speed and timeout
-    private var slowSpeedStartTime: Long = 0
-    private var downloadStartTime: Long = 0
-    private var downloadSpeedHandler: Handler? = null
-    private var speedCheckRunnable: Runnable? = null
-    private var timeoutCheckRunnable: Runnable? = null
-    
-    // Constants for speed and timeout thresholds
-    private val SLOW_SPEED_THRESHOLD = 1024L // 1 KB/s
-    private val SLOW_SPEED_DURATION = 5000L // 5 seconds
-    private val DOWNLOAD_TIMEOUT = 1 * 60 * 1000L // 1 minutes
-    
-    // Check network connectivity
-    private fun isNetworkConnected(): Boolean {
-        val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork
-        val capabilities = connectivityManager.getNetworkCapabilities(network)
-        return capabilities != null && (
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
-    }
-    
-    // Register for network callbacks to monitor connectivity during download
-    private fun registerNetworkCallback() {
-        // Unregister any existing callback first
-        unregisterNetworkCallback()
-        
-        val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onLost(network: Network) {
-                super.onLost(network)
-                Log.e(PayMEMiniApp.TAG, "Network connectivity lost during download")
-                
-                // Only handle if download is in progress
-                if (isDownloadInProgress) {
-                    activity?.runOnUiThread {
-                        handleNetworkDisconnection("Network connection lost")
-                    }
-                }
-            }
-            
-            override fun onUnavailable() {
-                super.onUnavailable()
-                Log.e(PayMEMiniApp.TAG, "Network unavailable during download")
-                
-                // Only handle if download is in progress
-                if (isDownloadInProgress) {
-                    activity?.runOnUiThread {
-                        handleNetworkDisconnection("Network unavailable")
-                    }
-                }
-            }
-        }
-        
-        // Keep reference to callback for later unregistering
-        activeNetworkCallback = networkCallback
-        
-        // Register the callback
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
-    }
-    
-    // Unregister network callback
-    private fun unregisterNetworkCallback() {
-        activeNetworkCallback?.let {
-            try {
-                val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                connectivityManager.unregisterNetworkCallback(it)
-            } catch (e: Exception) {
-                Log.e(PayMEMiniApp.TAG, "Error unregistering network callback: ${e.message}")
-            }
-            activeNetworkCallback = null
-        }
-    }
-    
-    // Monitor download speed and check for slow connections
-    private fun startSpeedAndTimeoutMonitoring() {
-        // Reset monitoring values
-        slowSpeedStartTime = 0
-        downloadStartTime = System.currentTimeMillis()
-        
-        // Cancel existing handlers if any
-        stopSpeedAndTimeoutMonitoring()
-        
-        // Create new handler on main thread
-        downloadSpeedHandler = Handler(Looper.getMainLooper())
-        
-        // Create runnable for checking timeout
-        timeoutCheckRunnable = Runnable {
-            val currentTime = System.currentTimeMillis()
-            val elapsedTime = currentTime - downloadStartTime
-            val remainingTime = DOWNLOAD_TIMEOUT - elapsedTime
-            
-            // Log download time progress
-            if (isDownloadInProgress) {
-                val elapsedSeconds = elapsedTime / 1000
-                val remainingSeconds = remainingTime / 1000
-                
-                // Tạo thông báo thời gian còn lại theo locale
-                val timeRemainingMessage = LocaleUtils.DownloadMessages.downloadTimeRemaining(remainingSeconds)
-                
-                // Log thông tin thời gian chi tiết
-                Log.d(PayMEMiniApp.TAG, "$timeRemainingMessage (${elapsedSeconds}s đã trôi qua)")
-                
-                // Cảnh báo khi gần hết thời gian (<30 giây)
-                if (remainingTime in 1..29999) {
-                    val warningMessage = when (PayMEMiniApp.locale) {
-                        Locale.en -> "⚠️ Download warning: Only ${remainingSeconds}s remaining before timeout!"
-                        Locale.vi -> "⚠️ Cảnh báo tải xuống: Chỉ còn ${remainingSeconds}s trước khi hết thời gian chờ!"
-                    }
-                    Log.w(PayMEMiniApp.TAG, warningMessage)
-                }
-            }
-            
-            if (isDownloadInProgress && elapsedTime > DOWNLOAD_TIMEOUT) {
-                val timeoutMessage = when (PayMEMiniApp.locale) {
-                    Locale.en -> "Download timeout after ${elapsedTime / 1000}s - Cancelling download"
-                    Locale.vi -> "Tải xuống đã hết thời gian chờ sau ${elapsedTime / 1000}s - Đang hủy"
-                }
-                Log.e(PayMEMiniApp.TAG, timeoutMessage)
-                activity?.runOnUiThread {
-                    val timeoutErrorMessage = LocaleUtils.ErrorMessages.downloadTimeout()
-                    handleDownloadIssue(timeoutErrorMessage)
-                }
-            } else if (isDownloadInProgress) {
-                // Schedule next check
-                downloadSpeedHandler?.postDelayed(timeoutCheckRunnable!!, 10000) // Check every 10 seconds
-            }
-        }
-        
-        // Start checking timeout
-        downloadSpeedHandler?.postDelayed(timeoutCheckRunnable!!, 10000) // First check after 10 seconds
-    }
-    
-    // Stop monitoring speed and timeout
-    private fun stopSpeedAndTimeoutMonitoring() {
-        speedCheckRunnable?.let { downloadSpeedHandler?.removeCallbacks(it) }
-        timeoutCheckRunnable?.let { downloadSpeedHandler?.removeCallbacks(it) }
-        downloadSpeedHandler = null
-        speedCheckRunnable = null
-        timeoutCheckRunnable = null
-    }
-    
-    // Check download speed and track slow periods
-    private fun checkDownloadSpeed(bytePerSecond: Long) {
-        // Check if the speed is low and update UI with warning if needed
-        if (bytePerSecond < SLOW_SPEED_THRESHOLD) {
-            // First time we detect slow speed, log it and start the slow speed timer
-            if (slowSpeedStartTime == 0L) {
-                slowSpeedStartTime = System.currentTimeMillis()
-                
-                val formattedSpeed = Utils.formatSpeed(bytePerSecond)
-                val speedWarning = when (PayMEMiniApp.locale) {
-                    Locale.en -> "Slow download speed detected: ${formattedSpeed}/s"
-                    Locale.vi -> "Đã phát hiện tốc độ tải xuống chậm: ${formattedSpeed}/s"
-                }
-                Log.w(PayMEMiniApp.TAG, speedWarning)
-                
-            } else {
-                // Only log extended slow speed after 3 seconds of consistent slowness
-                val slowDuration = System.currentTimeMillis() - slowSpeedStartTime
-                if (slowDuration > 3000) {
-                    val formattedSpeed = Utils.formatSpeed(bytePerSecond)
-                    val speedMessage = when (PayMEMiniApp.locale) {
-                        Locale.en -> "Download speed remains slow: ${formattedSpeed}/s for ${slowDuration / 1000}s"
-                        Locale.vi -> "Tốc độ tải xuống vẫn chậm: ${formattedSpeed}/s trong ${slowDuration / 1000}s"
-                    }
-                    Log.w(PayMEMiniApp.TAG, speedMessage)
-                    
-                    // Hiển thị thông báo tốc độ chậm cho người dùng nếu phù hợp
-//                    val slowNetworkMessage = LocaleUtils.DownloadMessages.slowNetworkSpeed()
-                    
-                    // Nếu tốc độ quá chậm trong thời gian dài, có thể hủy tải xuống
-                    if (slowDuration > SLOW_SPEED_DURATION && isDownloadInProgress) {
-                        Log.e(PayMEMiniApp.TAG, "Download speed too slow (${formattedSpeed}/s) for ${slowDuration / 1000}s - aborting download")
-                        activity?.runOnUiThread {
-                            val errorMessage = LocaleUtils.ErrorMessages.downloadFailed("Tốc độ quá chậm")
-                            handleDownloadIssue(errorMessage)
-                        }
-                    }
-                }
-            }
-        } else if (bytePerSecond > 0) {
-            // Speed is acceptable
-            if (slowSpeedStartTime != 0L) {
-                // If we were previously in a slow period, log the recovery
-                val slowDuration = System.currentTimeMillis() - slowSpeedStartTime
-                val formattedSpeed = Utils.formatSpeed(bytePerSecond)
-                Log.d(PayMEMiniApp.TAG, "✅ Download speed recovered to $formattedSpeed/s after ${slowDuration / 1000}s of slow speed")
-            }
-            // Reset slow period timer
-            slowSpeedStartTime = 0
-        }
-    }
-    
-    // Handle download issues (slow speed or timeout)
-    private fun handleDownloadIssue(errorMessage: String) {
-        // Only handle once
-        if (!isDownloadInProgress) return
-        
-        // Stop speed and timeout monitoring
-        stopSpeedAndTimeoutMonitoring()
-        
-        // Stop the download progress tracking but keep download parameters for retry
-        isDownloadInProgress = false
-        
-        // Show error UI
-        val errorContainer = view?.findViewById<android.widget.LinearLayout>(R.id.error_container)
-        val errorMessageView = view?.findViewById<TextView>(R.id.error_message)
-        val retryButton = view?.findViewById<Button>(R.id.retry_button)
-        
-        errorContainer?.visibility = View.VISIBLE
-        errorMessageView?.text = getString(R.string.download_failed) + ": $errorMessage"
-        
-        // Log current parameters for debugging
-        Log.d(PayMEMiniApp.TAG, "Current download parameters - URL: $lastDownloadUrl, Patch: $lastDownloadPatch")
-        
-        // Store local copies of parameters to ensure they're not lost
-        val localUrl = lastDownloadUrl
-        val localEditor = lastDownloadEditor
-        val localPatch = lastDownloadPatch
-        
-        // Set up retry button to attempt download again
-        retryButton?.text = getString(R.string.retry)
-        retryButton?.setOnClickListener {
-            // Clear previous error message immediately
-           errorMessageView?.text = getString(R.string.wait)
-            
-            // Only retry if we have all parameters
-            if (localUrl != null && localEditor != null) {
-                if (isNetworkConnected()) {
-                    Log.d(PayMEMiniApp.TAG, "Retrying download with - URL: $localUrl, Patch: $localPatch")
-                    // Hide error container BEFORE starting download
-                    errorContainer?.visibility = View.GONE
-                    
-                    // Add a small delay to ensure UI updates before starting download
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        // Use local copies of parameters for retrying
-                        downloadSourceWeb(localUrl, localEditor, localPatch)
-                    }, 200)
-                } else {
-                    // If we don't have network when trying to retry
-                    Log.e(PayMEMiniApp.TAG, "Cannot retry - No network connection")
-                    errorMessageView?.text = "${getString(R.string.download_failed)}: ${getString(R.string.no_network_connection)}"
-                }
-            } else {
-                // Parameters missing, show error
-                Log.e(PayMEMiniApp.TAG, "Cannot retry - Missing parameters")
-                errorMessageView?.text = "${getString(R.string.download_failed)} - ${getString(R.string.wait)}"
-            }
-        }
-    }
-    
-    // Handle network disconnection
-    private fun handleNetworkDisconnection(errorMessage: String) {
-        // Stop the download progress tracking
-        isDownloadInProgress = false
-        
-        // Stop speed and timeout monitoring
-        stopSpeedAndTimeoutMonitoring()
-        
-        // Show error UI
-        val errorContainer = view?.findViewById<android.widget.LinearLayout>(R.id.error_container)
-        val errorMessageView = view?.findViewById<TextView>(R.id.error_message)
-        val retryButton = view?.findViewById<Button>(R.id.retry_button)
-        
-        errorContainer?.visibility = View.VISIBLE
-        errorMessageView?.text = "${getString(R.string.download_failed)}: $errorMessage"
-        
-        // Log current parameters for debugging
-        Log.d(PayMEMiniApp.TAG, "Network disconnection - Current download parameters - URL: $lastDownloadUrl, Patch: $lastDownloadPatch")
-        
-        // Store local copies of parameters to ensure they're not lost
-        val localUrl = lastDownloadUrl
-        val localEditor = lastDownloadEditor
-        val localPatch = lastDownloadPatch
-        
-        // Set up retry button to attempt download again when connectivity returns
-        retryButton?.text = getString(R.string.retry)
-        retryButton?.setOnClickListener {
-            // Clear previous error message immediately
-           errorMessageView?.text = getString(R.string.wait)
-            // Only retry if we have all parameters
-            if (localUrl != null && localEditor != null) {
-                if (isNetworkConnected()) {
-                    Log.d(PayMEMiniApp.TAG, "Network connection available, retrying download with - URL: $localUrl, Patch: $localPatch")
-                    // Hide error container BEFORE starting download
-                    errorContainer?.visibility = View.GONE
-                    
-                    // Add a small delay to ensure UI updates before starting download
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        // Use local copies of parameters for retrying
-                        downloadSourceWeb(localUrl, localEditor, localPatch)
-                    }, 200)
-                } else {
-                    // Still no connection
-                    Log.e(PayMEMiniApp.TAG, "Cannot retry - No network connection")
-                    errorMessageView?.text = "${getString(R.string.download_failed)}: ${getString(R.string.no_network_connection)}"
-                }
-            } else {
-                // Parameters missing, show error
-                Log.e(PayMEMiniApp.TAG, "Cannot retry - Missing parameters")
-                errorMessageView?.text = "${getString(R.string.download_failed)} - ${getString(R.string.wait)}"
-            }
-        }
-    }
-    
-    @SuppressLint("SetTextI18n")
-    private fun downloadSourceWeb(url: String?, editor: SharedPreferences.Editor, patch: Int) {
-        // Lưu lại các tham số tải xuống cho tính năng thử lại
-        lastDownloadUrl = url
-        lastDownloadEditor = editor
-        lastDownloadPatch = patch
-        
-        Log.d(PayMEMiniApp.TAG, "Starting download with URL: $url, Patch: $patch")
-        val filesDir = requireContext().filesDir
-        val updateDirectory = File(filesDir.path, "update")
-        if (!updateDirectory.exists()) {
-            updateDirectory.mkdir()
-        }
-        val sourceWeb = File("${filesDir.path}/update", "sdkWebapp3-main.zip")
-        if (sourceWeb.exists()) {
-            sourceWeb.delete()
-        }
-        sourceWeb.createNewFile()
-        
-        // Kiểm tra kết nối mạng trước khi tải xuống
-        if (!isNetworkConnected()) {
-            activity?.runOnUiThread {
-                val message = LocaleUtils.ErrorMessages.noNetworkConnection()
-                handleNetworkDisconnection(message)
-            }
+
+    private fun handleUnauthorizedHttpError(errorUrl: String) {
+        if (isTerminalMiniAppErrorHandled) {
             return
         }
-        
-        // Cài đặt TextUpdateLabel
+
+        Log.e(PayMEMiniApp.TAG, "HTTP 401 unauthorized for URL: $errorUrl - closing mini app")
         activity?.runOnUiThread {
-            textUpdateLabel.text = getString(R.string.loading_data, BuildConfig.SDK_VERSION, patch)
-        }
-        
-        // Đăng ký theo dõi kết nối mạng trong quá trình tải xuống
-        registerNetworkCallback()
-        
-        // Bắt đầu theo dõi tốc độ tải xuống và thời gian tải
-        startSpeedAndTimeoutMonitoring()
-        
-        // Khởi tạo các thành phần UI
-        activity?.runOnUiThread {
-            // Ẩn container lỗi nếu hiển thị từ lần tải trước
-            val errorContainer = view?.findViewById<LinearLayout>(R.id.error_container)
-            errorContainer?.visibility = View.GONE
-            
-            // Hiển thị loại kết nối ban đầu
-            updateConnectionTypeDisplay()
-        }
-        
-        url?.let {
-            try {
-                // Đặt cờ đang tải xuống
-                isDownloadInProgress = true
-                previousBytesDownloaded = 0L
-                downloadSpeedSamples.clear()
-                networkError = null
-                
-                Utils.download(
-                    requireContext(), it, sourceWeb.absolutePath
-                ) { totalBytesCopied, length, speed ->
-                    // Kiểm tra tốc độ tải xuống để phát hiện kết nối chậm
-                    checkDownloadSpeed(speed)
-                    
-                    val progressValuePercent = (totalBytesCopied * 100 / length).toInt()
-                    
-                    // Cập nhật UI trên luồng chính
-                    activity?.runOnUiThread {
-                        // Cập nhật thanh tiến trình
-                        progressBar.progress = progressValuePercent
-                        
-                        // Định dạng kích thước và tốc độ
-                        val downloadedSizeFormatted = Utils.formatFileSize(totalBytesCopied)
-                        val totalSizeFormatted = Utils.formatFileSize(length.toLong())
-                        val speedFormatted = Utils.formatSpeed(speed)
-                        
-                        // Cập nhật văn bản với định dạng: {downloadedSize}/{totalSize} · {speed}/s · {percent}
-                        // Sử dụng cả textProgress và downloadDetailsText vì chúng trỏ đến cùng một view
-                        val percentFormatted = String.format("%.1f%%", progressValuePercent.toFloat())
-                        val downloadInfo = "$downloadedSizeFormatted/$totalSizeFormatted · ${speedFormatted}/s · $percentFormatted"
-                        textProgress.text = downloadInfo 
-                        downloadDetailsText.text = downloadInfo
-                        
-                        // Cập nhật thông tin kết nối theo thời gian thực
-                        updateConnectionTypeDisplay()
-                        
-                        // Di chuyển nhân vật (unicorn) theo tiến độ
-                        val layoutParams = lottieView.layoutParams as LinearLayout.LayoutParams
-                        layoutParams.leftMargin = progressValuePercent * (lottieContainerView.width - lottieView.width) / 100
-                        layoutParams.topMargin = 0
-                        layoutParams.rightMargin = 0
-                        layoutParams.bottomMargin = 0
-                        lottieView.requestLayout()
-                    }
-                }
-                
-                // Tải xuống hoàn tất thành công
-                isDownloadInProgress = false
-                unregisterNetworkCallback()
-                stopSpeedAndTimeoutMonitoring()
-            } catch (e: Exception) {
-                Log.e(PayMEMiniApp.TAG, "Download error: ${e.message}")
-                
-                // Đặt lại cờ tải xuống và lưu lỗi
-                isDownloadInProgress = false
-                stopSpeedAndTimeoutMonitoring()
-                networkError = e
-                
-                // Xác định loại lỗi và hiển thị message phù hợp
-                val errorMsg = when (e) {
-                    is UnknownHostException -> LocaleUtils.ErrorMessages.serverUnavailable()
-                    is SocketTimeoutException -> LocaleUtils.ErrorMessages.connectionTimeout() 
-                    is ConnectException -> LocaleUtils.ErrorMessages.serverConnectionFailed()
-                    is SocketException -> LocaleUtils.ErrorMessages.networkConnectionLost()
-                    is javax.net.ssl.SSLException -> LocaleUtils.ErrorMessages.secureConnectionFailed()
-                    is IOException -> LocaleUtils.ErrorMessages.networkError()
-                    else -> e.message ?: LocaleUtils.ErrorMessages.unknownError()
-                }
-                
-                // Hiển thị UI lỗi
-                activity?.runOnUiThread {
-                    handleNetworkDisconnection(errorMsg)
-                }
-                
-                // Dừng thực thi
-                return@let
-            }
-            
-            Log.d(PayMEMiniApp.TAG, "source web length ${sourceWeb.length()}")
-            if (sourceWeb.length() > 0) {
-                editor.putInt("PAYME_PATCH", patch)
-                editor.apply()
-            } else {
-                if (!backgroundDownload) {
-                    sourceWeb.delete()
-                    payMEUpdatePatchViewModel.setDoneUpdate(true)
-                }
-            }
-            backgroundDownload = false
-        }
-        
-        // Unregister network callback in case we exit without completing the download
-        if (isDownloadInProgress) {
-            isDownloadInProgress = false
-            unregisterNetworkCallback()
-            stopSpeedAndTimeoutMonitoring()
+            val errorJson = JSONObject().apply {
+                put("code", HTTP_STATUS_UNAUTHORIZED.toString())
+                put("description", getString(R.string.session_expired))
+                put("isCloseMiniApp", true)
+            }.toString()
+            returnError(errorJson)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requireActivity().onBackPressedDispatcher.addCallback(this, BackPressCallback(this))
+        requireActivity().onBackPressedDispatcher.addCallback(
+            this,
+            MiniAppBackPressCallback(
+                webViewProvider = { myWebView },
+                blockedScreensProvider = { listScreenBackBlocked }
+            )
+        )
+        permissionController = MiniAppPermissionController(
+            fragment = this,
+            webViewProvider = { myWebView },
+            nativeAppStateProvider = { nativeAppState }
+        )
+        kycController = MiniAppKycController(
+            fragment = this,
+            webViewProvider = { myWebView },
+            openTypeProvider = { openType },
+            restartWithScreen = { reStartWithScreen() }
+        )
+        updateController = MiniAppUpdateController(
+            contextProvider = { context },
+            activityProvider = { activity },
+            viewsProvider = { views },
+            updateViewModelProvider = { payMEUpdatePatchViewModel },
+            getLoadUrl = { loadUrl },
+            setLoadUrl = { loadUrl = it },
+            returnError = { returnError(it) },
+            closeMiniApp = { closeMiniApp() }
+        )
+        webViewController = MiniAppWebViewController(
+            fragment = this,
+            viewsProvider = { views },
+            updateViewModelProvider = { payMEUpdatePatchViewModel },
+            notificationViewModelProvider = { notificationViewModel },
+            miniappViewModelProvider = { miniappViewModel },
+            deepLinkViewModelProvider = { deepLinkViewModel },
+            loadUrlProvider = { loadUrl },
+            openTypeProvider = { openType },
+            onUrlPartChanged = { onSetWebViewUrlPart(it) },
+            onUnauthorizedHttpError = { handleUnauthorizedHttpError(it) },
+            onReturnError = { returnError(it) },
+            onRestartLocalServer = { updateController.restartLocalServerAfterWebResourceError() },
+            onSendNativeDeviceInfo = { sendNativeDeviceInfo() }
+        )
         miniappViewModel = ViewModelProvider(requireActivity())[MiniappViewModel::class.java]
 
         if (isOpenMiniAppInit()) {
@@ -888,132 +160,16 @@ class MiniAppFragment : Fragment() {
     ): View {
         val view: View = inflater.inflate(R.layout.fragment_mini_app, container, false)
         payMEUpdatePatchViewModel = PayMEUpdatePatchViewModel()
-        rootView = view.findViewById(R.id.root_view)
-        myWebView = view.findViewById(R.id.webview)
-        updatingView = view.findViewById(R.id.updating_view)
-        progressBar = view.findViewById(R.id.progress)
-        
-        // Khởi tạo các thành phần UI
-        textProgress = view.findViewById(R.id.download_details_text) // Dùng download_details_text thay cho progress_text cũ
-        textUpdateLabel = view.findViewById(R.id.update_label_text)
-        
-        // Khởi tạo các thành phần UI mới
-        downloadDetailsText = view.findViewById(R.id.download_details_text) // textProgress và downloadDetailsText trỏ tới cùng view
-        connectionTypeIcon = view.findViewById(R.id.connection_type_icon)
-        connectionStatusContainer = view.findViewById(R.id.connection_status_container)
+        views = MiniAppViews.bind(view)
+        rootView = views.rootView
+        myWebView = views.webView
         
         // Khởi tạo NetworkMonitor để theo dõi kết nối
         context?.let { ctx ->
             NetworkMonitor.initialize(ctx)
         }
-        lottieView = view.findViewById(R.id.lottieView)
-        lottieContainerView = view.findViewById(R.id.lottie_container_view)
-        loadingView = view.findViewById(R.id.loading)
-        versionCheckingTask = Thread {
-            try {
-                loadingView.visibility = View.VISIBLE
-                val versionFile = File(requireContext().filesDir.path, "version.json")
-                if (versionFile.exists()) {
-                    versionFile.delete()
-                }
-                versionFile.createNewFile()
-                Utils.downloadWithoutTemp(
-                    "https://static.payme.vn/frontend/miniapp-store/PayMEMiniAppVersion.json",
-                    versionFile.absolutePath
-                )
-//        val jsonString: String =
-//          applicationContext.assets.open("PayMEMiniAppVersion.json").bufferedReader()
-//            .use { it.readText() }
-                val jsonString: String = File(versionFile.absolutePath).readText(Charsets.UTF_8)
-                val jsonArray = JSONArray(jsonString)
-                var version: String = ""
-                var found: JSONObject? = null
-                for (i in 0 until jsonArray.length()) {
-                    val item = jsonArray.getJSONObject(i)
-                    if (item.getString("version") == BuildConfig.SDK_VERSION) {
-                        found = item
-                        version = item.getString("version")
-                    }
-                }
-                if (found == null) {
-                    payMEUpdatePatchViewModel.setDoneUpdate(true)
-                    return@Thread
-                }
-                Log.d("PAYMELOG", "payme miniapp mode ${PayMEMiniApp.mode}")
-                val sharedPreference = requireContext().getSharedPreferences(
-                    "PAYME_NATIVE_UPDATE", Context.MODE_PRIVATE
-                )
-                val editor = sharedPreference.edit()
-                val mode = found.optJSONObject(PayMEMiniApp.mode)
-                if (mode == null) {
-                    payMEUpdatePatchViewModel.setDoneUpdate(true)
-                    return@Thread
-                }
-                val localMode = sharedPreference.getString("PAYME_MODE", "")
-                if (PayMEMiniApp.mode != localMode) {
-                    editor.putString("PAYME_MODE", PayMEMiniApp.mode)
-                    editor.putInt("PAYME_PATCH", if (localMode == "") 0 else -1)
-                    editor.apply()
-                }
-                val patch = mode.optInt("patch", 0)
-                val latestMandatory = mode.optInt("latestMandatoryPatch", 0)
-                val url = mode.optString("url")
-                val localPatch = sharedPreference.getInt("PAYME_PATCH", 0)
-
-                if (patch == 0 && latestMandatory == 0) {
-                    Log.d(PayMEMiniApp.TAG, "default")
-                    payMEUpdatePatchViewModel.setLoadDefaultSource(true)
-                    payMEUpdatePatchViewModel.setDoneUpdate(true)
-                    return@Thread
-                }
-                val localMandatory = localPatch < latestMandatory
-                val payMEVersion = PayMEVersion(patch, version, localMandatory, url)
-                if (payMEVersion.patch <= localPatch) {
-                    Log.d(PayMEMiniApp.TAG, "do not update")
-                    payMEUpdatePatchViewModel.setDoneUpdate(true)
-                    return@Thread
-                }
-                if (!payMEVersion.mandatory) {
-                    Log.d(PayMEMiniApp.TAG, "download ngầm")
-                    backgroundDownload = true
-                    payMEUpdatePatchViewModel.setDoneUpdate(true)
-                    downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
-                    return@Thread
-                }
-                Log.d(PayMEMiniApp.TAG, "force update")
-                activity?.runOnUiThread {
-                    textUpdateLabel.text =
-                        getString(R.string.loading_data, BuildConfig.SDK_VERSION, patch)
-                }
-                payMEUpdatePatchViewModel.setShowUpdatingUI(true)
-                payMEUpdatePatchViewModel.setIsForceUpdating(true)
-                downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
-                Log.d(PayMEMiniApp.TAG, "downloaded source moi")
-                payMEUpdatePatchViewModel.setIsForceUpdating(false)
-                payMEUpdatePatchViewModel.setDoneUpdate(true)
-            } catch (e: SSLException) {
-                Log.d(PayMEMiniApp.TAG, "SSLException ex $e")
-            } catch (e: Exception) {
-                payMEUpdatePatchViewModel.setDoneUpdate(true)
-                Log.d(PayMEMiniApp.TAG, "thread ex $e")
-            }
-        }
-        versionCheckingTask?.start()
-        val networkCallback: ConnectivityManager.NetworkCallback =
-            object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    payMEUpdatePatchViewModel.setIsLostConnection(false)
-                }
-
-                override fun onLost(network: Network) {
-                    payMEUpdatePatchViewModel.setIsLostConnection(true)
-                }
-            }
-
-        val connectivityManager =
-            requireContext().getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        updateController.startVersionCheck()
+        updateController.registerConnectivityCallback()
 
         rootView!!.viewTreeObserver.addOnGlobalLayoutListener {
             if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
@@ -1042,331 +198,26 @@ class MiniAppFragment : Fragment() {
             }
         }
 
-        myWebView?.apply {
-            // Cải thiện cấu hình WebView để ngăn màn hình trắng
-            settings.domStorageEnabled = true
-            settings.cacheMode = WebSettings.LOAD_DEFAULT
-            setWillNotDraw(false) // Đảm bảo WebView luôn được vẽ
-            setLayerType(View.LAYER_TYPE_HARDWARE, null) // Hardware acceleration
-            
-            webChromeClient = object : WebChromeClient() {
-                override fun onProgressChanged(view: WebView, newProgress: Int) {
-                    val url = URL(view.url).toString().removePrefix(loadUrl)
-                    onSetWebViewUrlPart(url)
-                }
-
-                override fun onPermissionRequest(request: PermissionRequest?) {
-                    request?.grant(request.resources)
-                }
-
-                override fun onShowFileChooser(
-                    webView: WebView?,
-                    filePathCallback: ValueCallback<Array<Uri>>?,
-                    fileChooserParams: FileChooserParams?
-                ): Boolean {
-                    Log.d(PayMEMiniApp.TAG, "chay vo on file chooser $filePathCallback")
-
-                    if (fileChooserCallback != null) {
-                        fileChooserCallback?.onReceiveValue(null)
-                    }
-
-                    fileChooserCallback = filePathCallback;
-                    val intent = fileChooserParams?.createIntent()
-                    try {
-                        fileChooserLauncher.launch(intent)
-                    } catch (e: Exception) {
-                        Log.d(PayMEMiniApp.TAG, "chay vo catch ${e.message}")
-                        return true
-                    }
-                    return true
-                }
-            }
-
-            webViewClient = object : WebViewClient() {
-                @Deprecated("Deprecated in Java")
-                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                    Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
-                    return if (url.contains(".pdf")) {
-                        val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
-                        view.loadUrl(pdfUrl)
-                        false
-                    } else if (url.startsWith("http://") || url.startsWith("https://")) {
-                        view.loadUrl(url)
-                        false
-                    } else try {
-                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-                        view.context.startActivity(intent)
-                        true
-                    } catch (e: Exception) {
-                        Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
-                        true
-                    }
-                }
-
-                override fun shouldOverrideUrlLoading(
-                    view: WebView?, request: WebResourceRequest?
-                ): Boolean {
-                    val url = request?.url.toString()
-                    Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
-                    return if (url.contains(".pdf")) {
-                        val pdfUrl = "https://docs.google.com/gview?embedded=true&url=${url}"
-                        view?.loadUrl(pdfUrl)
-                        false
-                    } else if (url.startsWith("http://") || url.startsWith("https://")) {
-                        false
-                    } else try {
-                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-                        view?.context?.startActivity(intent)
-                        true
-                    } catch (e: Exception) {
-                        Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
-                        true
-                    }
-                }
-
-                override fun onReceivedHttpError(
-                    view: WebView, request: WebResourceRequest?, errorResponse: WebResourceResponse
-                ) {
-                    val statusCode = errorResponse.statusCode
-                    val errorUrl = request?.url.toString()
-                    val errorData = errorResponse.reasonPhrase ?: ""
-                    
-                    Log.d(
-                        PayMEMiniApp.TAG,
-                        "HTTP error $statusCode for URL: $errorUrl, Reason: $errorData"
-                    )
-                    
-                    // Kiểm tra trường hợp 404 từ local server
-                    if (statusCode == 404 && errorUrl.startsWith("http://localhost") == true) {
-                        try {
-                            // Đọc nội dung của lỗi để kiểm tra xem có phải là "Error 404, file not found."
-                            val inputStream = errorResponse.data
-                            if (inputStream != null) {
-                                val reader = BufferedReader(InputStreamReader(inputStream))
-                                val responseText = reader.readText()
-                                Log.e(PayMEMiniApp.TAG, "404 error content: $responseText")
-                                
-                                if (responseText.contains("Error 404, file not found") || errorData.contains("Not Found")) {
-                                    val errorMessage = when (PayMEMiniApp.locale) {
-                                    Locale.en -> "Resource not found error detected from local server - closing mini app"
-                                    Locale.vi -> "Phát hiện lỗi không tìm thấy tài nguyên từ local server - đóng mini app"
-                                    }
-                                Log.e(PayMEMiniApp.TAG, errorMessage)
-                                    
-                                    // Chạy trên UI thread để cập nhật UI và đóng ứng dụng
-                                    activity?.runOnUiThread {
-                                        // Hiển thị thông báo lỗi
-                                        val errorDescription = when (PayMEMiniApp.locale) {
-                                            Locale.en -> "Error 404: Resource not found at path: $errorUrl"
-                                            Locale.vi -> "Lỗi 404: Không tìm thấy tài nguyên tại: $errorUrl"
-                                        }
-                                        
-                                        try {
-                                            // Tạo JSON string với định dạng phù hợp cho phương thức returnError
-                                            val errorJson = JSONObject().apply {
-                                                put("code", "RESOURCE_NOT_FOUND")
-                                                put("description", errorDescription)
-                                                put("isCloseMiniApp", true)
-                                            }.toString()
-                                            
-                                            // Sử dụng phương thức returnError để trả lỗi qua PayMEMiniApp.onError
-                                            returnError(errorJson)
-                                        } catch (e: Exception) {
-                                            Log.e(PayMEMiniApp.TAG, "Error sending error to parent: ${e.message}")
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e(PayMEMiniApp.TAG, "Error analyzing 404 response: ${e.message}")
-                        }
-                    }
-                }
-
-                override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
-                    Log.d(PayMEMiniApp.TAG, "page started $url")
-                    if (url == loadUrl) {
-                        loadingView.visibility = View.VISIBLE
-                    }
-                }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    Log.d(PayMEMiniApp.TAG, "page finished $url")
-                    loadingView.visibility = View.GONE
-                    if (url == loadUrl) {
-                        payMEUpdatePatchViewModel.setShowUpdatingUI(false)
-                        payMEUpdatePatchViewModel.setWebLoaded(true)
-                        sendNativeDeviceInfo()
-                        val notiValue = notificationViewModel.getNotificationJSON().value
-                        if (notiValue != null && notiValue.length() > 0) {
-                            activity?.let {
-                                Utils.evaluateJSWebView(
-                                    it,
-                                    myWebView!!,
-                                    "nativeNotificationOpenedApp",
-                                    notiValue.toString(),
-                                    null
-                                )
-                            }
-                            notificationViewModel.setNotificationJSON(JSONObject())
-                        }
-                        activity?.let { Utils.sendNativePref(it, myWebView!!) }
-
-                        val openMiniAppData = miniappViewModel.openMiniAppData
-                        if (openMiniAppData != null) {
-                            val json = openMiniAppData.toJsonData()
-                            val jsonOpenTypeString = JSONObject.quote(openType.toString())
-                            activity?.let {
-                                Utils.evaluateJSWebView(
-                                    it,
-                                    myWebView!!,
-                                    "openMiniApp",
-                                    Gson().toJson(json).toString(),
-                                    null
-                                )
-                                Utils.evaluateJSWebView(
-                                    it, myWebView!!, "openType", jsonOpenTypeString, null
-                                )
-                            }
-                        }
-
-                        val deeplink = deepLinkViewModel.getDeepLinkUrl().value
-                        if (!deeplink.isNullOrEmpty()) {
-                            val jsonQuoteString = JSONObject.quote(deeplink)
-                            activity?.let {
-                                Utils.evaluateJSWebView(
-                                    it, myWebView!!, "nativeLinkingOpenedApp", jsonQuoteString, null
-                                )
-                            }
-                            deepLinkViewModel.setDeepLinkUrl("")
-                        }
-                    }
-                }
-
-                override fun onReceivedError(
-                    view: WebView?, request: WebResourceRequest?, error: WebResourceError?
-                ) {
-                    super.onReceivedError(view, request, error)
-                    try {
-                        stopServer()
-                        server = WebServer("localhost", port, wwwRoot)
-                        (server as WebServer).start()
-                        Log.d(PayMEMiniApp.TAG, "start server")
-                    } catch (e: Exception) {
-                        Log.d(PayMEMiniApp.TAG, "error ${e.message}")
-                    }
-                    Log.d(PayMEMiniApp.TAG, "error https ${error?.description}")
-                }
-            }
-
-            settings.apply {
-                setSupportZoom(false)
-                textZoom = 100
-                builtInZoomControls = true
-                displayZoomControls = false
-                javaScriptEnabled = true
-                allowFileAccess = false
-                allowContentAccess = false
-                javaScriptCanOpenWindowsAutomatically = true
-                domStorageEnabled = true
-                setGeolocationEnabled(true)
-                mediaPlaybackRequiresUserGesture = false
-                loadsImagesAutomatically = true
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                allowContentAccess = true
-                mediaPlaybackRequiresUserGesture = false
-                cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-                requestFocus(View.FOCUS_DOWN)
-                useWideViewPort = true
-            }
-
-            overScrollMode = View.OVER_SCROLL_NEVER
-
-            setBackgroundColor(0)
-
-            val javaScriptInterface = JavaScriptInterface(setNativePreferences = { data: String? ->
-                activity?.let {
-                    Utils.setNativePref(
-                        it, data
-                    )
-                }
-            },
-                sendNativePreferences = { activity?.let { Utils.sendNativePref(it, this) } },
-                biometricAuthen = { data: String ->
-                    Utils.biometricAuthenticate(
-                        activity as AppCompatActivity, myWebView!!, data
-                    )
-                },
-                startCardKyc = { data: String -> startCardKyc(data) },
-                startFaceKyc = { data: String -> startFaceKyc(data) },
-                startKalapaKyc = { data: String -> startKalapaKyc(data) },
-                startKalapaNFC = { data: String -> startKalapaNFC(data) },
-                startFaceAuthen = { data: String -> startFaceAuthen(data) },
-                openSettings = { activity?.let { PermissionCameraUtil().openSetting(it) } },
-                share = { data: String -> share(data) },
-                requestPermission = { data: String -> requestPermission(data) },
-                sendNativeDeviceInfo = { sendNativeDeviceInfo() },
-                getContacts = { getContacts() },
-                nativeOpenKeyboard = {
-                    activity?.let {
-                        Utils.nativeOpenKeyboard(
-                            it, myWebView
-                        )
-                    }
-                },
-                openWebView = { data: String -> openWebView(data) },
-                onSuccess = { data: String -> returnSuccess(data) },
-                onError = { data: String -> returnError(data) },
-                closeMiniApp = { forceCloseMiniApp() },
-                openUrl = { data: String -> openUrl(data) },
-                saveQR = { data: String -> saveQR(data) },
-                changeEnv = { data: String -> changeEnv(data) },
-                changeLocale = { data: String -> changeLocale(data) },
-                setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) },
-                setModalHeight = { data: Int -> setModalHeight(data) },
-                requestNFCPermission = { _: String -> requestNFCPermission() })
-            addJavascriptInterface(javaScriptInterface, "messageHandlers")
-
-            WebStorage.getInstance().deleteAllData()
-
-            loadUrl("javascript:localStorage.clear()")
+        myWebView?.let { webView ->
+            webViewController.configure(webView, createJavaScriptInterface(webView))
         }
 
         payMEUpdatePatchViewModel.getDoneUpdate().observe(viewLifecycleOwner) {
             if (it) {
-                if (payMEUpdatePatchViewModel.getLoadDefaultSource().value == true) {
-                    unzipDefaultSource()
-                } else {
-                    unzip()
-                }
-                startServer()
-                if (loadUrl.isNotEmpty()) {
-                    activity?.runOnUiThread {
-                        myWebView!!.loadUrl(loadUrl)
-                    }
+                updateController.onDoneUpdate(
+                    loadDefaultSource = payMEUpdatePatchViewModel.getLoadDefaultSource().value == true
+                ) { url ->
+                    myWebView?.loadUrl(url)
                 }
             }
         }
         payMEUpdatePatchViewModel.getShowUpdatingUI().observe(viewLifecycleOwner) {
-            activity?.runOnUiThread {
-                if (it) {
-                    loadingView.visibility = View.GONE
-                    updatingView.visibility = View.VISIBLE
-                } else {
-                    updatingView.visibility = View.GONE
-                }
-            }
+            updateController.setUpdatingUiVisible(it)
         }
 
         payMEUpdatePatchViewModel.getIsLostConnection().observe(viewLifecycleOwner) {
             if (!it) {
-                if (payMEUpdatePatchViewModel.getIsForceUpdating().value == true) {
-                    if (versionCheckingTask != null) {
-                        if (!versionCheckingTask!!.isAlive) {
-                            versionCheckingTask?.start()
-                        }
-                    }
-                }
+                updateController.onConnectionRestoredIfForceUpdating()
             }
         }
 
@@ -1384,6 +235,50 @@ class MiniAppFragment : Fragment() {
         subWebViewViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
 
         return view
+    }
+
+    private fun createJavaScriptInterface(webView: WebView): JavaScriptInterface {
+        return JavaScriptInterface(setNativePreferences = { data: String? ->
+            activity?.let {
+                Utils.setNativePref(
+                    it, data
+                )
+            }
+        },
+            sendNativePreferences = { activity?.let { Utils.sendNativePref(it, webView) } },
+            biometricAuthen = { data: String ->
+                Utils.biometricAuthenticate(
+                    activity as AppCompatActivity, myWebView!!, data
+                )
+            },
+            startCardKyc = { data: String -> kycController.startCardKyc(data) },
+            startFaceKyc = { data: String -> kycController.startFaceKyc(data) },
+            startKalapaKyc = { data: String -> kycController.startKalapaKyc(data) },
+            startKalapaNFC = { data: String -> kycController.startKalapaNFC(data) },
+            startFaceAuthen = { data: String -> kycController.startFaceAuthen(data) },
+            openSettings = { activity?.let { PermissionCameraUtil().openSetting(it) } },
+            share = { data: String -> permissionController.share(data) },
+            requestPermission = { data: String -> permissionController.requestPermission(data) },
+            sendNativeDeviceInfo = { sendNativeDeviceInfo() },
+            getContacts = { permissionController.getContacts() },
+            nativeOpenKeyboard = {
+                activity?.let {
+                    Utils.nativeOpenKeyboard(
+                        it, myWebView
+                    )
+                }
+            },
+            openWebView = { data: String -> permissionController.openWebView(data) },
+            onSuccess = { data: String -> returnSuccess(data) },
+            onError = { data: String -> returnError(data) },
+            closeMiniApp = { forceCloseMiniApp() },
+            openUrl = { data: String -> permissionController.openUrl(data) },
+            saveQR = { data: String -> permissionController.saveQR(data) },
+            changeEnv = { data: String -> changeEnv(data) },
+            changeLocale = { data: String -> changeLocale(data) },
+            setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) },
+            setModalHeight = { data: Int -> setModalHeight(data) },
+            requestNFCPermission = { _: String -> permissionController.requestNFCPermission() })
     }
 
     private fun changeEnv(env: String) {
@@ -1431,69 +326,6 @@ class MiniAppFragment : Fragment() {
         }
     }
 
-    private fun downloadImageQR(data: String) {
-        val bitmap = Utils.generateQRCode(data)
-        Utils.saveImage(bitmap, requireContext(), getString(R.string.qr_folder), onSuccess = {
-            val response = JSONObject()
-            response.put("succeeded", true)
-            activity?.let {
-                Utils.evaluateJSWebView(
-                    it, myWebView!!, "nativeSaveQR", response.toString(), null
-                )
-            }
-        }, onError = {
-            val response = JSONObject()
-            response.put("error", "Tải mã QR thất bại")
-            activity?.let {
-                Utils.evaluateJSWebView(
-                    it, myWebView!!, "nativeSaveQR", response.toString(), null
-                )
-            }
-        })
-    }
-
-    private fun saveQR(data: String) {
-        paramsSaveQr = data
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            activity?.let {
-                Utils.nativePermissionStatus(
-                    it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED"
-                )
-            }
-            paramsSaveQr?.let { downloadImageQR(it) }
-            return
-        }
-
-        when {
-            ContextCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED"
-                    )
-                }
-                paramsSaveQr?.let { downloadImageQR(it) }
-            }
-
-            activity?.let {
-                ActivityCompat.shouldShowRequestPermissionRationale(
-                    it, Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
-            } == true -> {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "BLOCKED"
-                    )
-                }
-            }
-
-            else -> {
-                requestWriteExternalStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }
-        }
-    }
-
     private fun returnSuccess(data: String) {
         try {
             val json = JSONObject(data)
@@ -1513,6 +345,14 @@ class MiniAppFragment : Fragment() {
             val code = json.optString("code", "")
             val description = json.optString("description", "")
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
+            if (isCloseMiniApp) {
+                if (isTerminalMiniAppErrorHandled) {
+                    Log.d(PayMEMiniApp.TAG, "Ignore duplicated terminal miniapp error: $code")
+                    return
+                }
+                isTerminalMiniAppErrorHandled = true
+                stopWebViewAfterTerminalError()
+            }
             PayMEMiniApp.onError(
                 openMiniAppData.action,
                 PayMEError(PayMEErrorType.MiniApp, code, description, isCloseMiniApp)
@@ -1526,6 +366,10 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun closeMiniApp() {
+        if (isCloseMiniAppRequested) {
+            return
+        }
+        isCloseMiniAppRequested = true
         if (openType == OpenMiniAppType.modal) {
             MiniAppFragment.closeMiniApp()
         } else if (openType == OpenMiniAppType.screen) {
@@ -1540,224 +384,6 @@ class MiniAppFragment : Fragment() {
             PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
         )
         closeMiniApp()
-    }
-
-    private fun openUrl(data: String) {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, data.substring(1, data.length - 1).toUri())
-            (requireContext() as Activity).startActivity(intent)
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "openurl e ${e.message}")
-        }
-    }
-
-    private var fileChooserLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            when (result.resultCode) {
-                Activity.RESULT_CANCELED -> {
-                    Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED fileChooserLauncher")
-                    if (fileChooserCallback != null) {
-                        fileChooserCallback?.onReceiveValue(null)
-                    }
-                    fileChooserCallback = null
-                }
-
-                Activity.RESULT_OK -> {
-                    Log.d(PayMEMiniApp.TAG, "RESULT_OK fileChooserLauncher")
-                    if (fileChooserCallback == null) return@registerForActivityResult
-                    fileChooserCallback?.onReceiveValue(
-                        WebChromeClient.FileChooserParams.parseResult(
-                            result.resultCode, result.data
-                        )
-                    )
-                    fileChooserCallback = null
-                }
-            }
-        }
-
-    private fun openWebView(data: String) {
-        try {
-            val json = JSONObject(data)
-            val content = json.optString("content", "")
-            val type = json.optString("type", "")
-            val closeInstruction = json.optString("closeInstruction", "")
-            if (content.isNotEmpty() && type.isNotEmpty()) {
-                val subWebView = SubWebView(content, type, closeInstruction)
-                subWebView.show(parentFragmentManager, "SUBWEBVIEW")
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "openWebView exception: ${e.message} ")
-        }
-    }
-
-    private val requestContactsPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            activity?.let {
-                Utils.nativePermissionStatus(
-                    it, myWebView!!, "READ_CONTACTS", "GRANTED"
-                )
-            }
-            Utils.getContacts(requireContext(), myWebView!!)
-        } else {
-            activity?.let {
-                Utils.nativePermissionStatus(
-                    it, myWebView!!, "READ_CONTACTS", "DENIED"
-                )
-            }
-        }
-    }
-
-    private fun getContacts() {
-        try {
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.READ_CONTACTS
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "READ_CONTACTS", "GRANTED"
-                        )
-                    }
-                    Utils.getContacts(requireContext(), myWebView!!)
-                }
-
-                activity?.let {
-                    ActivityCompat.shouldShowRequestPermissionRationale(
-                        it, Manifest.permission.READ_CONTACTS
-                    )
-                } == true -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "READ_CONTACTS", "BLOCKED"
-                        )
-                    }
-                }
-
-                else -> {
-                    requestContactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "getContacts exception: ${e.message} ")
-        }
-    }
-
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (permissionType.isEmpty()) {
-                return@registerForActivityResult
-            }
-            if (isGranted) {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it, myWebView!!, permissionType, "GRANTED"
-                    )
-                }
-            } else {
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it, myWebView!!, permissionType, "DENIED"
-                    )
-                }
-            }
-            permissionType = ""
-        }
-
-    private fun requestPermission(data: String) {
-        try {
-            val json = JSONObject(data)
-            val type = json.optString("type", "")
-            val isCheckPermissionStatus = json.getBoolean("isCheckPermissionStatus")
-            permissionType = type
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(), "android.permission.$permissionType"
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, permissionType, "GRANTED"
-                        )
-                    }
-                }
-
-                activity?.let {
-                    ActivityCompat.shouldShowRequestPermissionRationale(
-                        it, "android.permission.$permissionType"
-                    )
-                } == true -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, permissionType, "BLOCKED"
-                        )
-                    }
-                }
-
-                else -> {
-                    if (!isCheckPermissionStatus) {
-                        when (permissionType) {
-                            "CAMERA" -> requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            "READ_EXTERNAL_STORAGE" -> requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "requestPermission exception: ${e.message} ")
-        }
-    }
-
-    private fun requestNFCPermission() {
-        try {
-            val nfcAdapter: NfcAdapter? = NfcAdapter.getDefaultAdapter(context)
-            if (nfcAdapter == null) {
-                //Thiết bị không hỗ trợ NFC
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it, myWebView!!, "NFC", "BLOCKED"
-                    )
-                }
-            } else if (!nfcAdapter.isEnabled) {
-                //NFC đã tắt. Vui lòng bật NFC trong cài đặt.
-                // Mở cài đặt NFC cho người dùng
-//                val intent = Intent(Settings.ACTION_NFC_SETTINGS)
-//                context?.startActivity(intent)
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it, myWebView!!, "NFC", "DENIED"
-                    )
-                }
-            } else {
-                // NFC đã bật, thực hiện các thao tác liên quan tới NFC ở đây
-                activity?.let {
-                    Utils.nativePermissionStatus(
-                        it, myWebView!!, "NFC", "GRANTED"
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "requestNFCPermission exception: ${e.message} ")
-        }
-    }
-
-    private fun share(data: String) {
-        try {
-            val json = JSONObject(data)
-            val title = json.optString("title", "")
-            val content = json.optString("content", "")
-            if (content.isNotEmpty() && nativeAppState == "active") {
-                val shareIntent = Intent(Intent.ACTION_SEND)
-                shareIntent.type = "text/plain"
-                shareIntent.putExtra(Intent.EXTRA_SUBJECT, title)
-                shareIntent.putExtra(Intent.EXTRA_TEXT, content)
-                shareIntent.flags =
-                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                startActivity(Intent.createChooser(shareIntent, title))
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "share exception: ${e.message} ")
-        }
     }
 
     private fun reStartWithScreen() {
@@ -1775,618 +401,6 @@ class MiniAppFragment : Fragment() {
             payMEMiniApp.openMiniApp(
                 OpenMiniAppType.screen, OpenMiniAppKYCData(it)
             )
-        }
-    }
-
-    private fun startCardKyc(data: String) {
-        try {
-            if (openType == OpenMiniAppType.modal) {
-                reStartWithScreen()
-                return
-            }
-
-            val json = JSONObject(data)
-            paramsKyc = json
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "GRANTED"
-                        )
-                    }
-                    startIdentityCardActivity(json)
-                }
-
-                activity?.let {
-                    ActivityCompat.shouldShowRequestPermissionRationale(
-                        it, Manifest.permission.CAMERA
-                    )
-                } == true -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "BLOCKED"
-                        )
-                    }
-                }
-
-                else -> {
-                    requestCardKycPermissionLauncher.launch(Manifest.permission.CAMERA)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
-        }
-    }
-
-    private fun startKalapaKyc(data: String) {
-        Log.d(PayMEMiniApp.TAG, "startKalapaKyc: ${JSONObject(data)} ")
-        try {
-            val json = JSONObject(data)
-            paramsKyc = json
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "GRANTED"
-                        )
-                    }
-                    startNFC(json)
-                }
-
-                activity?.let {
-                    ActivityCompat.shouldShowRequestPermissionRationale(
-                        it, Manifest.permission.CAMERA
-                    )
-                } == true -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "BLOCKED"
-                        )
-                    }
-                }
-
-                else -> {
-                    requestKalapaKYCPermissionLauncher.launch(Manifest.permission.CAMERA)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: ${e.message} ")
-        }
-    }
-
-    private fun startEKYC(data: JSONObject) {
-        val sessionId = data.optString("token", "")
-        if (sessionId != "") {
-            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext() as Activity)
-                .withBackgroundColor("#FFFFFF")
-                .withMainColor("#33CB33")
-                .withLivenessVersion(0)
-                .withNFCTimeoutInSeconds(180)
-                .withLanguage(PayMEMiniApp.locale.toString())
-                .requireQRCode(true)
-                .withSpecificLanguageForCustomer("payme")
-                .build()
-            val klpHandler = object : KalapaHandler() {
-
-                override fun onComplete(kalapaResult: KalapaResult) {
-                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
-                    val action = data.optString("action", "")
-                    val payload = data.optString("payload", "")
-                    val response = JSONObject()
-                    if (action != "") {
-                        response.put("action", action)
-                        if (payload != "" && action != "KLP_KYC") {
-                            try {
-                                response.put("payload", JSONObject(payload))
-                            } catch (e: JSONException) {
-                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                            }
-                        }
-                    } else {
-                        response.put("action", "KLP_KYC")
-                    }
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                        )
-                    }
-                }
-
-                override fun onNFCErrorHandle(
-                    activity: Activity, error: KalapaScanNFCError, callback: KalapaScanNFCCallback
-                ) {
-                    Log.d(PayMEMiniApp.TAG, """NFC error handle: $error""")
-                    val action = data.optString("action", "")
-                    val payload = data.optString("payload", "")
-                    val response = JSONObject()
-                    if (action != "") {
-                        response.put("action", action)
-                        if (payload != "" && action != "KLP_KYC") {
-                            try {
-                                response.put("payload", JSONObject(payload))
-                            } catch (e: JSONException) {
-                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                            }
-                        }
-                    } else {
-                        response.put("action", "KLP_KYC")
-                    }
-                    if (error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
-                        response.put("isTimeout", true)
-                        activity.let {
-                            Utils.evaluateJSWebView(
-                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                            )
-                        }
-                        callback.close {}
-                    } else if (error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH) {
-                        response.put("isFaceNotMatch", true)
-                        activity.let {
-                            Utils.evaluateJSWebView(
-                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                            )
-                        }
-                        callback.close {}
-                    } else if (error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH) {
-                        response.put("isInfoNotMatch", true)
-                        activity.let {
-                            Utils.evaluateJSWebView(
-                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                            )
-                        }
-                        callback.close {}
-                    }
-                }
-
-                override fun onError(resultCode: KalapaSDKResultCode) {
-                    Log.d(PayMEMiniApp.TAG, """startNFC error: $resultCode""")
-                }
-
-                override fun onExpired() {
-                    // This handler is called when current session goes expired and user clicks the Retry button in the popup.
-                }
-
-            }
-            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig).build()
-                .start(sessionId, "nfc_only", klpHandler)
-//            startFullEKYC(
-//                requireActivity(),
-//                sessionId,
-//                flowType.toString().lowercase(),
-//                sdkConfig,
-//                object : KalapaHandler() {
-//                    override fun onError(resultCode: KalapaSDKResultCode) {
-//                        Log.d(PayMEMiniApp.TAG, """startEKYC error: $resultCode""")
-//                    }
-//
-//                    override fun onComplete(kalapaResult: KalapaResult) {
-//                        Log.d(PayMEMiniApp.TAG, """startEKYC onComplete: $kalapaResult""")
-//                        val response = JSONObject()
-//                        response.put("token", sessionId)
-//                        response.put("fieldType", kalapaResult.type)
-//                        activity?.let {
-//                            Utils.evaluateJSWebView(
-//                                it,
-//                                myWebView!!,
-//                                "nativeKalapaKYC",
-//                                response.toString(),
-//                                null
-//                            )
-//                        }
-//                    }
-//                })
-//            null
-        } else {
-            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
-        }
-    }
-
-    private fun startKalapaNFC(data: String) {
-        Log.d(PayMEMiniApp.TAG, "startKalapaNFC: ${JSONObject(data)} ")
-        try {
-            val json = JSONObject(data)
-            paramsKyc = json
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "GRANTED"
-                        )
-                    }
-                    startNFC(json)
-                }
-
-                activity?.let {
-                    ActivityCompat.shouldShowRequestPermissionRationale(
-                        it, Manifest.permission.CAMERA
-                    )
-                } == true -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "BLOCKED"
-                        )
-                    }
-                }
-
-                else -> {
-                    requestKalapaNFCPermissionLauncher.launch(Manifest.permission.CAMERA)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "startKalapaNfc exception: ${e.message} ")
-        }
-    }
-
-    private fun startNFC(data: JSONObject) {
-        val sessionId = data.optString("token", "")
-        if (sessionId != "") {
-            val sdkConfig = KalapaSDKConfig.KalapaSDKConfigBuilder(requireContext() as Activity)
-                .withBackgroundColor("#FFFFFF")
-                .withMainColor("#33CB33")
-                .withLivenessVersion(0)
-                .withNFCTimeoutInSeconds(180)
-                .withLanguage(PayMEMiniApp.locale.toString())
-                .withSpecificLanguageForCustomer("payme")
-                .requireQRCode(true)
-                .build()
-            val klpHandler = object : KalapaHandler() {
-
-                override fun onComplete(kalapaResult: KalapaResult) {
-                    Log.d(PayMEMiniApp.TAG, """Kalapa NFC complete: $kalapaResult""")
-                    val action = data.optString("action", "")
-                    val payload = data.optString("payload", "")
-                    val response = JSONObject()
-                    if (action != "") {
-                        response.put("action", action)
-                        if (payload != "" && action != "KLP_KYC") {
-                            try {
-                                response.put("payload", JSONObject(payload))
-                            } catch (e: JSONException) {
-                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                            }
-                        }
-                    } else {
-                        response.put("action", "KLP_KYC")
-                    }
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                        )
-                    }
-                }
-
-                override fun onNFCErrorHandle(
-                    activity: Activity, error: KalapaScanNFCError, callback: KalapaScanNFCCallback
-                ) {
-                    Log.d(PayMEMiniApp.TAG, """NFC error handle: $error""")
-                    val action = data.optString("action", "")
-                    val payload = data.optString("payload", "")
-                    val response = JSONObject()
-                    if (action != "") {
-                        response.put("action", action)
-                        if (payload != "" && action != "KLP_KYC") {
-                            try {
-                                response.put("payload", JSONObject(payload))
-                            } catch (e: JSONException) {
-                                Log.e(PayMEMiniApp.TAG, "Failed to parse payload as JSON", e)
-                            }
-                        }
-                    } else {
-                        response.put("action", "KLP_KYC")
-                    }
-                    if (error == KalapaScanNFCError.ERROR_NFC_TIMEOUT) {
-                        response.put("isTimeout", true)
-                        activity.let {
-                            Utils.evaluateJSWebView(
-                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                            )
-                        }
-                        callback.close {}
-                    } else if (error == KalapaScanNFCError.ERROR_FACE_NOT_MATCH) {
-                        response.put("isFaceNotMatch", true)
-                        activity.let {
-                            Utils.evaluateJSWebView(
-                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                            )
-                        }
-                        callback.close {}
-                    } else if (error == KalapaScanNFCError.ERROR_NFC_INFO_NOT_MATCH) {
-                        response.put("isInfoNotMatch", true)
-                        activity.let {
-                            Utils.evaluateJSWebView(
-                                it, myWebView!!, "nativeKalapaNFC", response.toString(), null
-                            )
-                        }
-                        callback.close {}
-                    }
-                }
-
-                override fun onError(resultCode: KalapaSDKResultCode) {
-                    Log.d(PayMEMiniApp.TAG, """startNFC error: $resultCode""")
-                }
-
-                override fun onExpired() {
-                    // This handler is called when current session goes expired and user clicks the Retry button in the popup.
-                }
-
-            }
-            KalapaSDK.KalapaSDKBuilder(requireActivity(), sdkConfig).build()
-                .start(sessionId, "nfc_only", klpHandler)
-        } else {
-            Log.d(PayMEMiniApp.TAG, "startKalapaKyc exception: sessionId null")
-        }
-    }
-
-    private fun startFaceKyc(data: String) {
-        try {
-            val json = JSONObject(data)
-            paramsKyc = json
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "GRANTED"
-                        )
-                    }
-                    startFaceDetectorActivity(json)
-                }
-
-                activity?.let {
-                    ActivityCompat.shouldShowRequestPermissionRationale(
-                        it, Manifest.permission.CAMERA
-                    )
-                } == true -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "BLOCKED"
-                        )
-                    }
-                }
-
-                else -> {
-                    requestFaceKycPermissionLauncher.launch(Manifest.permission.CAMERA)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
-        }
-    }
-
-    private fun startIdentityCardActivity(data: JSONObject) {
-        val intent = Intent(requireContext(), IdentityCardActivity::class.java)
-        val title = data.optString("title", "")
-        val type = data.optString("type", "FRONT")
-        val description = data.optString("description", "")
-        val toastError = data.optString("toastError", "")
-        intent.putExtra("title", title)
-        intent.putExtra("type", type)
-        intent.putExtra("description", description)
-        intent.putExtra("toastError", toastError)
-        identityCardLauncher.launch(intent)
-    }
-
-    private var identityCardLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            when (result.resultCode) {
-                Activity.RESULT_CANCELED -> Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
-                Activity.RESULT_OK -> {
-                    val resultData = result.data
-                    val fileName = resultData?.extras?.getString("title")
-                    val type = resultData?.extras?.getString("type") ?: "FRONT"
-                    val responseCardKyc = JSONObject()
-                    responseCardKyc.put("image", fileName)
-                    responseCardKyc.put("type", type)
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it, myWebView!!, "nativeCardKYC", responseCardKyc.toString(), null
-                        )
-                    }
-                }
-            }
-        }
-
-    private fun startFaceDetectorActivity(data: JSONObject) {
-        val title = data.optString("title", "")
-        val jsonArray = JSONArray()
-        jsonArray.put(getString(R.string.face_detector_hint1))
-        jsonArray.put(getString(R.string.face_detector_hint2))
-        jsonArray.put(getString(R.string.face_detector_hint3))
-        val hints: JSONArray = data.optJSONArray("hints") ?: jsonArray
-        val intent = Intent(requireContext(), com.payme.sdk.ui.FaceDetectorActivity::class.java)
-        intent.putExtra("title", title)
-        intent.putExtra("hint1", hints.get(0) as String)
-        intent.putExtra("hint2", hints.get(1) as String)
-        intent.putExtra("hint3", hints.get(2) as String)
-        faceDetectorLauncher.launch(intent)
-    }
-
-    private var faceDetectorLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            when (result.resultCode) {
-                Activity.RESULT_CANCELED -> Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
-                Activity.RESULT_OK -> {
-                    val images3 = JSONArray()
-                    images3.put("images/kycFace1.jpeg")
-                    images3.put("images/kycFace2.jpeg")
-                    images3.put("images/kycFace3.jpeg")
-                    val responseFaceKyc = JSONObject().put("images", images3)
-                    Log.d(PayMEMiniApp.TAG, "responseFaceKyc: $responseFaceKyc ")
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it, myWebView!!, "nativeFaceKYC", responseFaceKyc.toString(), null
-                        )
-                    }
-                }
-            }
-        }
-
-    private fun startFaceAuthen(data: String) {
-        try {
-            val json = JSONObject(data)
-            paramsKyc = json
-            when {
-                ContextCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "GRANTED"
-                        )
-                    }
-                    startFaceAuthenticationActivity(json)
-                }
-
-                activity?.let {
-                    ActivityCompat.shouldShowRequestPermissionRationale(
-                        it, Manifest.permission.CAMERA
-                    )
-                } == true -> {
-                    activity?.let {
-                        Utils.nativePermissionStatus(
-                            it, myWebView!!, "CAMERA", "BLOCKED"
-                        )
-                    }
-                }
-
-                else -> {
-                    requestFaceAuthPermissionLauncher.launch(Manifest.permission.CAMERA)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "startCardKyc exception: ${e.message} ")
-        }
-    }
-
-    private fun startFaceAuthenticationActivity(data: JSONObject) {
-        faceAuthenData = data
-        Log.d(PayMEMiniApp.TAG, "faceAuthenData: $faceAuthenData , $data ")
-        val title = data.optString("title", "")
-        val jsonArray = JSONArray()
-        jsonArray.put(getString(R.string.face_detector_hint1))
-        val hints: JSONArray = data.optJSONArray("hints") ?: jsonArray
-        val intent =
-            Intent(requireContext(), com.payme.sdk.ui.FaceAuthenticationActivity::class.java)
-        intent.putExtra("title", title)
-        intent.putExtra("hint1", hints.get(0) as String)
-        faceAuthenticationLauncher.launch(intent)
-    }
-
-    private var faceAuthenticationLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            when (result.resultCode) {
-                Activity.RESULT_CANCELED -> {
-                    val responseFaceAuthen = JSONObject()
-                    val action = faceAuthenData?.optString("action", "")
-                    val payload = faceAuthenData?.optString("payload", "")
-                    responseFaceAuthen.put("action", action)
-                    responseFaceAuthen.put("payload", payload?.let { JSONObject(it) })
-                    responseFaceAuthen.put("error", "CLOSE")
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it, myWebView!!, "nativeFaceAuthen", responseFaceAuthen.toString(), null
-                        )
-                    }
-                    Log.d(PayMEMiniApp.TAG, "RESULT_CANCELED")
-                }
-
-                Activity.RESULT_OK -> {
-                    val resultData = result.data
-                    val image = resultData?.extras?.getString("image")
-                    val action = faceAuthenData?.optString("action", "")
-                    val payload = faceAuthenData?.optString("payload", "")
-                    val responseFaceAuthen = JSONObject()
-                    responseFaceAuthen.put("image", image)
-                    responseFaceAuthen.put("action", action)
-                    responseFaceAuthen.put("payload", payload?.let { JSONObject(it) })
-                    Log.d(PayMEMiniApp.TAG, "responseFaceAuthen: $responseFaceAuthen")
-                    activity?.let {
-                        Utils.evaluateJSWebView(
-                            it, myWebView!!, "nativeFaceAuthen", responseFaceAuthen.toString(), null
-                        )
-                    }
-                }
-            }
-        }
-
-    private val requestWriteExternalStoragePermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            activity?.let {
-                Utils.nativePermissionStatus(
-                    it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "GRANTED"
-                )
-            }
-            paramsSaveQr?.let { downloadImageQR(it) }
-        } else {
-            activity?.let {
-                Utils.nativePermissionStatus(
-                    it, myWebView!!, "WRITE_EXTERNAL_STORAGE", "DENIED"
-                )
-            }
-        }
-    }
-
-    private val requestCardKycPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-            paramsKyc?.let { startIdentityCardActivity(it) }
-        } else {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-        }
-    }
-
-    private val requestFaceKycPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-            paramsKyc?.let { startFaceDetectorActivity(it) }
-        } else {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-        }
-    }
-
-    private val requestKalapaKYCPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-            paramsKyc?.let { startEKYC(it) }
-        } else {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-        }
-    }
-
-    private val requestKalapaNFCPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-            paramsKyc?.let { startNFC(it) }
-        } else {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
-        }
-    }
-
-    private val requestFaceAuthPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "GRANTED") }
-            paramsKyc?.let { startFaceAuthenticationActivity(it) }
-        } else {
-            activity?.let { Utils.nativePermissionStatus(it, myWebView!!, "CAMERA", "DENIED") }
         }
     }
 
@@ -2471,7 +485,7 @@ class MiniAppFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         miniappViewModel.openMiniAppData = openMiniAppData
-        stopServer()
+        updateController.dispose()
         Log.d("PAYMELOG", "on onDestroy " + miniappViewModel.openMiniAppData.toString())
         subWebViewViewModel.getEvaluateJsData().removeObserver(evaluateJsDataObserver)
     }
@@ -2498,6 +512,8 @@ class MiniAppFragment : Fragment() {
     }
 
     companion object {
+        private const val HTTP_STATUS_UNAUTHORIZED = 401
+
         internal lateinit var openMiniAppData: OpenMiniAppDataInterface
         internal var openType: OpenMiniAppType = OpenMiniAppType.screen
         internal lateinit var closeMiniApp: () -> Unit
