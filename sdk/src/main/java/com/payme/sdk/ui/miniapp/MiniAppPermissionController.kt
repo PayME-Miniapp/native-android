@@ -16,7 +16,9 @@ import androidx.fragment.app.Fragment
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.ui.SubWebView
-import com.payme.sdk.utils.Utils
+import com.payme.sdk.utils.ContactsReader
+import com.payme.sdk.utils.QrImageStore
+import com.payme.sdk.utils.WebViewJsDispatcher
 import org.json.JSONObject
 
 internal class MiniAppPermissionController(
@@ -32,7 +34,7 @@ internal class MiniAppPermissionController(
             val activity = fragment.activity
             val webView = webViewProvider()
             if (activity != null && webView != null) {
-                Utils.nativePermissionStatus(
+                WebViewJsDispatcher.nativePermissionStatus(
                     activity, webView, "WRITE_EXTERNAL_STORAGE",
                     if (isGranted) "GRANTED" else "DENIED"
                 )
@@ -47,12 +49,12 @@ internal class MiniAppPermissionController(
             val activity = fragment.activity
             val webView = webViewProvider()
             if (activity != null && webView != null) {
-                Utils.nativePermissionStatus(
+                    WebViewJsDispatcher.nativePermissionStatus(
                     activity, webView, "READ_CONTACTS",
                     if (isGranted) "GRANTED" else "DENIED"
                 )
                 if (isGranted) {
-                    Utils.getContacts(fragment.requireContext(), webView)
+                    ContactsReader.sendContacts(fragment.requireContext(), webView)
                 }
             }
         }
@@ -65,7 +67,7 @@ internal class MiniAppPermissionController(
             val activity = fragment.activity
             val webView = webViewProvider()
             if (activity != null && webView != null) {
-                Utils.nativePermissionStatus(
+                WebViewJsDispatcher.nativePermissionStatus(
                     activity, webView, permissionType,
                     if (isGranted) "GRANTED" else "DENIED"
                 )
@@ -81,7 +83,7 @@ internal class MiniAppPermissionController(
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Utils.nativePermissionStatus(activity, webView, "WRITE_EXTERNAL_STORAGE", "GRANTED")
+            WebViewJsDispatcher.nativePermissionStatus(activity, webView, "WRITE_EXTERNAL_STORAGE", "GRANTED")
             paramsSaveQr?.let { downloadImageQR(it) }
             return
         }
@@ -90,14 +92,14 @@ internal class MiniAppPermissionController(
             ContextCompat.checkSelfPermission(
                 fragment.requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED -> {
-                Utils.nativePermissionStatus(activity, webView, "WRITE_EXTERNAL_STORAGE", "GRANTED")
+                WebViewJsDispatcher.nativePermissionStatus(activity, webView, "WRITE_EXTERNAL_STORAGE", "GRANTED")
                 paramsSaveQr?.let { downloadImageQR(it) }
             }
 
             ActivityCompat.shouldShowRequestPermissionRationale(
                 activity, Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) -> {
-                Utils.nativePermissionStatus(activity, webView, "WRITE_EXTERNAL_STORAGE", "BLOCKED")
+                WebViewJsDispatcher.nativePermissionStatus(activity, webView, "WRITE_EXTERNAL_STORAGE", "BLOCKED")
             }
 
             else -> {
@@ -117,14 +119,14 @@ internal class MiniAppPermissionController(
                 ContextCompat.checkSelfPermission(
                     fragment.requireContext(), Manifest.permission.READ_CONTACTS
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    Utils.nativePermissionStatus(activity, webView, "READ_CONTACTS", "GRANTED")
-                    Utils.getContacts(fragment.requireContext(), webView)
+                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, "READ_CONTACTS", "GRANTED")
+                    ContactsReader.sendContacts(fragment.requireContext(), webView)
                 }
 
                 ActivityCompat.shouldShowRequestPermissionRationale(
                     activity, Manifest.permission.READ_CONTACTS
                 ) -> {
-                    Utils.nativePermissionStatus(activity, webView, "READ_CONTACTS", "BLOCKED")
+                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, "READ_CONTACTS", "BLOCKED")
                 }
 
                 else -> {
@@ -152,11 +154,11 @@ internal class MiniAppPermissionController(
                 ContextCompat.checkSelfPermission(
                     fragment.requireContext(), androidPermission
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    Utils.nativePermissionStatus(activity, webView, permissionType, "GRANTED")
+                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, permissionType, "GRANTED")
                 }
 
                 ActivityCompat.shouldShowRequestPermissionRationale(activity, androidPermission) -> {
-                    Utils.nativePermissionStatus(activity, webView, permissionType, "BLOCKED")
+                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, permissionType, "BLOCKED")
                 }
 
                 else -> {
@@ -183,15 +185,15 @@ internal class MiniAppPermissionController(
             val nfcAdapter: NfcAdapter? = NfcAdapter.getDefaultAdapter(fragment.context)
             when {
                 nfcAdapter == null -> {
-                    Utils.nativePermissionStatus(activity, webView, "NFC", "BLOCKED")
+                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, "NFC", "BLOCKED")
                 }
 
                 !nfcAdapter.isEnabled -> {
-                    Utils.nativePermissionStatus(activity, webView, "NFC", "DENIED")
+                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, "NFC", "DENIED")
                 }
 
                 else -> {
-                    Utils.nativePermissionStatus(activity, webView, "NFC", "GRANTED")
+                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, "NFC", "GRANTED")
                 }
             }
         } catch (e: Exception) {
@@ -248,15 +250,15 @@ internal class MiniAppPermissionController(
         if (activity == null || webView == null) {
             return
         }
-        val bitmap = Utils.generateQRCode(data)
-        Utils.saveImage(bitmap, fragment.requireContext(), fragment.getString(R.string.qr_folder), onSuccess = {
+        val bitmap = QrImageStore.generateQRCode(data)
+        QrImageStore.saveImage(bitmap, fragment.requireContext(), fragment.getString(R.string.qr_folder), onSuccess = {
             val response = JSONObject()
             response.put("succeeded", true)
-            Utils.evaluateJSWebView(activity, webView, "nativeSaveQR", response.toString(), null)
+            WebViewJsDispatcher.evaluate(activity, webView, "nativeSaveQR", response.toString())
         }, onError = {
             val response = JSONObject()
             response.put("error", "Tải mã QR thất bại")
-            Utils.evaluateJSWebView(activity, webView, "nativeSaveQR", response.toString(), null)
+            WebViewJsDispatcher.evaluate(activity, webView, "nativeSaveQR", response.toString())
         })
     }
 }

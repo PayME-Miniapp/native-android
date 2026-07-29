@@ -89,27 +89,7 @@ class SubWebView(
                     }
                     loading.visibility = View.VISIBLE
                     val newWebView = WebView(requireContext())
-                    newWebView.settings.apply {
-                        setSupportZoom(true)
-                        textZoom = 100
-                        useWideViewPort = true
-                        loadWithOverviewMode = true
-                        builtInZoomControls = true
-                        displayZoomControls = false
-                        javaScriptEnabled = true
-                        javaScriptCanOpenWindowsAutomatically = true
-                        setSupportMultipleWindows(true)
-                        domStorageEnabled = true
-                        setGeolocationEnabled(true)
-                        userAgentString = System.getProperty("http.agent")
-                        mediaPlaybackRequiresUserGesture = false
-                        loadsImagesAutomatically = true
-                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                        allowContentAccess = true
-                        mediaPlaybackRequiresUserGesture = false
-                        cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-                        requestFocus(View.FOCUS_DOWN)
-                    }
+                    SubWebViewSettingsConfigurator.configure(newWebView, useOverview = true)
                     subWebView = newWebView
                     newWebView.layoutParams = LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
@@ -265,24 +245,7 @@ class SubWebView(
                 }
             }
 
-            settings.apply {
-                setSupportZoom(true)
-                textZoom = 100
-                builtInZoomControls = true
-                displayZoomControls = false
-                javaScriptEnabled = true
-                javaScriptCanOpenWindowsAutomatically = true
-                setSupportMultipleWindows(true)
-                domStorageEnabled = true
-                setGeolocationEnabled(true)
-                mediaPlaybackRequiresUserGesture = false
-                loadsImagesAutomatically = true
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                allowContentAccess = true
-                mediaPlaybackRequiresUserGesture = false
-                cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-                requestFocus(View.FOCUS_DOWN)
-            }
+            SubWebViewSettingsConfigurator.configure(this, useOverview = false)
             overScrollMode = View.OVER_SCROLL_NEVER
             setBackgroundColor(0)
             if (type == "url") {
@@ -322,4 +285,3 @@ class SubWebView(
         myWebView!!.destroy()
     }
 }
-

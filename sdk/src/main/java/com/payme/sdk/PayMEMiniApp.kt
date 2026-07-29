@@ -6,9 +6,10 @@ import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.models.*
 import com.payme.sdk.presentation.AccountPresentation
+import com.payme.sdk.runtime.PayMEConfig
+import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.ui.MiniAppActivity
 import com.payme.sdk.ui.MiniAppBottomSheetDialog
-import com.payme.sdk.ui.MiniAppFragment
 import com.payme.sdk.utils.MixpanelUtil
 import org.json.JSONObject
 
@@ -20,6 +21,8 @@ class PayMEMiniApp(
     env: ENV = ENV.PRODUCTION,
     locale: Locale = Locale.vi
 ) {
+    private var activeSessionId: String? = null
+
     companion object {
         var TAG: String = "PAYMELOG"
         internal var appId: String = ""
@@ -41,11 +44,9 @@ class PayMEMiniApp(
     }
 
     init {
-        PayMEMiniApp.appId = appId
-        PayMEMiniApp.publicKey = publicKey.trim().replace("  ", "").replace("\n", "")
-        PayMEMiniApp.privateKey = privateKey.trim().replace("  ", "").replace("\n", "")
-        PayMEMiniApp.env = env
-        PayMEMiniApp.locale = locale
+        val config = PayMEConfig.create(appId, publicKey, privateKey, env, locale)
+        PayMERuntime.initialize(config)
+        syncLegacyConfig(config)
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
         
         // Áp dụng cấu hình ngôn ngữ ngay khi khởi tạo
@@ -83,32 +84,39 @@ class PayMEMiniApp(
     ) {
         onResponse?.let {
             PayMEMiniApp.onResponse = it
+            PayMERuntime.updateCallbacks { callbacks -> callbacks.onResponse = it }
         }
         onError?.let {
             PayMEMiniApp.onError = it
+            PayMERuntime.updateCallbacks { callbacks -> callbacks.onError = it }
         }
     }
 
     fun getBalance(
         phone: String,
     ) {
+        val callbacks = PayMERuntime.callbacks()
         AccountPresentation.getBalance(
-            context, phone, onResponse, onError
+            context, phone, callbacks.onResponse, callbacks.onError
         )
     }
 
     fun getAccountInformation(
         phone: String,
     ) {
+        val callbacks = PayMERuntime.callbacks()
         AccountPresentation.getAccountInfo(
-            context, phone, onResponse, onError
+            context, phone, callbacks.onResponse, callbacks.onError
         )
     }
 
     fun close() {
-        if (isOpen) {
-            MiniAppFragment.closeMiniApp()
-        }
+        val sessionId = activeSessionId ?: PayMERuntime.activeSession()?.id
+        val session = PayMERuntime.getSession(sessionId)
+        session?.isCloseRequested = true
+        PayMERuntime.closeSession(sessionId)
+        PayMERuntime.removeSession(sessionId)
+        activeSessionId = null
     }
 
     fun openMiniApp(
@@ -116,74 +124,77 @@ class PayMEMiniApp(
         openMiniAppData: OpenMiniAppDataInterface,
     ) {
         try {
-            isOpen = true
+            val session = PayMERuntime.createSession(openType, openMiniAppData)
+            activeSessionId = session.id
+            PayMERuntime.activate(session.id)
             when (openType) {
                 OpenMiniAppType.modal -> {
-                    val modal = MiniAppBottomSheetDialog()
-                    MiniAppFragment.openType = openType
-                    MiniAppFragment.openMiniAppData = openMiniAppData
-                    MiniAppFragment.closeMiniApp = {
+                    val modal = MiniAppBottomSheetDialog.newInstance(session.id)
+                    session.closeAction = {
+                        PayMERuntime.markSessionClosed(session.id)
                         modal.dismiss()
-                        isOpen = false
                     }
                     modal.show((context as FragmentActivity).supportFragmentManager, null)
                 }
                 OpenMiniAppType.screen -> {
-                    MiniAppFragment.openType = openType
-                    MiniAppFragment.openMiniAppData = openMiniAppData
-                    MiniAppFragment.closeMiniApp = {
-                        isOpen = false
+                    session.closeAction = {
+                        PayMERuntime.markSessionClosed(session.id)
                     }
                     val intent = Intent(context, MiniAppActivity::class.java)
+                    intent.putExtra(PayMERuntime.EXTRA_SESSION_ID, session.id)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                 }
             }
         } catch (e: Exception) {
-            isOpen = false
+            PayMERuntime.syncLegacyOpenState()
             Log.d(TAG, "ex cast: ${e.message}")
         }
     }
 
     fun setMode(mode: String) {
-        if (appId == "") {
+        if (PayMERuntime.currentConfig() == null) {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.mode = mode
+            PayMERuntime.updateConfigs { config -> config.mode = mode }
         }
     }
 
     fun setLanguage(lang: Locale) {
-        if (appId == "") {
+        if (PayMERuntime.currentConfig() == null) {
             error("PayMEMiniApp instance is not initialized")
         } else {
-            locale = lang
+            PayMEMiniApp.locale = lang
+            PayMERuntime.updateConfigs { config -> config.locale = lang }
             
             // Áp dụng cấu hình ngôn ngữ mới
             applyLanguageConfiguration(lang)
             
             // Thông báo thay đổi ngôn ngữ cho các module khác nếu cần
-            onChangeLocale?.invoke(lang.toString())
+            PayMERuntime.callbacks().onChangeLocale?.invoke(lang.toString())
         }
     }
 
     fun setChangeEnvFunction(
         onChangeEnv: ((String) -> Unit)? = null,
     ) {
-        if (appId == "") {
+        if (PayMERuntime.currentConfig() == null) {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onChangeEnv = onChangeEnv
+            PayMERuntime.updateCallbacks { callbacks -> callbacks.onChangeEnv = onChangeEnv }
         }
     }
 
     fun setChangeLocaleFunction(
         onChangeLocale: ((String) -> Unit)? = null,
     ) {
-        if (appId == "") {
+        if (PayMERuntime.currentConfig() == null) {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onChangeLocale = onChangeLocale
+            PayMERuntime.updateCallbacks { callbacks -> callbacks.onChangeLocale = onChangeLocale }
         }
     }
 
@@ -191,11 +202,24 @@ class PayMEMiniApp(
         onOneSignalSendTags: ((String) -> Unit)? = null,
         onOneSignalDeleteTags: ((String) -> Unit)? = null,
     ) {
-        if (appId == "") {
+        if (PayMERuntime.currentConfig() == null) {
             error("PayMEMiniApp instance is not initialized")
         } else {
             PayMEMiniApp.onOneSignalSendTags = onOneSignalSendTags
             PayMEMiniApp.onOneSignalDeleteTags = onOneSignalDeleteTags
+            PayMERuntime.updateCallbacks { callbacks ->
+                callbacks.onOneSignalSendTags = onOneSignalSendTags
+                callbacks.onOneSignalDeleteTags = onOneSignalDeleteTags
+            }
         }
+    }
+
+    private fun syncLegacyConfig(config: PayMEConfig) {
+        PayMEMiniApp.appId = config.appId
+        PayMEMiniApp.publicKey = config.publicKey
+        PayMEMiniApp.privateKey = config.privateKey
+        PayMEMiniApp.env = config.env
+        PayMEMiniApp.locale = config.locale
+        PayMEMiniApp.mode = config.mode
     }
 }

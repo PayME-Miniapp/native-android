@@ -11,9 +11,9 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven {
-            url 'https://jitpack.io'
+            url = uri('https://jitpack.io')
         }
-        maven { url 'https://raw.githubusercontent.com/iProov/android/master/maven/' }
+        maven { url = uri('https://raw.githubusercontent.com/iProov/android/master/maven/') }
     }
 }
 rootProject.name = "PayME-Android-Sdk"

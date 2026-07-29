@@ -27,11 +27,13 @@
   <string name="unzip_failed">Failed to unzip source files</string>
   <string name="download_progress">%1$s / %2$s (%3$s/s)</string>
   <string name="download_progress_detail">%1$s/%2$s · %3$s/s · %4$s</string>
+  <string name="download_unknown_size">Unknown</string>
   <string name="connection_type">Connection: %s</string>
   <string name="loading_interrupted">Download interrupted</string>
   <string name="loading_error_occurred">An error occurred during loading</string>
   <string name="download_slow_connection">Slow connection, downloading…</string>
   <string name="download_timeout">Download timed out</string>
+  <string name="insufficient_storage">Not enough storage to update data</string>
 
   <!-- Connection types -->
   <string name="connection_wifi">WiFi</string>

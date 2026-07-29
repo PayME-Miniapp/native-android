@@ -1,18 +1,13 @@
 package com.payme.sdk.ui
 
 import android.app.Activity
-import android.graphics.Rect
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.google.gson.Gson
 import com.payme.sdk.PayMEMiniApp
@@ -24,16 +19,21 @@ import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.getPhoneFromOpenMiniAppData
+import com.payme.sdk.runtime.MiniAppSession
+import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.NetworkMonitor
-import com.payme.sdk.utils.PermissionCameraUtil
-import com.payme.sdk.utils.Utils
+import com.payme.sdk.utils.WebViewJsDispatcher
 import com.payme.sdk.ui.miniapp.MiniAppBackPressCallback
+import com.payme.sdk.ui.miniapp.MiniAppBridgeFactory
 import com.payme.sdk.ui.miniapp.MiniAppDeviceInfoBuilder
+import com.payme.sdk.ui.miniapp.MiniAppFragmentObserverBinder
+import com.payme.sdk.ui.miniapp.MiniAppKeyboardHeightDispatcher
 import com.payme.sdk.ui.miniapp.MiniAppKycController
 import com.payme.sdk.ui.miniapp.MiniAppPermissionController
 import com.payme.sdk.ui.miniapp.MiniAppUpdateController
 import com.payme.sdk.ui.miniapp.MiniAppWebViewController
+import com.payme.sdk.ui.miniapp.MiniAppWebViewRefreshGuard
 import com.payme.sdk.ui.miniapp.MiniAppViews
 import com.payme.sdk.viewmodels.DeepLinkViewModel
 import com.payme.sdk.viewmodels.MiniappViewModel
@@ -45,11 +45,12 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class MiniAppFragment : Fragment() {
+    private lateinit var session: MiniAppSession
+    private var sessionId: String? = null
     private lateinit var views: MiniAppViews
     private var rootView: View? = null
     private var myWebView: WebView? = null
-    private val refreshHandler = Handler(Looper.getMainLooper())
-    private var isWebViewRefreshCheckNeeded = false
+    private val webViewRefreshGuard = MiniAppWebViewRefreshGuard { myWebView }
 
     private var nativeAppState = "active"
     private var listScreenBackBlocked = JSONArray()
@@ -64,6 +65,30 @@ class MiniAppFragment : Fragment() {
     private lateinit var payMEUpdatePatchViewModel: PayMEUpdatePatchViewModel
     private lateinit var miniappViewModel: MiniappViewModel
 
+    private val openMiniAppData: OpenMiniAppDataInterface
+        get() = session.openMiniAppData
+
+    private val openType: OpenMiniAppType
+        get() = session.openType
+
+    private var loadUrl: String
+        get() = session.loadUrl
+        set(value) {
+            session.loadUrl = value
+        }
+
+    private var webViewUrl: String
+        get() = session.webViewUrl
+        set(value) {
+            session.webViewUrl = value
+        }
+
+    private var modalHeight: Int
+        get() = session.modalHeight
+        set(value) {
+            session.modalHeight = value
+        }
+
     private fun sendNativeDeviceInfo() {
         val safeContext = context ?: return
         val safeRootView = rootView ?: return
@@ -75,14 +100,14 @@ class MiniAppFragment : Fragment() {
         )
 
         activity?.let {
-            Utils.evaluateJSWebView(
-                it, myWebView!!, "nativeDeviceInfo", deviceInfo.toString(), null
+            WebViewJsDispatcher.evaluate(
+                it, myWebView!!, "nativeDeviceInfo", deviceInfo.toString()
             )
         }
     }
 
     private fun stopWebViewAfterTerminalError() {
-        refreshHandler.removeCallbacksAndMessages(null)
+        webViewRefreshGuard.clear()
         myWebView?.stopLoading()
         myWebView?.removeJavascriptInterface("messageHandlers")
     }
@@ -105,6 +130,13 @@ class MiniAppFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sessionId = arguments?.getString(PayMERuntime.EXTRA_SESSION_ID)
+            ?: activity?.intent?.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)
+            ?: PayMERuntime.activeSession()?.id
+        session = PayMERuntime.getSession(sessionId)
+            ?: error("Missing miniapp session")
+        PayMERuntime.activate(session.id)
+
         requireActivity().onBackPressedDispatcher.addCallback(
             this,
             MiniAppBackPressCallback(
@@ -121,6 +153,7 @@ class MiniAppFragment : Fragment() {
             fragment = this,
             webViewProvider = { myWebView },
             openTypeProvider = { openType },
+            localeProvider = { session.config.locale },
             restartWithScreen = { reStartWithScreen() }
         )
         updateController = MiniAppUpdateController(
@@ -140,6 +173,7 @@ class MiniAppFragment : Fragment() {
             notificationViewModelProvider = { notificationViewModel },
             miniappViewModelProvider = { miniappViewModel },
             deepLinkViewModelProvider = { deepLinkViewModel },
+            configProvider = { session.config },
             loadUrlProvider = { loadUrl },
             openTypeProvider = { openType },
             onUrlPartChanged = { onSetWebViewUrlPart(it) },
@@ -149,10 +183,7 @@ class MiniAppFragment : Fragment() {
             onSendNativeDeviceInfo = { sendNativeDeviceInfo() }
         )
         miniappViewModel = ViewModelProvider(requireActivity())[MiniappViewModel::class.java]
-
-        if (isOpenMiniAppInit()) {
-            miniappViewModel.openMiniAppData = openMiniAppData
-        }
+        miniappViewModel.openMiniAppData = openMiniAppData
     }
 
     override fun onCreateView(
@@ -171,122 +202,55 @@ class MiniAppFragment : Fragment() {
         updateController.startVersionCheck()
         updateController.registerConnectivityCallback()
 
-        rootView!!.viewTreeObserver.addOnGlobalLayoutListener {
-            if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
-                return@addOnGlobalLayoutListener
-            }
-            val r = Rect()
-            rootView!!.getWindowVisibleDisplayFrame(r)
-
-            val screenHeight: Int = rootView!!.rootView.height
-            val heightDiff: Int = screenHeight - r.bottom
-            val navigationBarHeight = Utils.getSoftNavigationHeight(requireContext())
-
-            if (heightDiff > 140) {
-                val height = Utils.pxToDp(requireContext(), heightDiff + navigationBarHeight)
-                activity?.let {
-                    Utils.evaluateJSWebView(
-                        it, myWebView!!, "nativeKeyboardHeight", height.toString(), null
-                    )
-                }
-            } else {
-                activity?.let {
-                    Utils.evaluateJSWebView(
-                        it, myWebView!!, "nativeKeyboardHeight", "0", null
-                    )
-                }
-            }
-        }
+        MiniAppKeyboardHeightDispatcher(
+            contextProvider = { context },
+            activityProvider = { activity },
+            rootViewProvider = { rootView },
+            webViewProvider = { myWebView },
+            isWebLoadedProvider = { payMEUpdatePatchViewModel.getWebLoaded().value == true }
+        ).register()
 
         myWebView?.let { webView ->
             webViewController.configure(webView, createJavaScriptInterface(webView))
         }
 
-        payMEUpdatePatchViewModel.getDoneUpdate().observe(viewLifecycleOwner) {
-            if (it) {
-                updateController.onDoneUpdate(
-                    loadDefaultSource = payMEUpdatePatchViewModel.getLoadDefaultSource().value == true
-                ) { url ->
-                    myWebView?.loadUrl(url)
-                }
-            }
-        }
-        payMEUpdatePatchViewModel.getShowUpdatingUI().observe(viewLifecycleOwner) {
-            updateController.setUpdatingUiVisible(it)
-        }
-
-        payMEUpdatePatchViewModel.getIsLostConnection().observe(viewLifecycleOwner) {
-            if (!it) {
-                updateController.onConnectionRestoredIfForceUpdating()
-            }
-        }
-
-        notificationViewModel.getNotificationData().observe(viewLifecycleOwner) {
-            if (it.length() != 0) {
-                notificationViewModel.setNotificationJSON(it)
-                activity?.let { it1 ->
-                    Utils.evaluateJSWebView(
-                        it1, myWebView!!, "nativeNotificationOpenedApp", it.toString(), null
-                    )
-                }
-            }
-        }
-
-        subWebViewViewModel.getEvaluateJsData().observeForever(evaluateJsDataObserver)
+        MiniAppFragmentObserverBinder(
+            lifecycleOwner = viewLifecycleOwner,
+            activityProvider = { activity },
+            webViewProvider = { myWebView },
+            updateViewModel = payMEUpdatePatchViewModel,
+            notificationViewModel = notificationViewModel,
+            subWebViewViewModel = subWebViewViewModel,
+            updateController = updateController
+        ).bind()
 
         return view
     }
 
     private fun createJavaScriptInterface(webView: WebView): JavaScriptInterface {
-        return JavaScriptInterface(setNativePreferences = { data: String? ->
-            activity?.let {
-                Utils.setNativePref(
-                    it, data
-                )
-            }
-        },
-            sendNativePreferences = { activity?.let { Utils.sendNativePref(it, webView) } },
-            biometricAuthen = { data: String ->
-                Utils.biometricAuthenticate(
-                    activity as AppCompatActivity, myWebView!!, data
-                )
-            },
-            startCardKyc = { data: String -> kycController.startCardKyc(data) },
-            startFaceKyc = { data: String -> kycController.startFaceKyc(data) },
-            startKalapaKyc = { data: String -> kycController.startKalapaKyc(data) },
-            startKalapaNFC = { data: String -> kycController.startKalapaNFC(data) },
-            startFaceAuthen = { data: String -> kycController.startFaceAuthen(data) },
-            openSettings = { activity?.let { PermissionCameraUtil().openSetting(it) } },
-            share = { data: String -> permissionController.share(data) },
-            requestPermission = { data: String -> permissionController.requestPermission(data) },
-            sendNativeDeviceInfo = { sendNativeDeviceInfo() },
-            getContacts = { permissionController.getContacts() },
-            nativeOpenKeyboard = {
-                activity?.let {
-                    Utils.nativeOpenKeyboard(
-                        it, myWebView
-                    )
-                }
-            },
-            openWebView = { data: String -> permissionController.openWebView(data) },
-            onSuccess = { data: String -> returnSuccess(data) },
-            onError = { data: String -> returnError(data) },
-            closeMiniApp = { forceCloseMiniApp() },
-            openUrl = { data: String -> permissionController.openUrl(data) },
-            saveQR = { data: String -> permissionController.saveQR(data) },
-            changeEnv = { data: String -> changeEnv(data) },
-            changeLocale = { data: String -> changeLocale(data) },
-            setListScreenBackBlocked = { data: JSONArray -> setListScreenBackBlocked(data) },
-            setModalHeight = { data: Int -> setModalHeight(data) },
-            requestNFCPermission = { _: String -> permissionController.requestNFCPermission() })
+        return MiniAppBridgeFactory(
+            activityProvider = { activity },
+            webViewProvider = { myWebView },
+            sessionProvider = { session },
+            kycControllerProvider = { kycController },
+            permissionControllerProvider = { permissionController },
+            onSendNativeDeviceInfo = { sendNativeDeviceInfo() },
+            onSuccess = { returnSuccess(it) },
+            onError = { returnError(it) },
+            onForceClose = { forceCloseMiniApp() },
+            onChangeEnv = { changeEnv(it) },
+            onChangeLocale = { changeLocale(it) },
+            onSetListScreenBackBlocked = { setListScreenBackBlocked(it) },
+            onSetModalHeight = { updateModalHeight(it) }
+        ).create(webView)
     }
 
     private fun changeEnv(env: String) {
-        PayMEMiniApp.onChangeEnv?.let { it(env) }
+        session.callbacks.onChangeEnv?.let { it(env) }
     }
 
     private fun changeLocale(locale: String) {
-        PayMEMiniApp.onChangeLocale?.let { it(locale) }
+        session.callbacks.onChangeLocale?.let { it(locale) }
     }
 
     private fun setListScreenBackBlocked(data: JSONArray?) {
@@ -297,17 +261,17 @@ class MiniAppFragment : Fragment() {
         return listScreenBackBlocked
     }
 
-    private fun setModalHeight(height: Int) {
+    private fun updateModalHeight(height: Int) {
         height.let {
             if (it != 0 && it != modalHeight) {
                 modalHeight = it
-                onSetModalHeight(it)
+                session.onSetModalHeight(it)
             }
         }
     }
 
     private fun onSetWebViewUrlPart(url: String) {
-        val action = getMiniAppAction()
+        val action = session.action
         if (action != ActionOpenMiniApp.PAY && action != ActionOpenMiniApp.SERVICE && action != ActionOpenMiniApp.PAYMENT && action != ActionOpenMiniApp.TRANSFER_QR) return
 
         url.let {
@@ -322,14 +286,14 @@ class MiniAppFragment : Fragment() {
         Log.d(PayMEMiniApp.TAG, "webview url change $url")
         val maxHeight = 999
         if (url.contains("mini-app/link-merchant")) {
-            setModalHeight(maxHeight)
+            updateModalHeight(maxHeight)
         }
     }
 
     private fun returnSuccess(data: String) {
         try {
             val json = JSONObject(data)
-            PayMEMiniApp.onResponse(openMiniAppData.action, json)
+            session.callbacks.onResponse(openMiniAppData.action, json)
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
             if (isCloseMiniApp) {
                 closeMiniApp()
@@ -346,14 +310,15 @@ class MiniAppFragment : Fragment() {
             val description = json.optString("description", "")
             val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
             if (isCloseMiniApp) {
-                if (isTerminalMiniAppErrorHandled) {
+                if (isTerminalMiniAppErrorHandled || session.isTerminalErrorHandled) {
                     Log.d(PayMEMiniApp.TAG, "Ignore duplicated terminal miniapp error: $code")
                     return
                 }
                 isTerminalMiniAppErrorHandled = true
+                session.isTerminalErrorHandled = true
                 stopWebViewAfterTerminalError()
             }
-            PayMEMiniApp.onError(
+            session.callbacks.onError(
                 openMiniAppData.action,
                 PayMEError(PayMEErrorType.MiniApp, code, description, isCloseMiniApp)
             )
@@ -370,16 +335,18 @@ class MiniAppFragment : Fragment() {
             return
         }
         isCloseMiniAppRequested = true
+        session.isCloseRequested = true
         if (openType == OpenMiniAppType.modal) {
-            MiniAppFragment.closeMiniApp()
+            session.close()
         } else if (openType == OpenMiniAppType.screen) {
             (requireContext() as Activity).finish()
-            MiniAppFragment.closeMiniApp()
+            session.close()
         }
+        PayMERuntime.removeSession(session.id)
     }
 
     private fun forceCloseMiniApp() {
-        PayMEMiniApp.onError(
+        session.callbacks.onError(
             openMiniAppData.action,
             PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
         )
@@ -391,26 +358,17 @@ class MiniAppFragment : Fragment() {
 
         val payMEMiniApp = PayMEMiniApp(
             requireContext(),
-            PayMEMiniApp.appId,
-            PayMEMiniApp.publicKey,
-            PayMEMiniApp.privateKey,
-            PayMEMiniApp.env
+            session.config.appId,
+            session.config.publicKey,
+            session.config.privateKey,
+            session.config.env,
+            session.config.locale
         )
         val phone = getPhoneFromOpenMiniAppData(openMiniAppData)
         phone?.let {
             payMEMiniApp.openMiniApp(
                 OpenMiniAppType.screen, OpenMiniAppKYCData(it)
             )
-        }
-    }
-
-    private val evaluateJsDataObserver: Observer<Pair<String, String>> = Observer {
-        if (it.first.isNotEmpty() && myWebView != null) {
-            activity?.let { it1 ->
-                Utils.evaluateJSWebView(
-                    it1, myWebView!!, it.first, it.second, null
-                )
-            }
         }
     }
 
@@ -422,8 +380,8 @@ class MiniAppFragment : Fragment() {
         }
         // Thông báo cho JavaScript về trạng thái
         activity?.let {
-            Utils.evaluateJSWebView(
-                it, myWebView!!, "nativeAppState", "\"background\"", null
+            WebViewJsDispatcher.evaluate(
+                it, myWebView!!, "nativeAppState", "\"background\""
             )
         }
         // Tạm dừng WebView để tối ưu tài nguyên
@@ -443,43 +401,13 @@ class MiniAppFragment : Fragment() {
         
         // Thông báo cho JavaScript về trạng thái
         activity?.let {
-            Utils.evaluateJSWebView(
-                it, myWebView!!, "nativeAppState", "\"active\"", null
+            WebViewJsDispatcher.evaluate(
+                it, myWebView!!, "nativeAppState", "\"active\""
             )
         }
         
         // Kiểm tra và khôi phục WebView nếu bị trắng màn hình
-        checkAndRefreshWebView()
-    }
-    
-    /**
-     * Kiểm tra và làm mới WebView nếu nó bị trắng màn hình
-     */
-    private fun checkAndRefreshWebView() {
-        // Đánh dấu cần kiểm tra WebView
-        isWebViewRefreshCheckNeeded = true
-        
-        // Lên lịch kiểm tra sau một khoảng thời gian ngắn để đảm bảo WebView đã được khởi tạo đầy đủ
-        refreshHandler.postDelayed({
-            if (isWebViewRefreshCheckNeeded && myWebView?.visibility == View.VISIBLE) {
-                if (!isWebViewContentVisible()) {
-                    Log.d(PayMEMiniApp.TAG, "WebView phát hiện màn hình trắng, đang làm mới...")
-                    // Thực hiện tải lại WebView để khôi phục nội dung
-                    val currentUrl = myWebView?.url
-                    if (!currentUrl.isNullOrEmpty()) {
-                        myWebView?.loadUrl(currentUrl)
-                    }
-                }
-                isWebViewRefreshCheckNeeded = false
-            }
-        }, 500) // Đợi 500ms sau khi onResume
-    }
-    
-    /**
-     * Kiểm tra xem nội dung WebView có đang hiển thị hay không
-     */
-    private fun isWebViewContentVisible(): Boolean {
-        return (myWebView?.contentHeight ?: 0) > 0 && myWebView?.progress == 100
+        webViewRefreshGuard.scheduleCheck()
     }
 
     override fun onDestroy() {
@@ -487,7 +415,6 @@ class MiniAppFragment : Fragment() {
         miniappViewModel.openMiniAppData = openMiniAppData
         updateController.dispose()
         Log.d("PAYMELOG", "on onDestroy " + miniappViewModel.openMiniAppData.toString())
-        subWebViewViewModel.getEvaluateJsData().removeObserver(evaluateJsDataObserver)
     }
 
     override fun onDestroyView() {
@@ -515,12 +442,6 @@ class MiniAppFragment : Fragment() {
         private const val HTTP_STATUS_UNAUTHORIZED = 401
 
         internal lateinit var openMiniAppData: OpenMiniAppDataInterface
-        internal var openType: OpenMiniAppType = OpenMiniAppType.screen
-        internal lateinit var closeMiniApp: () -> Unit
-        internal var onSetModalHeight: ((Int) -> Unit) = { _ -> run {} }
-        internal var loadUrl = ""
-        internal var webViewUrl = ""
-        internal var modalHeight: Int = 0
 
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
         var deepLinkViewModel: DeepLinkViewModel = DeepLinkViewModel()
@@ -539,7 +460,7 @@ class MiniAppFragment : Fragment() {
         }
 
         fun isOpenMiniAppInit(): Boolean {
-            return ::openMiniAppData.isInitialized
+            return PayMERuntime.activeSession() != null || ::openMiniAppData.isInitialized
         }
 
         fun setDeepLink(data: String) {
@@ -547,10 +468,14 @@ class MiniAppFragment : Fragment() {
         }
 
         fun setLoadUrl(data: String) {
-            loadUrl = data
+            PayMERuntime.activeSession()?.loadUrl = data
         }
 
         fun getMiniAppAction(): ActionOpenMiniApp {
+            PayMERuntime.activeSession()?.let { return it.action }
+            if (!::openMiniAppData.isInitialized) {
+                return ActionOpenMiniApp.PAYME
+            }
             val json = openMiniAppData.toJsonData()
             val jsonObject = JSONObject(json.toString())
             val actionString = jsonObject.getString("action")
@@ -559,6 +484,14 @@ class MiniAppFragment : Fragment() {
                 ActionOpenMiniApp.valueOf(((actionString ?: ActionOpenMiniApp.PAYME).toString()))
             } catch (e: IllegalArgumentException) {
                 ActionOpenMiniApp.PAYME
+            }
+        }
+
+        fun newInstance(sessionId: String): MiniAppFragment {
+            return MiniAppFragment().apply {
+                arguments = Bundle().apply {
+                    putString(PayMERuntime.EXTRA_SESSION_ID, sessionId)
+                }
             }
         }
     }

@@ -1,7 +1,7 @@
 package com.payme.sdk.utils
 
-import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.Locale
+import com.payme.sdk.runtime.PayMERuntime
 
 /** Lớp tiện ích để xử lý các thông báo đa ngôn ngữ */
 object LocaleUtils {
@@ -13,7 +13,7 @@ object LocaleUtils {
      * @return Thông báo tương ứng với ngôn ngữ hiện tại
      */
     fun getLocalizedMessage(viMessage: String, enMessage: String): String {
-        return when (PayMEMiniApp.locale) {
+        return when (currentLocale()) {
             Locale.en -> enMessage
             Locale.vi -> viMessage
         }
@@ -22,11 +22,15 @@ object LocaleUtils {
     /** Định dạng tin nhắn với các tham số */
     fun formatMessage(viFormat: String, enFormat: String, vararg args: Any): String {
         val format =
-                when (PayMEMiniApp.locale) {
+                when (currentLocale()) {
                     Locale.en -> enFormat
                     Locale.vi -> viFormat
                 }
         return String.format(format, *args)
+    }
+
+    private fun currentLocale(): Locale {
+        return PayMERuntime.requireConfig().locale
     }
 
     /** Các thông báo liên quan đến tải xuống */

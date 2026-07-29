@@ -34,11 +34,11 @@ android {
     kotlin {
         jvmToolchain(libs.versions.java.get().toInteger())
     }
-    namespace 'com.example.app'
+    namespace = 'com.example.app'
 }
 
 dependencies {
-    implementation project(":sdk")
+    implementation dependencyFactory.createProjectDependency(':sdk')
     implementation libs.androidx.core.ktx
     implementation libs.androidx.appcompat
     implementation libs.material

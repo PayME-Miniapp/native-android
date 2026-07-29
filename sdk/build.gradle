@@ -5,6 +5,7 @@ plugins {
 
 def sdk_version = "1.0.23"
 def version_code = 667
+def maven_version = "0.7.1"
 
 android {
     compileSdkVersion 37
@@ -44,12 +45,13 @@ android {
     kotlin {
         jvmToolchain(libs.versions.java.get().toInteger())
     }
-    namespace 'com.payme.sdk'
+    namespace = 'com.payme.sdk'
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
     testOptions {
         targetSdk 37
+        unitTests.returnDefaultValues = true
     }
     lint {
         targetSdk 37
@@ -65,7 +67,6 @@ dependencies {
     implementation libs.androidx.appcompat
     implementation libs.material
     implementation libs.androidx.constraintlayout
-    implementation libs.androidx.webkit
     
     // Third-party libraries
     implementation libs.nanohttpd.core
@@ -107,7 +108,7 @@ publishing {
         release(MavenPublication) {
             groupId = "com.payme.sdk"
             artifactId = "PayME-Android-Sdk"
-            version = '0.7.1'
+            version = maven_version
 
             afterEvaluate {
                 from components.release

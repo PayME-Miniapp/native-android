@@ -2,14 +2,16 @@ package com.payme.sdk.ui
 
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
-import android.view.WindowInsetsController
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
+import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.MixpanelUtil
 
 class MiniAppActivity : AppCompatActivity() {
@@ -38,6 +40,28 @@ class MiniAppActivity : AppCompatActivity() {
 
     // Gán layout cho Activity từ file activity_miniapp.xml
     setContentView(R.layout.activity_miniapp)
+
+    val sessionId = intent.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)
+    val session = PayMERuntime.getSession(sessionId)
+    if (session == null) {
+      Log.e(PayMEMiniApp.TAG, "Missing miniapp session. Finishing MiniAppActivity.")
+      finish()
+      return
+    }
+    PayMERuntime.activate(sessionId)
+    session.closeAction = {
+      session.isCloseRequested = true
+      PayMERuntime.markSessionClosed(session.id)
+      if (!isFinishing) {
+        finish()
+      }
+    }
+
+    if (savedInstanceState == null) {
+      supportFragmentManager.beginTransaction()
+          .replace(R.id.fragment_container_view, MiniAppFragment.newInstance(sessionId!!))
+          .commit()
+    }
   }
 
   override fun onDestroy() {

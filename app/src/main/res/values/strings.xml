@@ -1,3 +1,22 @@
 <resources>
   <string name="app_name">PayME-Android-Sdk-Example</string>
+  <string name="example_title">PayME Android SDK Example</string>
+  <string name="status_ready">Ready</string>
+  <string name="open_payme_screen">Open PayME screen</string>
+  <string name="open_payme_modal">Open PayME modal</string>
+  <string name="open_wallet">Open wallet</string>
+  <string name="open_payment">Open payment</string>
+  <string name="open_payment_direct">Open payment direct</string>
+  <string name="open_transfer_qr">Open transfer QR</string>
+  <string name="open_service">Open service</string>
+  <string name="open_deposit">Open deposit</string>
+  <string name="open_withdraw">Open withdraw</string>
+  <string name="open_transfer">Open transfer</string>
+  <string name="open_kyc">Open KYC</string>
+  <string name="get_balance">Get balance</string>
+  <string name="get_account_information">Get account information</string>
+  <string name="switch_language">Switch language</string>
+  <string name="switch_credentials">Switch credentials</string>
+  <string name="switch_env">Switch environment</string>
+  <string name="close_sdk">Close SDK session</string>
 </resources>

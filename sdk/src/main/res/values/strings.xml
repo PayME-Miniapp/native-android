@@ -27,11 +27,13 @@ Bạn kiểm tra và chụp lại.</string>
   <string name="unzip_failed">Không thể giải nén tệp nguồn</string>
   <string name="download_progress">%1$s / %2$s (%3$s/s)</string>
   <string name="download_progress_detail">%1$s/%2$s · %3$s/s · %4$s</string>
+  <string name="download_unknown_size">Không xác định</string>
   <string name="connection_type">Kết nối: %s</string>
   <string name="loading_interrupted">Tải xuống bị gián đoạn</string>
   <string name="loading_error_occurred">Đã xảy ra lỗi khi tải</string>
   <string name="download_slow_connection">Kết nối chậm, đang tải...</string>
   <string name="download_timeout">Tải xuống quá thời gian</string>
+  <string name="insufficient_storage">Không đủ dung lượng để cập nhật dữ liệu</string>
 
   <!-- Các loại kết nối -->
   <string name="connection_wifi">WiFi</string>

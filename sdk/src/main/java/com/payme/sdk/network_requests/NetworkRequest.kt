@@ -8,10 +8,11 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.*
+import com.payme.sdk.runtime.PayMEConfig
+import com.payme.sdk.runtime.PayMERuntime
 import org.json.JSONException
 import org.json.JSONObject
 import java.nio.charset.Charset
-import kotlin.random.Random
 
 object NetworkUtils {
     fun getApiUrl(env: ENV): String {
@@ -29,42 +30,30 @@ internal class NetworkRequest(
     private val apiPath: String,
     private val token: String,
     private val params: MutableMap<String, String>,
-    private val action: ActionOpenMiniApp
+    private val action: ActionOpenMiniApp,
+    private val config: PayMEConfig = PayMERuntime.requireConfig()
 ) {
     fun setOnRequest(
         onSuccess: (response: JSONObject) -> Unit, onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
-        val cryptoRSA = CryptoRSA()
-        val encryptionKey = Random.nextInt(0, 10000000).toString() // Simplified variable name
-        val encryptedKey = cryptoRSA.encrypt(encryptionKey)
-        val cryptoAES = CryptoAES()
-        val encryptedAction = cryptoAES.encryptAES(encryptionKey, apiPath)
-        val encryptedMessage = cryptoAES.encryptAES(
-            encryptionKey, JSONObject(params as Map<*, *>).toString()
-        )
-
-        // Concatenate values for validation
-        val validationString = encryptedAction + "POST" + token + encryptedMessage + encryptionKey
-        val validationHash = cryptoAES.getMD5(validationString)
-
-        val requestBody: MutableMap<String, Any> = mutableMapOf()
-        requestBody["x-api-message"] = encryptedMessage
+        val encryptedRequest = EncryptedNetworkRequestBuilder(config).build(apiPath, token, params)
+        val responseCryptoRSA = CryptoRSA(config.publicKey, config.privateKey)
+        val responseCryptoAES = CryptoAES()
 
         val queue = Volley.newRequestQueue(context)
         val request = object : JsonObjectRequest(Method.POST,
             baseUrl + apiPath,
-            JSONObject(requestBody as Map<*, *>),
+            encryptedRequest.body,
             Response.Listener { response ->
                 try {
                     val headers = response.getJSONObject("headers")
                     val receivedEncryptedKey = headers.getString("x-api-key")
-                    val decryptedKey = cryptoRSA.decrypt(receivedEncryptedKey)
+                    val decryptedKey = responseCryptoRSA.decrypt(receivedEncryptedKey)
                     val decryptedMessage =
-                        cryptoAES.decryptAES(decryptedKey, response.getString("x-api-message"))
+                        responseCryptoAES.decryptAES(decryptedKey, response.getString("x-api-message"))
 
                     val finalJSONObject = JSONObject(decryptedMessage)
-                    Log.d(PayMEMiniApp.TAG, "PARAMS $params")
-                    Log.d(PayMEMiniApp.TAG, "RESPONSE $finalJSONObject")
+                    Log.d(PayMEMiniApp.TAG, "Network request succeeded: action=$action path=$apiPath")
                     onSuccess(finalJSONObject)
                 } catch (error: Exception) {
                     Log.d(PayMEMiniApp.TAG, "error ${error.message}")
@@ -78,16 +67,7 @@ internal class NetworkRequest(
                 }
             },
             Response.ErrorListener { error ->
-                val errorCode = when (error) {
-                    is TimeoutError -> PayMENetworkErrorCode.TIMED_OUT.toString()
-                    is NoConnectionError -> PayMENetworkErrorCode.CONNECTION_LOST.toString()
-                    is AuthFailureError -> PayMENetworkErrorCode.OTHER.toString()
-                    is ServerError -> PayMENetworkErrorCode.SERVER_ERROR.toString()
-                    is NetworkError -> PayMENetworkErrorCode.CONNECTION_LOST.toString()
-                    is ParseError -> PayMENetworkErrorCode.DECODE_FAILED.toString()
-                    is VolleyError -> PayMENetworkErrorCode.OTHER.toString()
-                    else -> PayMENetworkErrorCode.OTHER.toString()
-                }
+                val errorCode = NetworkErrorMapper.code(error)
                 Log.d(PayMEMiniApp.TAG, "error $errorCode")
                 onError(
                     action, PayMEError(
@@ -98,15 +78,7 @@ internal class NetworkRequest(
                 )
             }) {
             override fun getHeaders(): MutableMap<String, String> {
-                val headers: MutableMap<String, String> = mutableMapOf()
-                headers["Authorization"] = token
-                headers["Accept"] = "application/json"
-                headers["Content-Type"] = "application/json"
-                headers["x-api-client"] = PayMEMiniApp.appId
-                headers["x-api-key"] = encryptedKey
-                headers["x-api-action"] = encryptedAction
-                headers["x-api-validate"] = validationHash
-                return headers
+                return encryptedRequest.headers.toMutableMap()
             }
 
             override fun parseNetworkResponse(response: NetworkResponse?): Response<JSONObject> {

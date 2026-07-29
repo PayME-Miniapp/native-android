@@ -5,7 +5,6 @@ import android.content.Context
 import android.provider.Settings
 import android.util.Log
 import com.payme.sdk.BuildConfig
-import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.PayMEError
@@ -13,6 +12,7 @@ import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.PayMENetworkErrorCode
 import com.payme.sdk.network_requests.NetworkRequest
 import com.payme.sdk.network_requests.NetworkUtils
+import com.payme.sdk.runtime.PayMERuntime
 import org.json.JSONObject
 
 object AccountPresentation {
@@ -27,6 +27,7 @@ object AccountPresentation {
         onSuccess: (String) -> Unit
     ) {
         try {
+            val config = PayMERuntime.requireConfig()
             val deviceId =
                 Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
             val params = mutableMapOf(
@@ -39,11 +40,12 @@ object AccountPresentation {
 
             NetworkRequest(
                 context,
-                NetworkUtils.getApiUrl(PayMEMiniApp.env),
+                NetworkUtils.getApiUrl(config.env),
                 "/be/ewallet/sdk/clientDevice/register",
                 "",
                 params,
-                action
+                action,
+                config
             ).setOnRequest(onError = onError, onSuccess = { jsonObject ->
                 if (jsonObject.optInt("code") == 204300) {
                     onSuccess(deviceId)
@@ -76,17 +78,19 @@ object AccountPresentation {
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
         registerDevice(context, ActionOpenMiniApp.GET_ACCOUNT_INFO, onError) { deviceId ->
+            val config = PayMERuntime.requireConfig()
             val paramsAccount = mutableMapOf(
                 "phone" to phone,
                 "clientId" to deviceId
             )
             NetworkRequest(
                 context,
-                NetworkUtils.getApiUrl(PayMEMiniApp.env),
+                NetworkUtils.getApiUrl(config.env),
                 "/be/ewallet/sdk/account/getAccountInfo",
                 "",
                 paramsAccount,
-                ActionOpenMiniApp.GET_ACCOUNT_INFO
+                ActionOpenMiniApp.GET_ACCOUNT_INFO,
+                config
             ).setOnRequest(onError = onError, onSuccess = { jsonObjectAccount ->
                 val accountInfoObject =
                     jsonObjectAccount.optJSONObject("data")?.optJSONObject("accountInfo")
@@ -115,17 +119,19 @@ object AccountPresentation {
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
         registerDevice(context, ActionOpenMiniApp.GET_BALANCE, onError) { deviceId ->
+            val config = PayMERuntime.requireConfig()
             val paramsAccount = mutableMapOf(
                 "phone" to phone,
                 "clientId" to deviceId
             )
             NetworkRequest(
                 context,
-                NetworkUtils.getApiUrl(PayMEMiniApp.env),
+                NetworkUtils.getApiUrl(config.env),
                 "/be/ewallet/sdk/account/getAccountInfo",
                 "",
                 paramsAccount,
-                ActionOpenMiniApp.GET_BALANCE
+                ActionOpenMiniApp.GET_BALANCE,
+                config
             ).setOnRequest(onError = onError, onSuccess = { jsonObjectAccount ->
                 val data = jsonObjectAccount.optJSONObject("data")
                 val accessToken = data?.optString("accessToken") // Simplify accessToken extraction
@@ -139,11 +145,12 @@ object AccountPresentation {
                     val paramsBalance = mutableMapOf("clientId" to deviceId)
                     NetworkRequest(
                         context,
-                        NetworkUtils.getApiUrl(PayMEMiniApp.env),
+                        NetworkUtils.getApiUrl(config.env),
                         "/be/ewallet/sdk/account/balance",
                         accessToken,
                         paramsBalance,
-                        ActionOpenMiniApp.GET_BALANCE
+                        ActionOpenMiniApp.GET_BALANCE,
+                        config
                     ).setOnRequest(onError = onError, onSuccess = { balanceResponse ->
                         val dataBalance = balanceResponse.optJSONObject("data")
                         val balance = dataBalance?.opt("balance") as? Number
@@ -160,4 +167,5 @@ object AccountPresentation {
             })
         }
     }
+
 }

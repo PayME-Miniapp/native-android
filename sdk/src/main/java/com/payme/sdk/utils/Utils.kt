@@ -1,160 +1,40 @@
 package com.payme.sdk.utils
 
-import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ContentResolver
-import android.content.ContentValues
 import android.content.Context
-import android.content.pm.PackageManager
-import android.content.res.Resources
-import android.graphics.*
-import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.ContactsContract
-import android.provider.MediaStore
-import android.util.DisplayMetrics
-import android.util.Log
+import android.graphics.Bitmap
 import android.view.View
-import android.view.Window
-import android.view.WindowInsets
-import android.view.WindowManager
-import android.view.inputmethod.InputMethodManager
-import android.webkit.WebSettings
 import android.webkit.WebView
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
 import androidx.camera.core.ImageProxy
-import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.objects.DetectedObject
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
-import com.payme.sdk.PayMEMiniApp
-import org.json.JSONArray
-import org.json.JSONException
-import org.json.JSONObject
-import java.io.*
-import java.net.ServerSocket
-import java.net.URL
-import java.nio.ByteBuffer
-import java.util.*
-import java.util.regex.Pattern
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
-import kotlin.math.min
-
+import java.io.InputStream
+import java.io.OutputStream
 
 enum class BiometricError {
-    APP_CANCEL, AUTHENTICATION_FAILED, PASSCODE_NOT_SET, SYSTEM_CANCEL, USER_CANCEL, USER_FALLBACK, BIOMETRY_LOCKOUT, BIOMETRY_NOT_AVAILABLE, BIOMETRY_NOT_ENROLLED, UNKNOWN
+    APP_CANCEL,
+    AUTHENTICATION_FAILED,
+    PASSCODE_NOT_SET,
+    SYSTEM_CANCEL,
+    USER_CANCEL,
+    USER_FALLBACK,
+    BIOMETRY_LOCKOUT,
+    BIOMETRY_NOT_AVAILABLE,
+    BIOMETRY_NOT_ENROLLED,
+    UNKNOWN
 }
 
 object Utils {
-    private val IPV4_PATTERN: Pattern = Pattern.compile(
-        "^(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}$"
-    )
-
     fun getStatusBarHeight(activity: Activity): Int {
-        val rectangle = Rect()
-        val window: Window = activity.window
-        window.decorView.getWindowVisibleDisplayFrame(rectangle)
-        return rectangle.top
+        return WindowMetricsUtils.getStatusBarHeight(activity)
     }
 
-    @SuppressLint("DiscouragedApi")
     fun getSoftNavigationHeight(context: Context): Int {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && context is Activity) {
-            // Dùng WindowInsets cho API 30+ (Android 11 và mới hơn)
-            context.window.decorView.rootWindowInsets
-                ?.getInsets(WindowInsets.Type.navigationBars())
-                ?.bottom ?: 0
-        } else {
-            // Với API cũ, sử dụng nội bộ resource "navigation_bar_height"
-            val resources: Resources = context.resources
-            val resourceId: Int =
-                resources.getIdentifier("navigation_bar_height", "dimen", "android")
-            if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
-        }
+        return WindowMetricsUtils.getSoftNavigationHeight(context)
     }
 
     fun unzipFile(filePath: String, destination: String): Boolean {
-        try {
-            val inputStream = FileInputStream(filePath)
-            val zipStream = ZipInputStream(inputStream)
-            var zEntry: ZipEntry?
-            var unzipSuccess = false  // Đặt cờ hiệu để kiểm tra xem có file nào được giải nén thành công không
-            
-            while (zipStream.nextEntry.also { zEntry = it } != null) {
-                val entryName = zEntry!!.name
-                
-                // Bỏ qua các file trong thư mục __MACOSX hoặc các file bắt đầu bằng ._
-                if (entryName.contains("__MACOSX") || 
-                    File(entryName).name.startsWith("._")) {
-                    Log.d(PayMEMiniApp.TAG, "Skipping macOS special file: $entryName")
-                    continue
-                }
-                
-                val outputFile = File(destination, zEntry!!.name)
-                val destDirCanonicalPath = File(destination).canonicalPath
-                
-                try {
-                    val outputFileCanonicalPath = outputFile.canonicalPath
-                    if (!outputFileCanonicalPath.startsWith(destDirCanonicalPath)) {
-                        Log.e(PayMEMiniApp.TAG, "Security warning: Path traversal detected with $outputFileCanonicalPath")
-                        continue
-                    }
-                } catch (e: Exception) {
-                    Log.e(PayMEMiniApp.TAG, "Error checking path for: $entryName - ${e.message}")
-                    continue
-                }
-                
-                if (zEntry!!.isDirectory) {
-                    val f = File(destination + "/" + zEntry!!.name)
-                    if (!f.isDirectory) {
-                        f.mkdirs()
-                    }
-                } else {
-                    try {
-                        // Đảm bảo thư mục cha tồn tại
-                        val parent = outputFile.parentFile
-                        if (parent != null && !parent.exists()) {
-                            parent.mkdirs()
-                        }
-                        
-                        val fout = FileOutputStream(outputFile)
-                        val bufout = BufferedOutputStream(fout)
-                        val buffer = ByteArray(1024)
-                        var read: Int
-                        
-                        while (zipStream.read(buffer).also { read = it } != -1) {
-                            bufout.write(buffer, 0, read)
-                        }
-                        
-                        bufout.close()
-                        fout.close()
-                        unzipSuccess = true  // Đánh dấu ít nhất một file đã được giải nén thành công
-                    } catch (e: Exception) {
-                        Log.e(PayMEMiniApp.TAG, "Error extracting file: $entryName - ${e.message}")
-                    }
-                }
-            }
-            
-            zipStream.close()
-            inputStream.close()
-            
-            if (unzipSuccess) {
-                Log.d(PayMEMiniApp.TAG, "Unzipping complete. path: $destination")
-                return true
-            } else {
-                Log.e(PayMEMiniApp.TAG, "No files were successfully extracted to $destination")
-                return false
-            }
-        } catch (e: Exception) {
-            Log.e(PayMEMiniApp.TAG, "Unzipping failed: ${e.message}")
-            return false
-        }
+        return ArchiveUtils.unzipFile(filePath, destination)
     }
 
     fun evaluateJSWebView(
@@ -164,588 +44,117 @@ object Utils {
         data: String,
         callback: ((String) -> Unit)?
     ) {
-        val injectedJS =
-            "       const script = document.createElement('script');\n" + "          script.type = 'text/javascript';\n" + "          script.async = true;\n" + "          script.text = '${functionName}($data)';\n" + "          document.body.appendChild(script);\n" + "          true; // note: this is required, or you'll sometimes get silent failures\n"
-        activity.runOnUiThread {
-            webView.evaluateJavascript("(function() {\n$injectedJS;\n})();", callback)
-            Log.d(PayMEMiniApp.TAG, "[EVALUATE_JS] $functionName  $data")
-        }
+        WebViewJsDispatcher.evaluate(activity, webView, functionName, data, callback)
     }
 
     fun copyFileToFile(sourcePath: String, desPath: String) {
-        val sourceFile = File(sourcePath)
-        val desFile = File(desPath)
-        sourceFile.copyTo(desFile, true)
-    }
-
-    private fun copyFile(context: Context, filePath: String) {
-        val file = context.assets.open(filePath)
-        val outFile = File(context.filesDir, filePath)
-        val outStream = FileOutputStream(outFile)
-
-        file.copyTo(outStream)
-        outStream.close()
+        ArchiveUtils.copyFileToFile(sourcePath, desPath)
     }
 
     fun copyDir(context: Context, path: String) {
-        val assets = context.assets
-        val asset = assets.list(path)
-
-        asset?.forEach { list ->
-            val listPath = "$path/$list"
-            if (!list.toString().contains(".")) {
-                File(context.filesDir.path, listPath).mkdir()
-                copyDir(context, listPath)
-                return
-            }
-            copyFile(context, listPath)
-        }
+        ArchiveUtils.copyDir(context, path)
     }
 
     fun findRandomOpenPort(): Int? {
-        return try {
-            val socket = ServerSocket(0)
-            val port = socket.localPort
-            Log.d(PayMEMiniApp.TAG, "port:$port")
-            socket.close()
-            port
-        } catch (e: IOException) {
-            4646
-        }
+        return FileDownloadUtils.findRandomOpenPort()
     }
 
     fun dpToPx(context: Context, dp: Int): Int {
-        return (dp * context.resources.displayMetrics.density).toInt()
+        return WindowMetricsUtils.dpToPx(context, dp)
     }
 
     fun pxToDp(context: Context, px: Int): Int {
-        return (px / context.resources.displayMetrics.density).toInt()
+        return WindowMetricsUtils.pxToDp(context, px)
     }
 
     fun getUserAgent(context: Context): String? {
-        return try {
-            WebSettings.getDefaultUserAgent(context)
-        } catch (e: RuntimeException) {
-            System.getProperty("http.agent")
-        }
-    }
-
-    private fun hasSuBinary(): Boolean {
-        val suPaths = arrayOf(
-            "/system/app/Superuser.apk",
-            "/sbin/su",
-            "/system/bin/su",
-            "/system/xbin/su",
-            "/system/sd/xbin/su",
-            "/system/bin/failsafe/su",
-            "/data/local/su",
-            "/data/local/bin/su",
-            "/data/local/xbin/su",
-            "/su/bin/su"
-        )
-        return suPaths.any { File(it).exists() }
-    }
-
-    private fun canExecuteSu(): Boolean {
-        var process: Process? = null
-        return try {
-            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
-            process.inputStream.bufferedReader().use { reader ->
-                reader.readLine() != null
-            }
-        } catch (t: Throwable) {
-            false
-        } finally {
-            process?.destroy()
-        }
-    }
-
-    private fun hasDangerousPackages(context: Context?): Boolean {
-        if (context == null) return false
-        val packages = arrayOf(
-            "com.noshufou.android.su",
-            "com.noshufou.android.su.elite",
-            "eu.chainfire.supersu",
-            "com.koushikdutta.superuser",
-            "com.thirdparty.superuser",
-            "com.yellowes.su",
-            "com.topjohnwu.magisk",
-            "com.kingroot.kinguser",
-            "com.kingo.root",
-            "com.smedialink.oneclickroot",
-            "com.zhiqupk.root.global",
-            "com.alephzain.framaroot"
-        )
-        return packages.any { packageName ->
-            try {
-                context.packageManager.getPackageInfo(packageName, 0)
-                true
-            } catch (e: PackageManager.NameNotFoundException) {
-                false
-            }
-        }
-    }
-
-    private fun hasWritableSystemDir(): Boolean {
-        val paths = arrayOf(
-            "/system",
-            "/system/bin",
-            "/system/sbin",
-            "/system/xbin",
-            "/vendor/bin",
-            "/sbin",
-            "/etc"
-        )
-        return paths.any { path ->
-            try {
-                val file = File(path)
-                file.exists() && file.canWrite()
-            } catch (e: Exception) {
-                false
-            }
-        }
+        return WindowMetricsUtils.getUserAgent(context)
     }
 
     fun isDeviceRooted(context: Context? = null): Boolean {
-        val hasTestKeys = Build.TAGS?.contains("test-keys") == true
-        val debuggableBuild =
-            try {
-                Runtime.getRuntime().exec("getprop ro.debuggable").inputStream.bufferedReader()
-                    .use { it.readLine()?.trim() == "1" }
-            } catch (t: Throwable) {
-                false
-            }
-        return hasTestKeys || hasSuBinary() || canExecuteSu() || debuggableBuild || hasDangerousPackages(
-            context
-        ) || hasWritableSystemDir()
+        return DeviceSecurityUtils.isRooted(context)
     }
 
     fun isEmulator(): Boolean {
-        return (Build.FINGERPRINT.startsWith("generic") || Build.FINGERPRINT.startsWith("unknown") || Build.MODEL.contains(
-            "google_sdk"
-        ) || Build.MODEL.lowercase(Locale.ROOT)
-            .contains("droid4x") || Build.MODEL.contains("Emulator") || Build.MODEL.contains("Android SDK built for x86") || Build.MANUFACTURER.contains(
-            "Genymotion"
-        ) || Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains(
-            "vbox86"
-        ) || Build.PRODUCT.contains("sdk") || Build.PRODUCT.contains("google_sdk") || Build.PRODUCT.contains(
-            "sdk_google"
-        ) || Build.PRODUCT.contains("sdk_x86") || Build.PRODUCT.contains("vbox86p") || Build.PRODUCT.contains(
-            "emulator"
-        ) || Build.PRODUCT.contains("simulator") || Build.BOARD.lowercase(Locale.ROOT)
-            .contains("nox") || Build.BOOTLOADER.lowercase(Locale.ROOT)
-            .contains("nox") || Build.HARDWARE.lowercase(Locale.ROOT)
-            .contains("nox") || Build.PRODUCT.lowercase(Locale.ROOT)
-            .contains("nox") || (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    @Suppress("MissingPermission")
-                    Build.getSerial().lowercase(Locale.ROOT).contains("nox")
-                } catch (e: SecurityException) {
-                    false
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                Build.SERIAL.lowercase(Locale.ROOT).contains("nox")
-            }) || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+        return DeviceSecurityUtils.isEmulator()
     }
 
     fun sendNativePref(context: Context, webView: WebView) {
-        val sharedPreference = context.getSharedPreferences("PAYME_NATIVE", Context.MODE_PRIVATE)
-        val all = sharedPreference.all
-        Log.d(PayMEMiniApp.TAG, "all $all")
-
-        if (all.isNotEmpty()) {
-            try {
-                all.forEach { (_, value) ->
-                    val json = JSONObject(value.toString())
-                    Log.d(PayMEMiniApp.TAG, "[SEND_NATIVE_PREF]set native pref json $json")
-                    Utils.evaluateJSWebView(
-                        context as Activity, webView, "nativePreferences", json.toString(), null
-                    )
-                }
-            } catch (e: JSONException) {
-                Log.d(PayMEMiniApp.TAG, "sendNativePref exception: $e")
-            }
-        }
+        WebViewJsDispatcher.sendNativePreferences(context, webView)
     }
 
     fun setNativePref(context: Context, data: String?) {
-        Log.d(PayMEMiniApp.TAG, "[SET_NATIVE_PREF]set native pref data $data")
-        if (data == null) {
-            return
-        }
-        val sharedPreference = context.getSharedPreferences("PAYME_NATIVE", Context.MODE_PRIVATE)
-        val editor = sharedPreference.edit()
-        try {
-            val json = JSONObject(data)
-            val key = json.keys().next()
-            editor.putString(key, data)
-            editor.apply()
-        } catch (e: JSONException) {
-            Log.d(PayMEMiniApp.TAG, "setNativePref exception: $e")
-        }
+        WebViewJsDispatcher.setNativePreferences(context, data)
     }
 
-    private fun hasBiometricCapability(
-        context: Context, authenticator: Int = BiometricManager.Authenticators.BIOMETRIC_WEAK
-    ): Int {
-        val biometricManager = BiometricManager.from(context)
-        return biometricManager.canAuthenticate(authenticator)
+    fun isBiometricReady(context: Context): Boolean {
+        return BiometricGateway.isReady(context)
     }
-
-    fun isBiometricReady(context: Context) =
-        hasBiometricCapability(context) == BiometricManager.BIOMETRIC_SUCCESS
 
     fun getErrorCode(errorCode: Int): BiometricError {
-        return when (errorCode) {
-            BiometricPrompt.ERROR_CANCELED -> BiometricError.SYSTEM_CANCEL
-            BiometricPrompt.ERROR_LOCKOUT -> BiometricError.BIOMETRY_LOCKOUT
-            BiometricPrompt.ERROR_LOCKOUT_PERMANENT -> BiometricError.BIOMETRY_LOCKOUT
-            BiometricPrompt.ERROR_NEGATIVE_BUTTON -> BiometricError.USER_CANCEL
-            BiometricPrompt.ERROR_NO_BIOMETRICS -> BiometricError.BIOMETRY_NOT_ENROLLED
-            BiometricPrompt.ERROR_TIMEOUT -> BiometricError.USER_CANCEL
-            else -> {
-                BiometricError.UNKNOWN
-            }
-        }
+        return BiometricGateway.errorCode(errorCode)
     }
 
     fun biometricAuthenticate(activity: AppCompatActivity, webView: WebView, data: String) {
-        Log.d(PayMEMiniApp.TAG, "vo hàm bio")
-        activity.runOnUiThread {
-            try {
-                val jsonData = JSONObject(data)
-                val cancelTitle = jsonData.optString("cancelTitle", "Hủy")
-                val description =
-                    jsonData.optString("description", "Dùng sinh trắc học để xác thực")
-                val title = jsonData.optString("title", "Yêu cầu xác thực")
-                val promptInfo = BiometricPrompt.PromptInfo.Builder().setDescription(description)
-                    .setNegativeButtonText(cancelTitle).setConfirmationRequired(true)
-                    .setTitle(title).build()
-
-                val executor = ContextCompat.getMainExecutor(activity)
-
-                val callback = object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        super.onAuthenticationError(errorCode, errString)
-                        Log.d(PayMEMiniApp.TAG, "errorcode $errorCode")
-                        val resultAuthen = JSONObject()
-                        resultAuthen.put("success", false)
-                        resultAuthen.put("error", getErrorCode(errorCode))
-                        evaluateJSWebView(
-                            activity,
-                            webView,
-                            "nativeBiometricAuthentication",
-                            resultAuthen.toString(),
-                            null
-                        )
-                    }
-
-                    override fun onAuthenticationFailed() {
-                        super.onAuthenticationFailed()
-                    }
-
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        super.onAuthenticationSucceeded(result)
-                        val resultAuthen = JSONObject()
-                        resultAuthen.put("success", true)
-                        evaluateJSWebView(
-                            activity,
-                            webView,
-                            "nativeBiometricAuthentication",
-                            resultAuthen.toString(),
-                            null
-                        )
-                    }
-                }
-
-                val biometricPrompt = BiometricPrompt(activity, executor, callback)
-                biometricPrompt.authenticate(promptInfo)
-            } catch (e: JSONException) {
-                Log.d(PayMEMiniApp.TAG, "vo catch ${e.message}")
-
-                val resultAuthen = JSONObject()
-                resultAuthen.put("success", false)
-                resultAuthen.put("error", BiometricError.UNKNOWN)
-                evaluateJSWebView(
-                    activity,
-                    webView,
-                    "nativeBiometricAuthentication",
-                    resultAuthen.toString(),
-                    null
-                )
-            }
-        }
-
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    private fun getRootWindowInsetsCompatR(rootView: View): Float? {
-        val insets = rootView.rootWindowInsets?.getInsets(
-            WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.navigationBars()
-        ) ?: return null
-        return insets.bottom.toFloat()
-    }
-
-    @Suppress("DEPRECATION")
-    private fun getRootWindowInsetsCompatM(rootView: View): Float? {
-        val insets = rootView.rootWindowInsets ?: return null
-        return min(insets.systemWindowInsetBottom, insets.stableInsetBottom).toFloat()
-    }
-
-    private fun getRootWindowInsetsCompatBase(rootView: View): Float {
-        val visibleRect = Rect()
-        rootView.getWindowVisibleDisplayFrame(visibleRect)
-        return (rootView.height - visibleRect.bottom).toFloat()
+        BiometricGateway.authenticate(activity, webView, data)
     }
 
     fun getRootWindowInsetsCompat(rootView: View): Float? {
-        return when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> getRootWindowInsetsCompatR(rootView)
-            else -> getRootWindowInsetsCompatBase(rootView)
-        }
+        return WindowMetricsUtils.getRootWindowInsetsCompat(rootView)
     }
 
     fun imageProxyToBitmap(image: ImageProxy): Bitmap {
-        val buffer: ByteBuffer = image.planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, null)
+        return ImageProcessingUtils.imageProxyToBitmap(image)
     }
 
     fun handleFaceImageProxy(image: ImageProxy): Bitmap? {
-        return try {
-            val rotationDegree = image.imageInfo.rotationDegrees
-            Log.d(PayMEMiniApp.TAG, "rotation $rotationDegree")
-            var bitmap = imageProxyToBitmap(image)
-            val rotationMatrix = Matrix()
-            rotationMatrix.postRotate((rotationDegree).toFloat())
-            if (rotationDegree != 0) {
-                bitmap = Bitmap.createBitmap(
-                    bitmap, 0, 0, bitmap.width, bitmap.height, rotationMatrix, true
-                )
-            }
-            bitmap
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "handle image proxy ${e.message}")
-            null
-        }
+        return ImageProcessingUtils.handleFaceImageProxy(image)
     }
 
     fun handleImageProxy(context: Context, image: ImageProxy): Bitmap? {
-        try {
-            val rotationDegree = image.imageInfo.rotationDegrees
-            Log.d(PayMEMiniApp.TAG, "rotation $rotationDegree")
-            var bitmap = imageProxyToBitmap(image)
-
-            val rotationMatrix = Matrix()
-            rotationMatrix.postRotate((rotationDegree).toFloat())
-            if (rotationDegree != 0) {
-                bitmap = Bitmap.createBitmap(
-                    bitmap, 0, 0, bitmap.width, bitmap.height, rotationMatrix, true
-                )
-            }
-            val metrics = DisplayMetrics()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Dùng currentWindowMetrics để lấy kích thước màn hình
-                val windowMetrics = context.getSystemService(Context.WINDOW_SERVICE)
-                        as WindowManager
-                val bounds = windowMetrics.currentWindowMetrics.bounds
-                metrics.widthPixels = bounds.width()
-                metrics.heightPixels = bounds.height()
-                // Lấy xdpi và ydpi từ resources vì giá trị này không thay đổi
-                metrics.xdpi = context.resources.displayMetrics.xdpi
-                metrics.ydpi = context.resources.displayMetrics.ydpi
-            } else {
-                @Suppress("DEPRECATION")
-                (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                    .defaultDisplay.getMetrics(metrics)
-            }
-
-            val bitmapHeight = bitmap.height
-            val windowHeight = metrics.heightPixels
-            val top = dpToPx(context, 86) * bitmapHeight / windowHeight
-            val height = bitmap.width * 0.7
-            Log.d(
-                "PAYME",
-                "screenHeight ${metrics.heightPixels} bitmapHeight $bitmapHeight windowHeight $windowHeight"
-            )
-            bitmap = Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height.toInt())
-            return bitmap
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "handle image proxy ${e.message}")
-            return null
-        }
+        return ImageProcessingUtils.handleImageProxy(context, image)
     }
 
     fun compressBitmapToFile(context: Context, bitmap: Bitmap, fileName: String) {
-        try {
-            val imagesDir = File("${context.filesDir.path}/www/sdkWebapp3-main", "images")
-            val f = File(imagesDir, fileName)
-            if (f.exists()) {
-                f.delete();
-            }
-            f.createNewFile()
-            val out = FileOutputStream(f)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
-            out.flush()
-            out.close()
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "save image exception ${e.message}")
-        }
+        ImageProcessingUtils.compressBitmapToFile(context, bitmap, fileName)
     }
 
     fun nativePermissionStatus(
-        activity: Activity, webView: WebView, permissionType: String, permissionState: String
+        activity: Activity,
+        webView: WebView,
+        permissionType: String,
+        permissionState: String
     ) {
-        val responsePermissions = JSONObject()
-        responsePermissions.put("type", permissionType)
-        responsePermissions.put("state", permissionState)
-        evaluateJSWebView(
-            activity, webView, "nativePermissionStatus", responsePermissions.toString(), null
-        )
+        WebViewJsDispatcher.nativePermissionStatus(activity, webView, permissionType, permissionState)
     }
 
     fun validateListObject(detectedObject: DetectedObject): Boolean {
-        if (detectedObject.labels.size == 0) {
-            return false
-        }
-        val label = detectedObject.labels[0].text.lowercase()
-        if (label.contains("card") || label.contains("license")) {
-            return true
-        }
-        return false
+        return ImageProcessingUtils.validateListObject(detectedObject)
     }
 
-    @SuppressLint("Range")
     fun getContacts(context: Context, webView: WebView) {
-        try {
-            if (ContextCompat.checkSelfPermission(
-                    context, Manifest.permission.READ_CONTACTS
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                val contacts = JSONArray()
-                val cr: ContentResolver = context.contentResolver
-                val cur = cr.query(
-                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, null
-                )
-
-                if ((cur?.count ?: 0) > 0) {
-                    while (cur != null && cur.moveToNext()) {
-                        val name = cur.getString(
-                            cur.getColumnIndex(
-                                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
-                            )
-                        )
-                        val phoneNumber =
-                            cur.getString(cur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
-                                .replace("[^0-9]".toRegex(), "")
-                        val phone = JSONObject("""{name:"$name",phone:"$phoneNumber"}""")
-                        contacts.put(phone)
-                    }
-                }
-                cur?.close()
-                evaluateJSWebView(
-                    context as Activity, webView, "nativeContacts", contacts.toString(), null
-                )
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "util get contacts exception ${e.message}")
-        }
-
+        ContactsReader.sendContacts(context, webView)
     }
 
     fun downloadWithoutTemp(link: String, path: String) {
-        URL(link).openStream().use { input ->
-            FileOutputStream(File(path)).use { output ->
-                input.copyTo(output)
-            }
-        }
-        Log.d(PayMEMiniApp.TAG, "done download")
+        FileDownloadUtils.downloadWithoutTemp(link, path)
     }
 
-    @SuppressLint("SetTextI18n")
     fun download(
         context: Context,
         link: String,
         path: String,
         onCopy: (totalBytesCopied: Long, length: Int, speed: Long) -> Unit
     ) {
-        val sourceTemp = File("${context.filesDir.path}/update", "sdkWebapp3-mainTemp.zip")
-        val destSource = File(path)
-        val length = URL(link).openConnection().contentLength
-        var lastUpdateTime = System.currentTimeMillis()
-        var lastBytes: Long = 0
-        var currentSpeed: Long = 0
-        
-        URL(link).openStream().use { input ->
-            FileOutputStream(sourceTemp).use { output ->
-                input.copyTo(output, onCopy = { totalBytesCopied ->
-                    val currentTime = System.currentTimeMillis()
-                    val timeDiff = currentTime - lastUpdateTime
-                    
-                    // Calculate speed in bytes per second if at least 50ms have passed
-                    if (timeDiff >= 50) {
-                        val bytesDiff = totalBytesCopied - lastBytes
-                        // Calculate instantaneous speed
-                        val instantSpeed = (bytesDiff * 1000) / timeDiff
-                        
-                        // Apply some smoothing (weighted average with previous speed)
-                        currentSpeed = if (currentSpeed == 0L) {
-                            instantSpeed
-                        } else {
-                            (currentSpeed * 2 + instantSpeed) / 3
-                        }
-                        
-                        // Reset tracking variables
-                        lastBytes = totalBytesCopied
-                        lastUpdateTime = currentTime
-                    }
-                    
-                    onCopy(totalBytesCopied, length, currentSpeed)
-                })
-            }
-        }
-        if (sourceTemp.length() > 0) {
-            sourceTemp.copyTo(destSource, true)
-            Log.d(PayMEMiniApp.TAG, "done download")
-            sourceTemp.delete()
-        } else {
-            Log.d(PayMEMiniApp.TAG, "download fail")
-        }
+        FileDownloadUtils.download(context, link, path, onCopy)
     }
 
     fun nativeOpenKeyboard(context: Context, view: View?) {
-        if (view == null) {
-            return
-        }
-        val imm: InputMethodManager =
-            context.getSystemService(AppCompatActivity.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.showSoftInput(view, 0)
+        WebViewJsDispatcher.nativeOpenKeyboard(context, view)
     }
 
     fun generateQRCode(qrContent: String): Bitmap {
-        val writer = QRCodeWriter()
-        val bitMatrix = writer.encode(qrContent, BarcodeFormat.QR_CODE, 512, 512)
-        val width = bitMatrix.width
-        val height = bitMatrix.height
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                bitmap.setPixel(x, y, if (bitMatrix.get(x, y)) Color.BLACK else Color.WHITE)
-            }
-        }
-
-        return bitmap
-    }
-
-    private fun contentValues(): ContentValues {
-        val values = ContentValues()
-        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-        values.put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-        values.put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
-        return values
+        return QrImageStore.generateQRCode(qrContent)
     }
 
     fun saveImage(
@@ -755,104 +164,24 @@ object Utils {
         onSuccess: () -> Unit,
         onError: () -> Unit
     ) {
-        try {
-            if (Build.VERSION.SDK_INT >= 29) {
-                val values = contentValues()
-                values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/$folderName")
-                values.put(MediaStore.Images.Media.IS_PENDING, true)
-
-                val uri: Uri? = context.contentResolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
-                )
-                if (uri != null) {
-                    saveImageToStream(
-                        bitmap, context.contentResolver.openOutputStream(uri), onSuccess, onError
-                    )
-                    values.put(MediaStore.Images.Media.IS_PENDING, false)
-                    context.contentResolver.update(uri, values, null, null)
-                }
-            } else {
-                val directory = File(
-                    context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-                        .toString() + File.separator + folderName
-                )
-                if (!directory.exists()) {
-                    directory.mkdirs()
-                }
-                val fileName = System.currentTimeMillis().toString() + ".png"
-                val file = File(directory, fileName)
-                saveImageToStream(bitmap, FileOutputStream(file), onSuccess, onError)
-                val values = contentValues()
-                values.put(MediaStore.Images.Media.DATA, file.absolutePath)
-                context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-            }
-        } catch (e: Exception) {
-            Log.d("PAYMELOG", "error save bitmap $e")
-            onError()
-        }
-    }
-
-    private fun saveImageToStream(
-        bitmap: Bitmap, outputStream: OutputStream?, onSuccess: () -> Unit, onError: () -> Unit
-    ) {
-        if (outputStream != null) {
-            try {
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-                outputStream.close()
-                onSuccess()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Log.d("PAYMELOG", "error saveImageToStream $e")
-                onError()
-            }
-        }
+        QrImageStore.saveImage(bitmap, context, folderName, onSuccess, onError)
     }
 
     fun formatStringToValidJsonString(dataRaw: String): String {
-        var formatted = dataRaw
-        formatted = formatted.replace("\\r", "")
-        formatted = formatted.replace("\\n", "")
-        // Phép thay thế thứ nhất
-        formatted = formatted.replace("\\\\\"".toRegex(), "\"")
-        // Nếu cảnh báo escape thừa xảy ra, bạn có thể thêm suppression cho dòng này:
-        @Suppress("RegExpRedundantEscape") run {
-            formatted = formatted.replace("\\\\\\\"".toRegex(), "\"")
-        }
-        formatted = formatted.replace("\\\\", "\\")
-        return formatted.substring(1, formatted.length - 1)
+        return Formatters.formatStringToValidJsonString(dataRaw)
     }
-    fun formatFileSize(size: Long): String {
-        val kb = 1024L
-        val mb = kb * 1024L
-        val gb = mb * 1024L
 
-        return when {
-            size >= gb -> String.format("%.1fGB", size.toDouble() / gb) // Bỏ khoảng trắng để ngắn gọn như iOS
-            size >= mb -> String.format("%.1fMB", size.toDouble() / mb)
-            size >= kb -> String.format("%.1fKB", size.toDouble() / kb)
-            else -> "${size}B"
-        }
+    fun formatFileSize(size: Long): String {
+        return Formatters.formatFileSize(size)
     }
 
     fun formatSpeed(bytesPerSecond: Long): String {
-        val speedInBytes = bytesPerSecond
-        val speedInKB = speedInBytes.toFloat() / 1024.0f
-        val speedInMB = speedInKB / 1024.0f
-        val speedInGB = speedInMB / 1024.0f
-        
-        // Sử dụng 1000 làm ngưỡng để chuyển đơn vị, giảm số chữ số thập phân xuống còn 1
-        return when {
-            speedInGB >= 1.0f -> String.format("%.1fGB", speedInGB) // Bỏ khoảng trắng để ngắn gọn hơn
-            speedInMB >= 1.0f || speedInKB >= 1000.0f -> String.format("%.1fMB", speedInMB)
-            speedInKB >= 1.0f || speedInBytes >= 1000 -> String.format("%.1fKB", speedInKB)
-            speedInBytes > 0 -> String.format("%.0fB", speedInBytes.toFloat()) // Không cần số lẻ cho bytes
-            else -> "0B" // Khi tốc độ bằng 0
-        }
+        return Formatters.formatSpeed(bytesPerSecond)
     }
 }
 
 fun InputStream.copyTo(out: OutputStream, onCopy: (totalBytesCopied: Long) -> Any): Long {
-    var bytesCopied: Long = 0
+    var bytesCopied = 0L
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     var bytes = read(buffer)
     while (bytes >= 0) {

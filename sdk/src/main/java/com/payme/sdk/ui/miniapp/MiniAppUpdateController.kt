@@ -4,31 +4,29 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.View
-import android.widget.LinearLayout
-import androidx.core.content.ContextCompat
-import com.payme.sdk.BuildConfig
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.Locale
-import com.payme.sdk.models.PayMEVersion
+import com.payme.sdk.runtime.PayMERuntime
+import com.payme.sdk.ui.miniapp.source.ConnectivityMonitor
+import com.payme.sdk.ui.miniapp.source.LocalhostServerController
+import com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants
+import com.payme.sdk.ui.miniapp.source.SourceDownloadException
+import com.payme.sdk.ui.miniapp.source.SourceDownloadFailureReason
+import com.payme.sdk.ui.miniapp.source.SourceDownloader
+import com.payme.sdk.ui.miniapp.source.SourceInstallFailureReason
+import com.payme.sdk.ui.miniapp.source.SourceInstaller
+import com.payme.sdk.ui.miniapp.source.StoredUpdateState
+import com.payme.sdk.ui.miniapp.source.UpdateDecision
+import com.payme.sdk.ui.miniapp.source.UpdateDecisionResolver
+import com.payme.sdk.ui.miniapp.source.VersionRepository
 import com.payme.sdk.utils.LocaleUtils
 import com.payme.sdk.utils.NetworkMonitor
-import com.payme.sdk.utils.Utils
 import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
-import com.payme.sdk.webServer.WebServer
-import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.IOException
-import java.net.ConnectException
-import java.net.SocketException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
 internal class MiniAppUpdateController(
@@ -41,114 +39,103 @@ internal class MiniAppUpdateController(
     private val returnError: (String) -> Unit,
     private val closeMiniApp: () -> Unit
 ) {
-    private var wwwRoot: File? = null
-    private var server: com.payme.sdk.webServer.MySimpleWebServer? = null
-    private var port = 4646
+    private val versionRepository = VersionRepository()
+    private val updateDecisionResolver = UpdateDecisionResolver()
+    private val localhostServerController = LocalhostServerController(getLoadUrl, setLoadUrl)
+    private val connectivityMonitor = ConnectivityMonitor()
+    private val uiRenderer = MiniAppUpdateUiRenderer(contextProvider, activityProvider, viewsProvider)
+    private val downloadMonitor = MiniAppDownloadMonitor(
+        isDownloadInProgressProvider = { isDownloadInProgress },
+        currentLocaleProvider = { currentLocale() },
+        onDownloadIssue = { handleDownloadIssue(it) },
+        onConnectionStatusChanged = { updateConnectionTypeDisplay() }
+    )
 
     private var lastDownloadUrl: String? = null
     private var lastDownloadEditor: SharedPreferences.Editor? = null
     private var lastDownloadPatch = 0
     private var networkError: Exception? = null
     private var backgroundDownload = false
+    private var pendingMandatoryUpdate = false
+    private var downloadedUpdateReady = false
     private var versionCheckingTask: Thread? = null
 
     private var activeNetworkCallback: ConnectivityManager.NetworkCallback? = null
     private var isDownloadInProgress = false
-    private var slowSpeedStartTime: Long = 0
-    private var downloadStartTime: Long = 0
-    private var downloadSpeedHandler: Handler? = null
-    private var timeoutCheckRunnable: Runnable? = null
     private var forceUpdateNetworkCallback: ConnectivityManager.NetworkCallback? = null
-
-    private val slowSpeedThreshold = 1024L
-    private val slowSpeedDuration = 5000L
-    private val downloadTimeout = 1 * 60 * 1000L
 
     fun startVersionCheck() {
         versionCheckingTask = Thread {
             try {
                 val safeContext = contextProvider() ?: return@Thread
-                activityProvider()?.runOnUiThread {
-                    viewsProvider().loadingView.visibility = View.VISIBLE
-                }
-                val versionFile = File(safeContext.filesDir.path, "version.json")
-                if (versionFile.exists()) {
-                    versionFile.delete()
-                }
-                versionFile.createNewFile()
-                Utils.downloadWithoutTemp(
-                    "https://static.payme.vn/frontend/miniapp-store/PayMEMiniAppVersion.json",
-                    versionFile.absolutePath
-                )
-                val jsonString: String = File(versionFile.absolutePath).readText(Charsets.UTF_8)
-                val jsonArray = JSONArray(jsonString)
-                var version = ""
-                var found: JSONObject? = null
-                for (i in 0 until jsonArray.length()) {
-                    val item = jsonArray.getJSONObject(i)
-                    if (item.getString("version") == BuildConfig.SDK_VERSION) {
-                        found = item
-                        version = item.getString("version")
-                    }
-                }
+                uiRenderer.setLoadingVisible()
+                val versionLookup = versionRepository.fetchVersionForCurrentSdk(safeContext)
                 val updateViewModel = updateViewModelProvider()
-                if (found == null) {
+                if (versionLookup == null || versionLookup.modeJson == null) {
                     updateViewModel.setDoneUpdate(true)
                     return@Thread
                 }
-                Log.d("PAYMELOG", "payme miniapp mode ${PayMEMiniApp.mode}")
+                Log.d("PAYMELOG", "payme miniapp mode ${currentMode()}")
                 val sharedPreference = safeContext.getSharedPreferences(
-                    "PAYME_NATIVE_UPDATE", Context.MODE_PRIVATE
+                    MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE
                 )
                 val editor = sharedPreference.edit()
-                val mode = found.optJSONObject(PayMEMiniApp.mode)
-                if (mode == null) {
-                    updateViewModel.setDoneUpdate(true)
-                    return@Thread
-                }
-                val localMode = sharedPreference.getString("PAYME_MODE", "")
-                if (PayMEMiniApp.mode != localMode) {
-                    editor.putString("PAYME_MODE", PayMEMiniApp.mode)
-                    editor.putInt("PAYME_PATCH", if (localMode == "") 0 else -1)
+                val decisionResult = updateDecisionResolver.resolve(
+                    versionLookup = versionLookup,
+                    currentMode = currentMode(),
+                    storedState = StoredUpdateState(
+                        mode = sharedPreference.getString(MiniAppSourceConstants.PREF_MODE, "").orEmpty(),
+                        patch = sharedPreference.getInt(MiniAppSourceConstants.PREF_PATCH, 0)
+                    )
+                )
+                decisionResult.mutation?.let {
+                    editor.putString(MiniAppSourceConstants.PREF_MODE, it.mode)
+                    editor.putInt(MiniAppSourceConstants.PREF_PATCH, it.patch)
                     editor.apply()
                 }
-                val patch = mode.optInt("patch", 0)
-                val latestMandatory = mode.optInt("latestMandatoryPatch", 0)
-                val url = mode.optString("url")
-                val localPatch = sharedPreference.getInt("PAYME_PATCH", 0)
+                when (val decision = decisionResult.decision) {
+                    UpdateDecision.LoadDefaultSource -> {
+                        Log.d(PayMEMiniApp.TAG, "default")
+                        pendingMandatoryUpdate = false
+                        downloadedUpdateReady = false
+                        updateViewModel.setLoadDefaultSource(true)
+                        updateViewModel.setDoneUpdate(true)
+                        return@Thread
+                    }
 
-                if (patch == 0 && latestMandatory == 0) {
-                    Log.d(PayMEMiniApp.TAG, "default")
-                    updateViewModel.setLoadDefaultSource(true)
-                    updateViewModel.setDoneUpdate(true)
-                    return@Thread
+                    UpdateDecision.NoUpdate -> {
+                        Log.d(PayMEMiniApp.TAG, "do not update")
+                        pendingMandatoryUpdate = false
+                        downloadedUpdateReady = false
+                        updateViewModel.setDoneUpdate(true)
+                        return@Thread
+                    }
+
+                    is UpdateDecision.BackgroundUpdate -> {
+                        Log.d(PayMEMiniApp.TAG, "download ngầm")
+                        pendingMandatoryUpdate = false
+                        downloadedUpdateReady = false
+                        backgroundDownload = true
+                        updateViewModel.setDoneUpdate(true)
+                        downloadSourceWeb(decision.url, editor, decision.patch)
+                        return@Thread
+                    }
+
+                    is UpdateDecision.MandatoryUpdate -> {
+                        Log.d(PayMEMiniApp.TAG, "force update")
+                        pendingMandatoryUpdate = true
+                        downloadedUpdateReady = false
+                        uiRenderer.setUpdateLabel(decision.patch)
+                        updateViewModel.setShowUpdatingUI(true)
+                        updateViewModel.setIsForceUpdating(true)
+                        if (!downloadSourceWeb(decision.url, editor, decision.patch)) {
+                            return@Thread
+                        }
+                        Log.d(PayMEMiniApp.TAG, "downloaded source moi")
+                        updateViewModel.setIsForceUpdating(false)
+                        updateViewModel.setDoneUpdate(true)
+                    }
                 }
-                val localMandatory = localPatch < latestMandatory
-                val payMEVersion = PayMEVersion(patch, version, localMandatory, url)
-                if (payMEVersion.patch <= localPatch) {
-                    Log.d(PayMEMiniApp.TAG, "do not update")
-                    updateViewModel.setDoneUpdate(true)
-                    return@Thread
-                }
-                if (!payMEVersion.mandatory) {
-                    Log.d(PayMEMiniApp.TAG, "download ngầm")
-                    backgroundDownload = true
-                    updateViewModel.setDoneUpdate(true)
-                    downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
-                    return@Thread
-                }
-                Log.d(PayMEMiniApp.TAG, "force update")
-                activityProvider()?.runOnUiThread {
-                    val context = contextProvider() ?: return@runOnUiThread
-                    viewsProvider().updateLabelText.text =
-                        context.getString(R.string.loading_data, BuildConfig.SDK_VERSION, patch)
-                }
-                updateViewModel.setShowUpdatingUI(true)
-                updateViewModel.setIsForceUpdating(true)
-                downloadSourceWeb(payMEVersion.url, editor, payMEVersion.patch)
-                Log.d(PayMEMiniApp.TAG, "downloaded source moi")
-                updateViewModel.setIsForceUpdating(false)
-                updateViewModel.setDoneUpdate(true)
             } catch (e: SSLException) {
                 Log.d(PayMEMiniApp.TAG, "SSLException ex $e")
             } catch (e: Exception) {
@@ -172,17 +159,18 @@ internal class MiniAppUpdateController(
             }
         }
 
-        val connectivityManager =
-            safeContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         forceUpdateNetworkCallback = networkCallback
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        connectivityMonitor.registerDefaultNetworkCallback(safeContext, networkCallback)
     }
 
     fun onDoneUpdate(loadDefaultSource: Boolean, onLoadUrlReady: (String) -> Unit) {
-        if (loadDefaultSource) {
+        val sourceReady = if (loadDefaultSource) {
             unzipDefaultSource()
         } else {
             unzip()
+        }
+        if (!sourceReady) {
+            return
         }
         startServer()
         val currentLoadUrl = getLoadUrl()
@@ -194,15 +182,7 @@ internal class MiniAppUpdateController(
     }
 
     fun setUpdatingUiVisible(visible: Boolean) {
-        activityProvider()?.runOnUiThread {
-            val views = viewsProvider()
-            if (visible) {
-                views.loadingView.visibility = View.GONE
-                views.updatingView.visibility = View.VISIBLE
-            } else {
-                views.updatingView.visibility = View.GONE
-            }
-        }
+        uiRenderer.setUpdatingUiVisible(visible)
     }
 
     fun onConnectionRestoredIfForceUpdating() {
@@ -214,28 +194,19 @@ internal class MiniAppUpdateController(
     }
 
     fun restartLocalServerAfterWebResourceError() {
-        try {
-            stopServer()
-            server = WebServer("localhost", port, wwwRoot)
-            (server as WebServer).start()
-            Log.d(PayMEMiniApp.TAG, "start server")
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "error ${e.message}")
-        }
+        val safeContext = contextProvider() ?: return
+        val root = localhostServerController.wwwRoot ?: SourceInstaller(safeContext).wwwRoot
+        localhostServerController.restart(safeContext, root)
     }
 
     fun stopServer() {
-        if (server != null) {
-            Log.d(PayMEMiniApp.TAG, "Stopped Server")
-            server!!.stop()
-            server = null
-        }
+        localhostServerController.stop()
     }
 
     fun dispose() {
         unregisterForceUpdateNetworkCallback()
         unregisterNetworkCallback()
-        stopSpeedAndTimeoutMonitoring()
+        downloadMonitor.stop()
         stopServer()
     }
 
@@ -243,8 +214,7 @@ internal class MiniAppUpdateController(
         forceUpdateNetworkCallback?.let {
             try {
                 val safeContext = contextProvider() ?: return
-                val connectivityManager = safeContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                connectivityManager.unregisterNetworkCallback(it)
+                connectivityMonitor.unregisterDefaultNetworkCallback(safeContext, it)
             } catch (e: Exception) {
                 Log.e(PayMEMiniApp.TAG, "Error unregistering force update network callback: ${e.message}")
             }
@@ -252,63 +222,100 @@ internal class MiniAppUpdateController(
         }
     }
 
-    private fun unzip() {
-        val safeContext = contextProvider() ?: return
-        val filesDir = safeContext.filesDir
-        val sourceWeb = File("${filesDir.path}/update", "sdkWebapp3-main.zip")
+    private fun unzip(): Boolean {
+        val safeContext = contextProvider() ?: return false
+        val sourceInstaller = SourceInstaller(safeContext)
+        val sourceWeb = sourceInstaller.updateZip
         if (sourceWeb.exists() && !backgroundDownload && sourceWeb.length() > 0) {
             Log.d(PayMEMiniApp.TAG, "chay vo copy update")
-            val wwwDirectory = File(filesDir.path, "www")
-            wwwDirectory.delete()
-            if (!wwwDirectory.exists()) {
-                wwwDirectory.mkdir()
-            }
-            val unzipResult = Utils.unzipFile("${filesDir.path}/update/sdkWebapp3-main.zip", "${filesDir.path}/www")
-            if (!unzipResult) {
+            val installResult = sourceInstaller.installUpdatedSourceDetailed()
+            if (!installResult.success) {
+                if (installResult.failureReason == SourceInstallFailureReason.INSUFFICIENT_STORAGE) {
+                    Log.e(PayMEMiniApp.TAG, "Not enough storage to install update source")
+                    return handleInstallStorageFailure(safeContext, sourceInstaller)
+                }
                 Log.e(PayMEMiniApp.TAG, "Failed to unzip update file. Closing miniapp")
                 handleUnzipError()
-                return
+                return false
             }
-            sourceWeb.delete()
-            return
+            persistInstalledPatchIfNeeded()
+            backgroundDownload = false
+            pendingMandatoryUpdate = false
+            return true
         }
 
         Log.d(PayMEMiniApp.TAG, "chay vo unzip source down san")
-
-        val wwwDirectory = File(filesDir.path, "www")
-        if (!wwwDirectory.exists()) {
-            wwwDirectory.mkdir()
-        }
-        val unzipped = File("${filesDir.path}/www", "sdkWebapp3-main")
-        val content = unzipped.listFiles()
-        if (content == null || content.isEmpty()) {
-            Utils.copyDir(safeContext, path = "www")
-            val unzipResult = Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
-            if (!unzipResult) {
-                Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
-                handleUnzipError()
+        val sourceResult = sourceInstaller.ensureExistingOrBundledSourceDetailed()
+        if (!sourceResult.success) {
+            if (sourceResult.failureReason == SourceInstallFailureReason.INSUFFICIENT_STORAGE) {
+                Log.e(PayMEMiniApp.TAG, "Not enough storage to install bundled source")
+                return handleInstallStorageFailure(safeContext, sourceInstaller)
             }
-        }
-    }
-
-    private fun unzipDefaultSource() {
-        val safeContext = contextProvider() ?: return
-        val filesDir = safeContext.filesDir
-        Log.d(PayMEMiniApp.TAG, "chay vo unzipDefaultSource")
-        val wwwDirectory = File(filesDir.path, "www")
-        if (!wwwDirectory.exists()) {
-            wwwDirectory.mkdir()
-        }
-        Utils.copyDir(safeContext, path = "www")
-        val unzipResult = Utils.unzipFile("${filesDir.path}/www/sdkWebapp3-main.zip", "${filesDir.path}/www")
-        if (!unzipResult) {
             Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
             handleUnzipError()
+            return false
         }
+        return true
+    }
+
+    private fun unzipDefaultSource(): Boolean {
+        val safeContext = contextProvider() ?: return false
+        Log.d(PayMEMiniApp.TAG, "chay vo unzipDefaultSource")
+        val sourceInstaller = SourceInstaller(safeContext)
+        val installResult = sourceInstaller.installBundledSourceDetailed()
+        if (!installResult.success) {
+            if (installResult.failureReason == SourceInstallFailureReason.INSUFFICIENT_STORAGE) {
+                Log.e(PayMEMiniApp.TAG, "Not enough storage to install bundled source")
+                return handleInstallStorageFailure(safeContext, sourceInstaller)
+            }
+            Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
+            handleUnzipError()
+            return false
+        }
+        return true
+    }
+
+    private fun handleInstallStorageFailure(
+        context: Context,
+        sourceInstaller: SourceInstaller
+    ): Boolean {
+        sourceInstaller.cleanUpdateArtifacts()
+        downloadedUpdateReady = false
+
+        if (pendingMandatoryUpdate) {
+            updateViewModelProvider().setIsForceUpdating(true)
+            activityProvider()?.runOnUiThread {
+                showDownloadError(
+                    errorMessage = context.getString(R.string.insufficient_storage),
+                    logPrefix = "Insufficient storage - Current download parameters - URL: $lastDownloadUrl, Patch: $lastDownloadPatch"
+                )
+            }
+            return false
+        }
+
+        backgroundDownload = false
+        if (SourceInstaller.findWebRoot(sourceInstaller.wwwDirectory) != null) {
+            Log.w(PayMEMiniApp.TAG, "Skipping optional source update because storage is insufficient")
+            return true
+        }
+
+        handleStorageErrorAndClose(context)
+        return false
+    }
+
+    private fun persistInstalledPatchIfNeeded() {
+        if (!downloadedUpdateReady) {
+            return
+        }
+
+        val editor = lastDownloadEditor ?: return
+        editor.putInt(MiniAppSourceConstants.PREF_PATCH, lastDownloadPatch)
+        editor.apply()
+        downloadedUpdateReady = false
     }
 
     private fun handleUnzipError() {
-        val errorDescription = when (PayMEMiniApp.locale) {
+        val errorDescription = when (currentLocale()) {
             Locale.en -> "Failed to unzip source files. The app will be closed."
             Locale.vi -> "Không thể giải nén tệp nguồn. Ứng dụng sẽ được đóng."
         }
@@ -329,24 +336,35 @@ internal class MiniAppUpdateController(
         }
     }
 
+    private fun handleStorageErrorAndClose(context: Context) {
+        val errorJson = JSONObject().apply {
+            put("code", "INSUFFICIENT_STORAGE")
+            put("description", context.getString(R.string.insufficient_storage))
+            put("isCloseMiniApp", true)
+        }.toString()
+
+        activityProvider()?.runOnUiThread {
+            try {
+                returnError(errorJson)
+            } catch (e: Exception) {
+                Log.e(PayMEMiniApp.TAG, "Error handling storage failure: ${e.message}")
+                closeMiniApp()
+            }
+        }
+    }
+
     private fun startServer() {
         val safeContext = contextProvider() ?: return
-        if (server != null) {
-            return
-        }
-        port = Utils.findRandomOpenPort() ?: 4646
-        wwwRoot = File("${safeContext.filesDir.path}/www", "sdkWebapp3-main")
-        if (getLoadUrl().contains("http://localhost") || getLoadUrl().isEmpty()) {
-            setLoadUrl("http://localhost:$port/")
-        }
+        val root = SourceInstaller(safeContext).wwwRoot
+        localhostServerController.start(safeContext, root)
+    }
 
-        try {
-            server = WebServer("localhost", port, wwwRoot)
-            (server as WebServer).start()
-            Log.d(PayMEMiniApp.TAG, "start server with port $port")
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "error start server ${e.message}")
-        }
+    private fun currentMode(): String {
+        return PayMERuntime.requireConfig().mode
+    }
+
+    private fun currentLocale(): Locale {
+        return PayMERuntime.requireConfig().locale
     }
 
     private fun getConnectionType(): String {
@@ -359,70 +377,25 @@ internal class MiniAppUpdateController(
     }
 
     private fun updateConnectionTypeDisplay() {
-        val context = contextProvider() ?: return
-        val connectionType = NetworkMonitor.shared.connectionType.value
-        val isConnected = NetworkMonitor.shared.isConnected.value
-
-        val iconResId = when (connectionType) {
-            NetworkMonitor.ConnectionType.WIFI -> R.drawable.ic_wifi
-            NetworkMonitor.ConnectionType.CELLULAR -> R.drawable.ic_network_cell
-            NetworkMonitor.ConnectionType.ETHERNET -> R.drawable.ic_network
-            else -> R.drawable.ic_network_unknown
+        activityProvider()?.runOnUiThread {
+            uiRenderer.updateConnectionStatus(
+                error = networkError,
+                isSlowOrInterrupted = downloadMonitor.isSlowOrInterrupted,
+                isConnected = NetworkMonitor.shared.isConnected.value,
+                connectionType = getConnectionType()
+            )
         }
-
-        val isError = networkError != null
-        val isDownloadSlowOrInterrupted = slowSpeedStartTime > 0L
-
-        val colorResId = when {
-            isError -> R.color.warning
-            isDownloadSlowOrInterrupted -> R.color.warning
-            !isConnected -> R.color.warning
-            else -> R.color.grey_text
-        }
-
-        val connectionText = when {
-            isError -> networkError?.let {
-                when (it) {
-                    is UnknownHostException -> LocaleUtils.ErrorMessages.serverUnavailable()
-                    is SocketTimeoutException -> LocaleUtils.ErrorMessages.connectionTimeout()
-                    is ConnectException -> LocaleUtils.ErrorMessages.serverConnectionFailed()
-                    is SocketException -> LocaleUtils.ErrorMessages.networkConnectionLost()
-                    is SSLException -> LocaleUtils.ErrorMessages.secureConnectionFailed()
-                    is IOException -> LocaleUtils.ErrorMessages.networkError()
-                    else -> it.message ?: LocaleUtils.ErrorMessages.unknownError()
-                }
-            } ?: LocaleUtils.ErrorMessages.unknownError()
-            isDownloadSlowOrInterrupted -> LocaleUtils.DownloadMessages.slowNetworkSpeed()
-            !isConnected -> LocaleUtils.ErrorMessages.noNetworkConnection()
-            else -> getConnectionType()
-        }
-
-        val views = viewsProvider()
-        views.connectionTypeIcon.setImageResource(iconResId)
-        views.connectionTypeIcon.setColorFilter(ContextCompat.getColor(context, colorResId))
-        views.connectionTypeText.text = connectionText
-        views.connectionTypeText.setTextColor(ContextCompat.getColor(context, colorResId))
-        views.connectionStatusContainer.visibility = View.VISIBLE
     }
 
     private fun isNetworkConnected(): Boolean {
         val safeContext = contextProvider() ?: return false
-        val connectivityManager = safeContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork
-        val capabilities = connectivityManager.getNetworkCapabilities(network)
-        return capabilities != null && (
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
+        return connectivityMonitor.isConnected(safeContext)
     }
 
     private fun registerNetworkCallback() {
         unregisterNetworkCallback()
 
         val safeContext = contextProvider() ?: return
-        val connectivityManager = safeContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onLost(network: Network) {
                 super.onLost(network)
@@ -448,15 +421,14 @@ internal class MiniAppUpdateController(
         }
 
         activeNetworkCallback = networkCallback
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        connectivityMonitor.registerDefaultNetworkCallback(safeContext, networkCallback)
     }
 
     private fun unregisterNetworkCallback() {
         activeNetworkCallback?.let {
             try {
                 val safeContext = contextProvider() ?: return
-                val connectivityManager = safeContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                connectivityManager.unregisterNetworkCallback(it)
+                connectivityMonitor.unregisterDefaultNetworkCallback(safeContext, it)
             } catch (e: Exception) {
                 Log.e(PayMEMiniApp.TAG, "Error unregistering network callback: ${e.message}")
             }
@@ -464,90 +436,9 @@ internal class MiniAppUpdateController(
         }
     }
 
-    private fun startSpeedAndTimeoutMonitoring() {
-        slowSpeedStartTime = 0
-        downloadStartTime = System.currentTimeMillis()
-        stopSpeedAndTimeoutMonitoring()
-        downloadSpeedHandler = Handler(Looper.getMainLooper())
-        timeoutCheckRunnable = Runnable {
-            val currentTime = System.currentTimeMillis()
-            val elapsedTime = currentTime - downloadStartTime
-            val remainingTime = downloadTimeout - elapsedTime
-
-            if (isDownloadInProgress) {
-                val elapsedSeconds = elapsedTime / 1000
-                val remainingSeconds = remainingTime / 1000
-                val timeRemainingMessage = LocaleUtils.DownloadMessages.downloadTimeRemaining(remainingSeconds)
-
-                Log.d(PayMEMiniApp.TAG, "$timeRemainingMessage (${elapsedSeconds}s đã trôi qua)")
-
-                if (remainingTime in 1..29999) {
-                    Log.w(PayMEMiniApp.TAG, timeRemainingMessage)
-                }
-
-                if (elapsedTime > downloadTimeout) {
-                    val timeoutMessage = when (PayMEMiniApp.locale) {
-                        Locale.en -> "Download timeout after ${elapsedTime / 1000}s - Cancelling download"
-                        Locale.vi -> "Tải xuống quá thời gian sau ${elapsedTime / 1000}s - Hủy tải xuống"
-                    }
-                    Log.e(PayMEMiniApp.TAG, timeoutMessage)
-                    val timeoutErrorMessage = LocaleUtils.ErrorMessages.downloadTimeout()
-                    handleDownloadIssue(timeoutErrorMessage)
-                } else {
-                    timeoutCheckRunnable?.let {
-                        downloadSpeedHandler?.postDelayed(it, 10000)
-                    }
-                }
-            }
-        }
-
-        timeoutCheckRunnable?.let {
-            downloadSpeedHandler?.postDelayed(it, 10000)
-        }
-    }
-
-    private fun stopSpeedAndTimeoutMonitoring() {
-        timeoutCheckRunnable?.let { downloadSpeedHandler?.removeCallbacks(it) }
-        downloadSpeedHandler = null
-        timeoutCheckRunnable = null
-    }
-
-    private fun checkDownloadSpeed(speed: Long) {
-        if (speed < slowSpeedThreshold && isDownloadInProgress) {
-            val currentTime = System.currentTimeMillis()
-            if (slowSpeedStartTime == 0L) {
-                slowSpeedStartTime = currentTime
-                val formattedSpeed = Utils.formatSpeed(speed)
-                val slowSpeedMessage = when (PayMEMiniApp.locale) {
-                    Locale.en -> "Slow download speed detected: ${formattedSpeed}/s"
-                    Locale.vi -> "Phát hiện tốc độ tải xuống chậm: ${formattedSpeed}/s"
-                }
-                Log.w(PayMEMiniApp.TAG, slowSpeedMessage)
-                activityProvider()?.runOnUiThread {
-                    updateConnectionTypeDisplay()
-                }
-            } else {
-                val slowDuration = currentTime - slowSpeedStartTime
-                if (slowDuration > slowSpeedDuration) {
-                    val formattedSpeed = Utils.formatSpeed(speed)
-                    Log.e(PayMEMiniApp.TAG, "Download speed too slow (${formattedSpeed}/s) for ${slowDuration / 1000}s - aborting download")
-                    val errorMessage = LocaleUtils.ErrorMessages.downloadFailed("Tốc độ quá chậm")
-                    handleDownloadIssue(errorMessage)
-                }
-            }
-        } else {
-            if (slowSpeedStartTime > 0L) {
-                slowSpeedStartTime = 0L
-                activityProvider()?.runOnUiThread {
-                    updateConnectionTypeDisplay()
-                }
-            }
-        }
-    }
-
     private fun handleDownloadIssue(errorMessage: String) {
         if (!isDownloadInProgress) return
-        stopSpeedAndTimeoutMonitoring()
+        downloadMonitor.stop()
         isDownloadInProgress = false
         showDownloadError(
             errorMessage = errorMessage,
@@ -557,7 +448,7 @@ internal class MiniAppUpdateController(
 
     private fun handleNetworkDisconnection(errorMessage: String) {
         isDownloadInProgress = false
-        stopSpeedAndTimeoutMonitoring()
+        downloadMonitor.stop()
         showDownloadError(
             errorMessage = errorMessage,
             logPrefix = "Network disconnection - Current download parameters - URL: $lastDownloadUrl, Patch: $lastDownloadPatch"
@@ -565,165 +456,116 @@ internal class MiniAppUpdateController(
     }
 
     private fun showDownloadError(errorMessage: String, logPrefix: String) {
-        val context = contextProvider() ?: return
-        val views = viewsProvider()
-        views.errorContainer.visibility = View.VISIBLE
-        views.errorMessage.text = context.getString(R.string.download_failed_with_reason, errorMessage)
-
-        Log.d(PayMEMiniApp.TAG, logPrefix)
-
         val localUrl = lastDownloadUrl
         val localEditor = lastDownloadEditor
         val localPatch = lastDownloadPatch
 
-        views.retryButton.text = context.getString(R.string.retry)
-        views.retryButton.setOnClickListener {
-            views.errorMessage.text = context.getString(R.string.wait)
-            if (localUrl != null && localEditor != null) {
-                if (isNetworkConnected()) {
+        uiRenderer.showDownloadError(
+            errorMessage = errorMessage,
+            logPrefix = logPrefix,
+            hasRetryContext = localUrl != null && localEditor != null,
+            canRetry = { isNetworkConnected() },
+            onRetry = {
+                if (localUrl != null && localEditor != null) {
                     Log.d(PayMEMiniApp.TAG, "Retrying download with - URL: $localUrl, Patch: $localPatch")
-                    views.errorContainer.visibility = View.GONE
-
                     Handler(Looper.getMainLooper()).postDelayed({
-                        downloadSourceWeb(localUrl, localEditor, localPatch)
+                        if (downloadSourceWeb(localUrl, localEditor, localPatch) && pendingMandatoryUpdate) {
+                            updateViewModelProvider().setIsForceUpdating(false)
+                            updateViewModelProvider().setDoneUpdate(true)
+                        }
                     }, 200)
-                } else {
-                    Log.e(PayMEMiniApp.TAG, "Cannot retry - No network connection")
-                    views.errorMessage.text = context.getString(
-                        R.string.download_failed_with_reason,
-                        context.getString(R.string.no_network_connection)
-                    )
                 }
-            } else {
-                Log.e(PayMEMiniApp.TAG, "Cannot retry - Missing parameters")
-                views.errorMessage.text = context.getString(
-                    R.string.download_failed_wait,
-                    context.getString(R.string.wait)
-                )
             }
-        }
+        )
     }
 
-    private fun downloadSourceWeb(url: String?, editor: SharedPreferences.Editor, patch: Int) {
-        val safeContext = contextProvider() ?: return
+    private fun downloadSourceWeb(url: String?, editor: SharedPreferences.Editor, patch: Int): Boolean {
+        val safeContext = contextProvider() ?: return false
         lastDownloadUrl = url
         lastDownloadEditor = editor
         lastDownloadPatch = patch
+        downloadedUpdateReady = false
 
         Log.d(PayMEMiniApp.TAG, "Starting download with URL: $url, Patch: $patch")
-        val filesDir = safeContext.filesDir
-        val updateDirectory = File(filesDir.path, "update")
-        if (!updateDirectory.exists()) {
-            updateDirectory.mkdir()
-        }
-        val sourceWeb = File("${filesDir.path}/update", "sdkWebapp3-main.zip")
-        if (sourceWeb.exists()) {
-            sourceWeb.delete()
-        }
-        sourceWeb.createNewFile()
+        val sourceDownloader = SourceDownloader(safeContext)
+        val sourceWeb = sourceDownloader.resetDestination()
 
         if (!isNetworkConnected()) {
             activityProvider()?.runOnUiThread {
                 val message = LocaleUtils.ErrorMessages.noNetworkConnection()
                 handleNetworkDisconnection(message)
             }
-            return
+            return false
         }
 
-        activityProvider()?.runOnUiThread {
-            viewsProvider().updateLabelText.text =
-                safeContext.getString(R.string.loading_data, BuildConfig.SDK_VERSION, patch)
-        }
+        uiRenderer.setUpdateLabel(patch)
 
         registerNetworkCallback()
-        startSpeedAndTimeoutMonitoring()
+        downloadMonitor.start()
 
-        activityProvider()?.runOnUiThread {
-            viewsProvider().errorContainer.visibility = View.GONE
-            updateConnectionTypeDisplay()
-        }
+        uiRenderer.hideDownloadErrorAndUpdateConnection(
+            error = networkError,
+            isSlowOrInterrupted = downloadMonitor.isSlowOrInterrupted,
+            isConnected = NetworkMonitor.shared.isConnected.value,
+            connectionType = getConnectionType()
+        )
 
+        var didDownloadUpdate = false
         url?.let {
             try {
                 isDownloadInProgress = true
                 networkError = null
 
-                Utils.download(
-                    safeContext, it, sourceWeb.absolutePath
-                ) { totalBytesCopied, length, speed ->
-                    checkDownloadSpeed(speed)
+                val downloadResult = sourceDownloader.download(it, sourceWeb) { totalBytesCopied, length, speed ->
+                    downloadMonitor.checkSpeed(speed)
 
-                    val progressValuePercent = (totalBytesCopied * 100 / length).toInt()
+                    val progressValuePercent =
+                        if (length > 0) (totalBytesCopied * 100 / length).toInt() else 0
 
-                    activityProvider()?.runOnUiThread {
-                        val views = viewsProvider()
-                        views.progressBar.progress = progressValuePercent
-
-                        val downloadedSizeFormatted = Utils.formatFileSize(totalBytesCopied)
-                        val totalSizeFormatted = Utils.formatFileSize(length.toLong())
-                        val speedFormatted = Utils.formatSpeed(speed)
-
-                        val percentFormatted = safeContext.getString(
-                            R.string.download_decimal_percent,
-                            progressValuePercent.toFloat()
-                        )
-                        val downloadInfo = safeContext.getString(
-                            R.string.download_progress_detail,
-                            downloadedSizeFormatted,
-                            totalSizeFormatted,
-                            speedFormatted,
-                            percentFormatted
-                        )
-                        views.downloadDetailsText.text = downloadInfo
-
-                        updateConnectionTypeDisplay()
-
-                        val layoutParams = views.lottieView.layoutParams as LinearLayout.LayoutParams
-                        layoutParams.leftMargin =
-                            progressValuePercent * (views.lottieContainerView.width - views.lottieView.width) / 100
-                        layoutParams.topMargin = 0
-                        layoutParams.rightMargin = 0
-                        layoutParams.bottomMargin = 0
-                        views.lottieView.requestLayout()
-                    }
+                    uiRenderer.updateDownloadProgress(
+                        totalBytesCopied = totalBytesCopied,
+                        length = length,
+                        speed = speed,
+                        progressValuePercent = progressValuePercent
+                    )
+                    updateConnectionTypeDisplay()
                 }
 
                 isDownloadInProgress = false
                 unregisterNetworkCallback()
-                stopSpeedAndTimeoutMonitoring()
+                downloadMonitor.stop()
+
+                Log.d(PayMEMiniApp.TAG, "source web length ${downloadResult.bytesCopied}")
+                if (downloadResult.bytesCopied > 0) {
+                    downloadedUpdateReady = true
+                    didDownloadUpdate = true
+                }
             } catch (e: Exception) {
                 Log.e(PayMEMiniApp.TAG, "Download error: ${e.message}")
 
                 isDownloadInProgress = false
-                stopSpeedAndTimeoutMonitoring()
+                unregisterNetworkCallback()
+                downloadMonitor.stop()
                 networkError = e
+                downloadedUpdateReady = false
 
-                val errorMsg = when (e) {
-                    is UnknownHostException -> LocaleUtils.ErrorMessages.serverUnavailable()
-                    is SocketTimeoutException -> LocaleUtils.ErrorMessages.connectionTimeout()
-                    is ConnectException -> LocaleUtils.ErrorMessages.serverConnectionFailed()
-                    is SocketException -> LocaleUtils.ErrorMessages.networkConnectionLost()
-                    is SSLException -> LocaleUtils.ErrorMessages.secureConnectionFailed()
-                    is IOException -> LocaleUtils.ErrorMessages.networkError()
-                    else -> e.message ?: LocaleUtils.ErrorMessages.unknownError()
+                if (isInsufficientStorageDownload(e)) {
+                    SourceInstaller(safeContext).cleanUpdateArtifacts()
+                    if (backgroundDownload && !pendingMandatoryUpdate) {
+                        Log.w(PayMEMiniApp.TAG, "Skipping background source update because storage is insufficient")
+                        backgroundDownload = false
+                        networkError = null
+                        return false
+                    }
                 }
+
+                val errorMsg = MiniAppUpdateErrorMapper.downloadErrorMessage(safeContext, e)
 
                 activityProvider()?.runOnUiThread {
                     handleNetworkDisconnection(errorMsg)
                 }
 
-                return@let
-            }
-
-            Log.d(PayMEMiniApp.TAG, "source web length ${sourceWeb.length()}")
-            if (sourceWeb.length() > 0) {
-                editor.putInt("PAYME_PATCH", patch)
-                editor.apply()
-            } else {
-                if (!backgroundDownload) {
-                    sourceWeb.delete()
-                    updateViewModelProvider().setDoneUpdate(true)
-                }
+                return false
             }
             backgroundDownload = false
         }
@@ -731,7 +573,13 @@ internal class MiniAppUpdateController(
         if (isDownloadInProgress) {
             isDownloadInProgress = false
             unregisterNetworkCallback()
-            stopSpeedAndTimeoutMonitoring()
+            downloadMonitor.stop()
         }
+        return didDownloadUpdate
+    }
+
+    private fun isInsufficientStorageDownload(error: Exception): Boolean {
+        return error is SourceDownloadException &&
+            error.reason == SourceDownloadFailureReason.INSUFFICIENT_STORAGE
     }
 }

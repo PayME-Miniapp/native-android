@@ -1,19 +1,151 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-  xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:tools="http://schemas.android.com/tools"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
+  android:fillViewport="true"
   tools:context=".MainActivity">
 
-  <TextView
-    android:id="@+id/open_sdk"
-    android:layout_width="wrap_content"
+  <LinearLayout
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:text="PayME Android Sdk Example"
-    app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toTopOf="parent" />
+    android:orientation="vertical"
+    android:padding="24dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/example_title"
+      android:textSize="22sp"
+      android:textStyle="bold" />
+
+    <TextView
+      android:id="@+id/status"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="8dp"
+      android:layout_marginBottom="16dp"
+      android:text="@string/status_ready"
+      android:textSize="14sp" />
+
+    <Button
+      android:id="@+id/open_payme_screen"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_payme_screen"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_payme_modal"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_payme_modal"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_wallet"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_wallet"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_payment"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_payment"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_payment_direct"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_payment_direct"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_transfer_qr"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_transfer_qr"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_service"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_service"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_deposit"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_deposit"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_withdraw"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_withdraw"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_transfer"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_transfer"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/open_kyc"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/open_kyc"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/get_balance"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/get_balance"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/get_account_information"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/get_account_information"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/switch_language"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/switch_language"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/switch_credentials"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/switch_credentials"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/switch_env"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/switch_env"
+      android:textAllCaps="false" />
+
+    <Button
+      android:id="@+id/close_sdk"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/close_sdk"
+      android:textAllCaps="false" />
+
+  </LinearLayout>
+</ScrollView>

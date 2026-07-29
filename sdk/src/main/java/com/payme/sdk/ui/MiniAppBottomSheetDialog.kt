@@ -11,26 +11,34 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
 import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.PayMEErrorType
+import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.Utils
 
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
+    private val sessionId: String?
+        get() = arguments?.getString(PayMERuntime.EXTRA_SESSION_ID)
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = BottomSheetDialog(requireContext(), theme)
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.parseColor("#80000000")))
         dialog.setOnShowListener {
             val bottomSheetDialog = it as BottomSheetDialog
             bottomSheetDialog.setOnDismissListener {
-                val action = MiniAppFragment.getMiniAppAction()
-                MiniAppFragment.closeMiniApp()
-                PayMEMiniApp.onError(
-                    action,
-                    PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
-                )
+                val session = PayMERuntime.getSession(sessionId) ?: return@setOnDismissListener
+                val shouldNotifyCancel = !session.isCloseRequested && session.isOpen
+                PayMERuntime.markSessionClosed(session.id)
+                session.closeAction = null
+                if (shouldNotifyCancel) {
+                    session.callbacks.onError(
+                        session.action,
+                        PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
+                    )
+                }
+                PayMERuntime.removeSession(session.id)
             }
             val parentLayout =
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
@@ -43,8 +51,8 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
                 }
                 parentView.background = backgroundDrawable
 
-                parentView.layoutParams.height = convertContentHeight(MiniAppFragment.modalHeight)
-                MiniAppFragment.onSetModalHeight = { ot ->
+                parentView.layoutParams.height = convertContentHeight(currentModalHeight())
+                PayMERuntime.getSession(sessionId)?.onSetModalHeight = { ot ->
                     setupModalHeight(parentView, ot)
                 }
 
@@ -59,7 +67,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
     }
 
     private fun isFullHeightModal(): Boolean {
-        val action = MiniAppFragment.getMiniAppAction()
+        val action = PayMERuntime.getSession(sessionId)?.action ?: ActionOpenMiniApp.PAYME
         return action != ActionOpenMiniApp.PAY && action != ActionOpenMiniApp.SERVICE && action != ActionOpenMiniApp.PAYMENT && action != ActionOpenMiniApp.TRANSFER_QR
         //khác các action này thì để max height default
     }
@@ -94,12 +102,44 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PayMERuntime.activate(sessionId)
+        val session = PayMERuntime.getSession(sessionId) ?: return
+        session.closeAction = {
+            session.isCloseRequested = true
+            PayMERuntime.markSessionClosed(session.id)
+            dismissAllowingStateLoss()
+        }
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        val view: View = inflater.inflate(R.layout.bottom_sheet_dialog_miniapp, container, false)
-        return view
+        return inflater.inflate(R.layout.bottom_sheet_dialog_miniapp, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        if (savedInstanceState == null && childFragmentManager.findFragmentById(R.id.fragment_container_view) == null) {
+            val id = sessionId
+            if (!id.isNullOrEmpty()) {
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container_view, MiniAppFragment.newInstance(id))
+                    .commitNow()
+            }
+        }
+    }
+
+    private fun currentModalHeight(): Int {
+        return PayMERuntime.getSession(sessionId)?.modalHeight ?: 0
+    }
+
+    companion object {
+        fun newInstance(sessionId: String): MiniAppBottomSheetDialog {
+            return MiniAppBottomSheetDialog().apply {
+                arguments = Bundle().apply {
+                    putString(PayMERuntime.EXTRA_SESSION_ID, sessionId)
+                }
+            }
+        }
     }
 }

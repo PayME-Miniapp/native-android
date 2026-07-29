@@ -1,10 +1,10 @@
 package com.payme.sdk.network_requests
 
-import android.util.Base64
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.security.SecureRandom
+import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -37,12 +37,12 @@ internal class CryptoAES {
         cipher.init(Cipher.ENCRYPT_MODE, key, IvParameterSpec(iv))
         var data: ByteArray? = cipher.doFinal(inBytes)
         data = arrayConcat(saltedMagic, salt).let { data?.let { it1 -> arrayConcat(it, it1) } }
-        return Base64.encodeToString(data, Base64.NO_WRAP)
+        return Base64.getEncoder().encodeToString(data)
     }
 
     fun decryptAES(password: String, source: String?): String {
         val pass: ByteArray = password.toByteArray(US_ASCII)
-        val inBytes: ByteArray = Base64.decode(source, Base64.DEFAULT)
+        val inBytes: ByteArray = Base64.getDecoder().decode(source)
         val shouldBeMagic = inBytes.copyOfRange(0, saltedMagic.size)
         require(shouldBeMagic.contentEquals(saltedMagic)) { "Initial bytes from input do not match OpenSSL SALTED_MAGIC salt value." }
         val salt = inBytes.copyOfRange(saltedMagic.size, saltedMagic.size + 8)

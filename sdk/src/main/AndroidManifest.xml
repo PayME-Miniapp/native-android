@@ -16,11 +16,11 @@
   <uses-feature android:name="android.hardware.camera" />
   <uses-feature android:name="android.hardware.camera.autofocus"
       android:required="false" />
-  <uses-feature android:name="android.hardware.NFC" android:required="false" tools:node="replace" tools:replace="android:required" />
-  <uses-feature android:name="android.hardware.nfc" android:required="false" tools:node="replace" tools:replace="android:required" />
+  <uses-feature android:name="android.hardware.NFC" android:required="false" />
+  <uses-feature android:name="android.hardware.nfc" android:required="false" />
 
   <application android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:requestLegacyExternalStorage="true" android:supportsRtl="true" android:networkSecurityConfig="@xml/network_security_config" tools:targetApi="31">
-    <activity android:name=".ui.MiniAppActivity" android:exported="true" android:theme="@style/AppTheme" android:screenOrientation="portrait" android:windowSoftInputMode="stateHidden" />
+    <activity android:name=".ui.MiniAppActivity" android:exported="false" android:theme="@style/AppTheme" android:screenOrientation="portrait" android:windowSoftInputMode="stateHidden" />
     <activity android:name=".ui.FaceDetectorActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
     <activity android:name=".ui.FaceAuthenticationActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
     <activity android:name=".ui.IdentityCardActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />

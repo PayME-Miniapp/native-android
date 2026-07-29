@@ -1,17 +1,22 @@
 package com.payme.sdk.models
 
 import com.google.gson.JsonObject
-import com.payme.sdk.PayMEMiniApp
+import com.payme.sdk.runtime.PayMEConfig
+import com.payme.sdk.runtime.PayMERuntime
 
 abstract class OpenMiniAppDataInterface(open val action: ActionOpenMiniApp = ActionOpenMiniApp.PAYME) {
     fun toJsonData(): JsonObject {
+        return toJsonData(PayMERuntime.requireConfig())
+    }
+
+    internal fun toJsonData(config: PayMEConfig): JsonObject {
         val json = JsonObject()
         json.addProperty("action", action.toString())
-        json.addProperty("appId", PayMEMiniApp.appId)
-        json.addProperty("publicKey", PayMEMiniApp.publicKey)
-        json.addProperty("privateKey", PayMEMiniApp.privateKey)
-        json.addProperty("env", PayMEMiniApp.env.toString())
-        json.addProperty("locale", PayMEMiniApp.locale.toString())
+        json.addProperty("appId", config.appId)
+        json.addProperty("publicKey", config.publicKey)
+        json.addProperty("privateKey", config.privateKey)
+        json.addProperty("env", config.env.toString())
+        json.addProperty("locale", config.locale.toString())
         return appendAdditionalData(json)
     }
 

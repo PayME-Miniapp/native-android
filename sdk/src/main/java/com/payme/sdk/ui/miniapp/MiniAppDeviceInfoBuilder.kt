@@ -8,6 +8,8 @@ import android.provider.Settings
 import android.view.View
 import com.payme.sdk.BuildConfig
 import com.payme.sdk.models.OpenMiniAppType
+import com.payme.sdk.utils.BiometricGateway
+import com.payme.sdk.utils.DeviceSecurityUtils
 import com.payme.sdk.utils.DeviceTypeResolver
 import com.payme.sdk.utils.Utils
 import org.json.JSONObject
@@ -45,8 +47,8 @@ internal object MiniAppDeviceInfoBuilder {
         deviceInfo.put("userAgent", Utils.getUserAgent(context))
         deviceInfo.put("version", packageInfo.versionName)
         deviceInfo.put("buildNumber", buildNumber)
-        deviceInfo.put("isEmulator", Utils.isEmulator())
-        deviceInfo.put("isRoot", Utils.isDeviceRooted(context))
+        deviceInfo.put("isEmulator", DeviceSecurityUtils.isEmulator())
+        deviceInfo.put("isRoot", DeviceSecurityUtils.isRooted(context))
         deviceInfo.put("brand", Build.BRAND)
         deviceInfo.put("model", Build.MODEL)
         deviceInfo.put("bundleId", context.packageName)
@@ -57,7 +59,7 @@ internal object MiniAppDeviceInfoBuilder {
         deviceInfo.put("miniAppVersion", BuildConfig.SDK_VERSION)
 
         val biometric = JSONObject()
-        biometric.put("isSupport", Utils.isBiometricReady(context))
+        biometric.put("isSupport", BiometricGateway.isReady(context))
         biometric.put("type", "UNKNOWN")
         deviceInfo.put("biometric", biometric)
 
