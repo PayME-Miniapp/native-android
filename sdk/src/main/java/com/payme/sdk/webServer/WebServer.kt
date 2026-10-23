@@ -31,5 +31,6 @@ class WebServer(localAddr: String?, port: Int, wwwroot: File?) :
         mimeTypes()["eot"] = "application/vnd.ms-fontobject"
         mimeTypes()["txt"] = "text/plain"
         mimeTypes()["json"] = "application/json"
+        mimeTypes()["wasm"] = "application/wasm"
     }
 }

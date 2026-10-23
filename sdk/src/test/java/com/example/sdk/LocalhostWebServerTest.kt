@@ -1,6 +1,7 @@
 package com.example.sdk
 
 import com.payme.sdk.webServer.MySimpleWebServer
+import com.payme.sdk.webServer.WebServer
 import fi.iki.elonen.NanoHTTPD
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -43,6 +44,18 @@ class LocalhostWebServerTest {
 
         assertEquals(NanoHTTPD.Response.Status.OK, response.status)
         assertTrue(response.data.readText().contains("window.loaded"))
+    }
+
+    @Test
+    fun wasmAssetIsServedWithWasmMimeType() {
+        val root = webRoot()
+        root.resolve("static/wasm").mkdirs()
+        root.resolve("static/wasm/test.wasm").writeBytes(byteArrayOf(0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00))
+        val server = WebServer("localhost", 0, root)
+        val response = server.serve(TestSession("/static/wasm/test.wasm", server))
+
+        assertEquals(NanoHTTPD.Response.Status.OK, response.status)
+        assertEquals("application/wasm", response.mimeType)
     }
 
     @Test
