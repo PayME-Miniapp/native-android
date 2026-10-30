@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Message
+import android.os.SystemClock
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -14,7 +15,12 @@ import android.webkit.WebView.WebViewTransport
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.ComponentDialog
+import androidx.activity.addCallback
 import androidx.annotation.RequiresApi
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import com.payme.sdk.PayMEMiniApp
@@ -32,6 +38,7 @@ class SubWebView(
     private lateinit var buttonReload: ImageView
     private lateinit var buttonBackFooter: ImageView
     private lateinit var loading: View
+    private val backGuard = BackRedirectGuard()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         isCancelable = false
@@ -45,6 +52,14 @@ class SubWebView(
             R.layout.sub_webview, container, false
         )
         rootView = view.findViewById(R.id.root_view)
+        // Edge-to-edge (targetSdk 35+) draws the dialog under the system bars; keep the header and footer tappable.
+        rootView?.let { root ->
+            ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+                val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+                v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                insets
+            }
+        }
         myWebView = view.findViewById(R.id.webview)
         buttonBackFooter = view.findViewById(R.id.buttonBackFooter)
         buttonReload = view.findViewById(R.id.buttonReload)
@@ -120,6 +135,10 @@ class SubWebView(
 
                         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                             Log.d(PayMEMiniApp.TAG, "page start $url")
+                            if (backGuard.isBounce(url, SystemClock.elapsedRealtime())) {
+                                view?.post { closeSubWindow() }
+                                return
+                            }
                             loading.visibility = View.VISIBLE
                             if (!url.isNullOrEmpty()) {
                                 MiniAppFragment.evaluateJs("nativeWebViewNavigation", com.google.gson.Gson().toJson(url))
@@ -212,6 +231,10 @@ class SubWebView(
 
                 override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
                     Log.d(PayMEMiniApp.TAG, "page started $url")
+                    if (backGuard.isBounce(url, SystemClock.elapsedRealtime())) {
+                        dialog?.dismiss()
+                        return
+                    }
                     if (!url.isNullOrEmpty()) {
                         MiniAppFragment.evaluateJs("nativeWebViewNavigation", com.google.gson.Gson().toJson(url))
                         if (closeInstruction.isNotEmpty() && url.contains(closeInstruction)) {
@@ -246,31 +269,79 @@ class SubWebView(
         return view
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // White header and footer sit under the system bars: use dark bar icons so they stay visible.
+        dialog?.window?.let { window ->
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = true
+                isAppearanceLightNavigationBars = true
+            }
+        }
+        // The dialog is not cancelable, so system back did nothing; give it the footer back behaviour instead.
+        (dialog as? ComponentDialog)?.onBackPressedDispatcher?.addCallback(viewLifecycleOwner) { handleBack() }
+    }
+
     private fun handleBack() {
         Log.d(PayMEMiniApp.TAG, "buttonBackFooter back")
         if (loading.visibility == View.VISIBLE) return
-        if (myWebView != null) {
-            if (subWebView != null) {
-                if (subWebView!!.canGoBack()) {
-                    subWebView!!.goBack()
-                } else {
-                    myWebView!!.removeView(subWebView)
-                    subWebView!!.destroy()
-                    subWebView = null
-                }
-                return
+        val web = myWebView ?: return
+        val sub = subWebView
+        if (sub != null) {
+            if (sub.canGoBack()) {
+                backGuard.onBack(sub.url, SystemClock.elapsedRealtime())
+                sub.goBack()
+            } else {
+                closeSubWindow()
             }
-            if (myWebView!!.canGoBack()) {
-                Log.d(PayMEMiniApp.TAG, "webview back")
-                myWebView!!.goBack()
-            }
+            return
         }
+        if (web.canGoBack()) {
+            Log.d(PayMEMiniApp.TAG, "webview back")
+            backGuard.onBack(web.url, SystemClock.elapsedRealtime())
+            web.goBack()
+        } else {
+            dialog?.dismiss()
+        }
+    }
+
+    private fun closeSubWindow() {
+        val sub = subWebView ?: return
+        myWebView?.removeView(sub)
+        sub.destroy()
+        subWebView = null
+        loading.visibility = View.GONE
     }
 
     override fun onDestroy() {
         super.onDestroy()
         myWebView!!.removeAllViews()
         myWebView!!.destroy()
+    }
+}
+
+/**
+ * Detects a back navigation that a redirect undoes right away (going back lands on a page that bounces straight
+ * to the page back started from), so back can close the window instead of looping.
+ */
+internal class BackRedirectGuard(private val windowMs: Long = 3_000) {
+    private var fromUrl: String? = null
+    private var startedAt = 0L
+
+    fun onBack(currentUrl: String?, now: Long) {
+        fromUrl = currentUrl
+        startedAt = now
+    }
+
+    fun isBounce(url: String?, now: Long): Boolean {
+        val from = fromUrl ?: return false
+        if (now - startedAt > windowMs) {
+            fromUrl = null
+            return false
+        }
+        if (url != from) return false
+        fromUrl = null
+        return true
     }
 }
 
