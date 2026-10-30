@@ -16,7 +16,7 @@ class UtilsTest {
     val temporaryFolder = TemporaryFolder()
 
     @Test
-    fun unzipSkipsMacOsFilesAndPathTraversal() {
+    fun unzipRejectsArchiveContainingPathTraversal() {
         val zip = temporaryFolder.newFile("source.zip")
         val destination = temporaryFolder.newFolder("destination")
         val outside = File(destination.parentFile, "evil.txt")
@@ -35,7 +35,7 @@ class UtilsTest {
             output.closeEntry()
         }
 
-        assertTrue(Utils.unzipFile(zip.absolutePath, destination.absolutePath))
+        assertFalse(Utils.unzipFile(zip.absolutePath, destination.absolutePath))
         assertTrue(File(destination, "safe.txt").isFile)
         assertFalse(outside.exists())
     }

@@ -2,6 +2,8 @@ package com.payme.sdk.ui
 
 import android.app.Activity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +23,8 @@ import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.getPhoneFromOpenMiniAppData
 import com.payme.sdk.runtime.MiniAppSession
 import com.payme.sdk.runtime.PayMERuntime
+import com.payme.sdk.utils.BridgeExecutor
+import com.payme.sdk.utils.DeviceSecurityUtils
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.utils.WebViewJsDispatcher
@@ -51,6 +55,7 @@ class MiniAppFragment : Fragment() {
     private var rootView: View? = null
     private var myWebView: WebView? = null
     private val webViewRefreshGuard = MiniAppWebViewRefreshGuard { myWebView }
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private var nativeAppState = "active"
     private var listScreenBackBlocked = JSONArray()
@@ -89,9 +94,35 @@ class MiniAppFragment : Fragment() {
             session.modalHeight = value
         }
 
-    private fun sendNativeDeviceInfo() {
+    /**
+     * Root detection (process execs) runs once per process on BridgeExecutor. The device-info
+     * reply and then [onSent] always run on the UI thread, in that order.
+     */
+    private fun sendNativeDeviceInfo(onSent: () -> Unit = {}) {
+        val appContext = context?.applicationContext
+        if (appContext == null || DeviceSecurityUtils.isRootCheckCached()) {
+            sendNativeDeviceInfoNow()
+            onSent()
+            return
+        }
+        BridgeExecutor.execute {
+            try {
+                DeviceSecurityUtils.isRooted(appContext)
+            } catch (e: Exception) {
+                Log.d(PayMEMiniApp.TAG, "root check failed: ${e.javaClass.simpleName}")
+            }
+            mainHandler.post {
+                if (view == null) return@post
+                sendNativeDeviceInfoNow()
+                onSent()
+            }
+        }
+    }
+
+    private fun sendNativeDeviceInfoNow() {
         val safeContext = context ?: return
         val safeRootView = rootView ?: return
+        val webView = myWebView ?: return
         val deviceInfo = MiniAppDeviceInfoBuilder.build(
             context = safeContext,
             activity = activity,
@@ -101,7 +132,7 @@ class MiniAppFragment : Fragment() {
 
         activity?.let {
             WebViewJsDispatcher.evaluate(
-                it, myWebView!!, "nativeDeviceInfo", deviceInfo.toString()
+                it, webView, "nativeDeviceInfo", deviceInfo.toString()
             )
         }
     }
@@ -109,7 +140,7 @@ class MiniAppFragment : Fragment() {
     private fun stopWebViewAfterTerminalError() {
         webViewRefreshGuard.clear()
         myWebView?.stopLoading()
-        myWebView?.removeJavascriptInterface("messageHandlers")
+        myWebView?.let { webViewController.removeBridge(it) }
     }
 
     private fun handleUnauthorizedHttpError(errorUrl: String) {
@@ -136,6 +167,7 @@ class MiniAppFragment : Fragment() {
         session = PayMERuntime.getSession(sessionId)
             ?: error("Missing miniapp session")
         PayMERuntime.activate(session.id)
+        if (savedInstanceState == null) com.payme.sdk.utils.KycImageStore.clear(requireContext().filesDir)
 
         requireActivity().onBackPressedDispatcher.addCallback(
             this,
@@ -175,12 +207,14 @@ class MiniAppFragment : Fragment() {
             deepLinkViewModelProvider = { deepLinkViewModel },
             configProvider = { session.config },
             loadUrlProvider = { loadUrl },
+            localOriginProvider = { updateController.localOrigin },
+            onLoadUrlChanged = { loadUrl = it },
             openTypeProvider = { openType },
             onUrlPartChanged = { onSetWebViewUrlPart(it) },
             onUnauthorizedHttpError = { handleUnauthorizedHttpError(it) },
             onReturnError = { returnError(it) },
             onRestartLocalServer = { updateController.restartLocalServerAfterWebResourceError() },
-            onSendNativeDeviceInfo = { sendNativeDeviceInfo() }
+            onSendNativeDeviceInfo = { sendNativeDeviceInfo(it) }
         )
         miniappViewModel = ViewModelProvider(requireActivity())[MiniappViewModel::class.java]
         miniappViewModel.openMiniAppData = openMiniAppData
@@ -221,7 +255,8 @@ class MiniAppFragment : Fragment() {
             updateViewModel = payMEUpdatePatchViewModel,
             notificationViewModel = notificationViewModel,
             subWebViewViewModel = subWebViewViewModel,
-            updateController = updateController
+            updateController = updateController,
+            loadPage = { webView, url -> webViewController.load(webView, url) }
         ).bind()
 
         return view
@@ -234,7 +269,8 @@ class MiniAppFragment : Fragment() {
             sessionProvider = { session },
             kycControllerProvider = { kycController },
             permissionControllerProvider = { permissionController },
-            onSendNativeDeviceInfo = { sendNativeDeviceInfo() },
+            onSendNativeDeviceInfo = { sendNativeDeviceInfo(it) },
+            onResendOpenMiniApp = { myWebView?.let { webViewController.redispatchOpenMiniApp(it) } },
             onSuccess = { returnSuccess(it) },
             onError = { returnError(it) },
             onForceClose = { forceCloseMiniApp() },
@@ -414,12 +450,12 @@ class MiniAppFragment : Fragment() {
         super.onDestroy()
         miniappViewModel.openMiniAppData = openMiniAppData
         updateController.dispose()
-        Log.d("PAYMELOG", "on onDestroy " + miniappViewModel.openMiniAppData.toString())
+        if (activity?.isChangingConfigurations != true) context?.let { com.payme.sdk.utils.KycImageStore.clear(it.filesDir) }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        Log.d("PAYMELOG", "on onDestroy view " + miniappViewModel.openMiniAppData.toString())
+        myWebView?.let { webViewController.removeBridge(it) }
         miniappViewModel.openMiniAppData = openMiniAppData
     }
 
@@ -428,7 +464,6 @@ class MiniAppFragment : Fragment() {
         if (miniappViewModel.openMiniAppData != null) {
             outState.putString("openMiniAppData", Gson().toJson(miniappViewModel.openMiniAppData))
         }
-        Log.d("PAYMELOG", "on onSaveInstanceState" + miniappViewModel.openMiniAppData.toString())
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {

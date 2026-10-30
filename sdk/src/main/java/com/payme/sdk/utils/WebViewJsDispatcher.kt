@@ -12,6 +12,9 @@ import org.json.JSONException
 import org.json.JSONObject
 
 internal object WebViewJsDispatcher {
+    private val origins = java.util.WeakHashMap<WebView, String>()
+    fun trust(webView: WebView, origin: String) { origins[webView] = origin }
+
     fun evaluate(
         activity: Activity,
         webView: WebView,
@@ -19,16 +22,23 @@ internal object WebViewJsDispatcher {
         data: String,
         callback: ((String) -> Unit)? = null
     ) {
-        val injectedJS =
-            "       const script = document.createElement('script');\n" +
-                "          script.type = 'text/javascript';\n" +
-                "          script.async = true;\n" +
-                "          script.text = '$functionName($data)';\n" +
-                "          document.body.appendChild(script);\n" +
-                "          true; // note: this is required, or you'll sometimes get silent failures\n"
+        val injectedJS = buildScript(functionName, data) ?: return
         activity.runOnUiThread {
-            webView.evaluateJavascript("(function() {\n$injectedJS;\n})();", callback)
+            val origin = origins[webView]
+            if (origin != null && !com.payme.sdk.ui.miniapp.OriginPolicy.isLocal(webView.url.orEmpty(), origin)) return@runOnUiThread
+            webView.evaluateJavascript(injectedJS, callback)
             Log.d(PayMEMiniApp.TAG, "[EVALUATE_JS] $functionName")
+        }
+    }
+
+    internal fun buildScript(functionName: String, data: String): String? {
+        if (!Regex("[A-Za-z_$][A-Za-z0-9_$]*").matches(functionName)) return null
+        return try {
+            val gson = com.google.gson.GsonBuilder().setStrictness(com.google.gson.Strictness.STRICT).create()
+            val json = gson.fromJson(data, com.google.gson.JsonElement::class.java)
+            "window[${gson.toJson(functionName)}](${gson.toJson(json)});true;"
+        } catch (_: Exception) {
+            null
         }
     }
 

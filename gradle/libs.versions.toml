@@ -21,6 +21,7 @@ mlkit-face-detection = "16.1.7"
 zxing = "3.5.4"
 kalapa-ekyc = "2.10.9.5"
 android-gif-drawable = "1.2.32"
+webkit = "1.16.0"
 
 [libraries]
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -50,6 +51,7 @@ mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", ve
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 kalapa-ekyc = { group = "vn.kalapa.payme", name = "ekyc", version.ref = "kalapa-ekyc" }
 android-gif-drawable = { group = "pl.droidsonroids.gif", name = "android-gif-drawable", version.ref = "android-gif-drawable" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

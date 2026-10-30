@@ -4,8 +4,7 @@ import java.io.File
 
 
 class WebServer(localAddr: String?, port: Int, wwwroot: File?) :
-    com.payme.sdk.webServer.MySimpleWebServer(localAddr, port, wwwroot, true, "*") {
-    //    SimpleWebServer(localAddr, port, wwwroot, true, "*") {
+    com.payme.sdk.webServer.MySimpleWebServer(localAddr, port, wwwroot, true, null) {
     override fun useGzipWhenAccepted(r: Response): Boolean {
         return super.useGzipWhenAccepted(r) && r.status !== Response.Status.NOT_MODIFIED
     }

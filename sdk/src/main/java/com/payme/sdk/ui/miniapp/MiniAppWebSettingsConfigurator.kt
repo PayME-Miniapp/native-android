@@ -10,15 +10,17 @@ internal object MiniAppWebSettingsConfigurator {
         settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            allowFileAccess = true
-            allowContentAccess = true
+            // The bundle and KYC images are served from localhost; nothing loads file:// or content://.
+            allowFileAccess = false
+            allowContentAccess = false
             setSupportZoom(false)
             builtInZoomControls = false
             displayZoomControls = false
             databaseEnabled = true
             mediaPlaybackRequiresUserGesture = false
             loadsImagesAutomatically = true
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            // Off-origin https pages (3DS, bank) keep passive http content; active http content is blocked.
+            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
             useWideViewPort = true
         }

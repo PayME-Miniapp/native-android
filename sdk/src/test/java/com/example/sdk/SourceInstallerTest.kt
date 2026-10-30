@@ -17,6 +17,22 @@ class SourceInstallerTest {
     val temporaryFolder = TemporaryFolder()
 
     @Test
+    fun maliciousArchiveUsingRealUnzipKeepsPreviousSourceAndRemovesStaging() {
+        val filesDir = temporaryFolder.newFolder("malicious-archive")
+        val installer = SourceInstaller(filesDir, unzipFile = { source, destination ->
+            com.payme.sdk.utils.ArchiveUtils.unzipFile(source.absolutePath, destination.absolutePath)
+        })
+        installer.wwwDirectory.mkdirs()
+        java.io.File(installer.wwwDirectory, "index.html").writeText("old source")
+        installer.prepareUpdateDirectory()
+        installer.updateZip.writeBytes(zipBytes("build/index.html" to "new source", "../escape" to "bad"))
+        org.junit.Assert.assertFalse(installer.installUpdatedSourceDetailed().success)
+        org.junit.Assert.assertEquals("old source", java.io.File(installer.wwwDirectory, "index.html").readText())
+        org.junit.Assert.assertFalse(installer.stagingDirectory.exists())
+        org.junit.Assert.assertFalse(java.io.File(filesDir, "escape").exists())
+    }
+
+    @Test
     fun sourceInstallerFindsReactBuildRoot() {
         val www = temporaryFolder.newFolder("www")
         val buildRoot = File(www, "build").apply { mkdirs() }

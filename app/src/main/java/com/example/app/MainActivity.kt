@@ -62,31 +62,30 @@ class MainActivity : AppCompatActivity() {
         private val CREDENTIAL_PRESETS = listOf(
             ExampleCredential(
                 label = "SANDBOX ecosystem 250069027220",
-                appId = "250069027220",
-                publicKey = "-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCpGMGpOd6fc/dFkqIkNBDHoTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQ==-----END PUBLIC KEY-----",
-                privateKey = "-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBAIB6eR2SMUCqy7LkXmVF1xf37pJn5yCpGMGpOd6fc/dFkqIkNBDHoTRIhMdBucauf3i7S2g+fl6g+Kte4MlaYkcCAwEAAQJAUlyxGfjnJBqZvRPTQ77y9cWWJjr/mxtr6HJwy7uSnvgNRY1zfpRLccR4NvMS7LtgK47sx1vJmCOgtVCGwCVUUQIhALlGTGM1Q4E5L2xCX0SfCY6vdKOdwvD5NyaUSP7ZJVf/AiEAsYXYoEApSorjtLg4JjLJhpE8H8Lf6o1AFpX9g83aNbkCICRY1zmLRIAAcP5DEx+KN7zHTRGgLJNLwPcPljZw8TOPAiEAg1P0XSD6KwYyzEgYadHamm2pIAoHorpaNhtCEBbinikCIFtk7by4tboFtUkXf7X+/Y1jX1owrT4xDO2sBKrUs/9F-----END RSA PRIVATE KEY-----",
+                appId = BuildConfig.PAYME_PRESET_0_APP_ID,
+                publicKey = BuildConfig.PAYME_PRESET_0_PUBLIC_KEY,
+                privateKey = BuildConfig.PAYME_PRESET_0_PRIVATE_KEY,
                 defaultEnv = ENV.SANDBOX
             ),
             ExampleCredential(
                 label = "SANDBOX partner 143090043042",
-                appId = "143090043042",
-                publicKey = "-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK//Ost3vYkmPXuAlIf0jVnfJjVraljwgY52hx6I1R3de1zLxIMOZPIYaDa+yxuMyyxNy/iDqcnE5GbKh/GHdn8CAwEAAQ==-----END PUBLIC KEY-----",
-                privateKey = "-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBALnXgEAHajptceS3CA1PZVCypx4tkNTUdRsY+vgCwkzx21Qj/7g9FV7sVRvivUZ4mt/zbAHQtc5gm1bMIQZJa9UCAwEAAQJADH/qKGRXSMbDulZ1PC/y6JKbmvQFocsIdWIgvz2wQ+yDKfgwIWH9qP17dMvwUfd01dNai/LtK4IQNdLs+C3EAQIhAOYKusFQRcsCYauMcBXMfU6Ov7Byeam5g93AWyXRMUH1AiEAzs/0CkdR8emZvHocZ3tjcLbwzqZArlI8O/fTx+uG9mECIQCRI7Hi6Aew50bCWrAZQNTKrMwKwp86U578WTHo8Uy3xQIgMWu2SKKEbYfCKi0QDpaIy82bu/Y0rLOQG1B8tmCNLuECIFBKEdpz9mhjTDmL6yEyewBFWaD+GyY2C4WvvTI+N8tk-----END RSA PRIVATE KEY-----",
+                appId = BuildConfig.PAYME_PRESET_1_APP_ID,
+                publicKey = BuildConfig.PAYME_PRESET_1_PUBLIC_KEY,
+                privateKey = BuildConfig.PAYME_PRESET_1_PRIVATE_KEY,
                 defaultEnv = ENV.SANDBOX
             ),
             ExampleCredential(
                 label = "STAGING ecosystem 264245066910",
-                appId = "264245066910",
-                publicKey = "-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJoxQCA/D1qx2aUC65SxP+ZsCo/+YYVnV5pTeLgwCjgkZa1mac2q0vgWXvCamT9jjPBOhyuIX+wdHOGufwqtZQ8CAwEAAQ==-----END PUBLIC KEY-----",
-                privateKey = "-----BEGIN RSA PRIVATE KEY-----MIIBOgIBAAJBAJtl/BFoCHwGCwfgiNKEJXkIQIpBnworMkX1I56UlcLkWhgug+KdxGPoTObufx8IHbBTQIl748uIDUpMjIPSL68CAwEAAQJAdZGoLsclvCeaSuBew97Etxg+NBvHpprd0z3PMBg8YhDQWIIo2kaqq7AfDmJU2Cb+SaTGIPCFZWP2lK60abiKIQIhAN6BCYNCu8kQ1rZ1FhGU5Ri9pvN3RSSnUpzE+h7GJsG/AiEAssrMYGxBLwU3S3l2zwlMc1tP/exEZWMjsboWRKlRLhECIQCJIZACVPO1VOpv4zOpvFGB8QjfDogPsgwJUKEyrD8gswIgGe+nVDl//zUvf0hgfsonh/hwEzLJ/Tczf12yS0WQnDECIH7Xew2RJwXInrPIaV0USQfY1GC14X+GedJBRru4HWwN-----END RSA PRIVATE KEY-----",
+                appId = BuildConfig.PAYME_PRESET_2_APP_ID,
+                publicKey = BuildConfig.PAYME_PRESET_2_PUBLIC_KEY,
+                privateKey = BuildConfig.PAYME_PRESET_2_PRIVATE_KEY,
                 defaultEnv = ENV.STAGING
             ),
             ExampleCredential(
                 label = "SANDBOX app",
-                appId = "app",
-                publicKey = "-----BEGIN PUBLIC KEY-----MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQ==-----END PUBLIC KEY-----",
-                privateKey = """-----BEGIN RSA PRIVATE KEY-----MIIBPAIBAAJBAKWcehEELB4GdQ4cTLLQroLqnD3AhdKiwIhTJpAi1XnbfOSrW/Ebw6h1485GOAvuG/OwB+ScsfPJBoNJeNFU6J0CAwEAAQJBAJSfTrSCqAzyAo59Ox+mQ1ZdsYWBhxc2084DwTHM8QN/TZiyF4fbVYtjvyhG8ydJ37CiG7d9FY1smvNG3iDC
-dwECIQDygv2UOuR1ifLTDo4YxOs2cK3+dAUy6s54mSuGwUeo4QIhAK7SiYDyGwGoCwqjOdgOsQkJTGoUkDs8MST0MtmPAAs9AiEAjLT1/nBhJ9V/X3f9eF+g/bhJK+8TKSTV4WE1wP0Z3+ECIA9E3DWi77DpWG2JbBfu0I+VfFMXkLFbxH8RxQ8zajGRAiEA8Ly1xJ7UW3up25h9aa9SILBpGqWtJlNQgfVKBoabzsU=-----END RSA PRIVATE KEY-----""",
+                appId = BuildConfig.PAYME_PRESET_3_APP_ID,
+                publicKey = BuildConfig.PAYME_PRESET_3_PUBLIC_KEY,
+                privateKey = BuildConfig.PAYME_PRESET_3_PRIVATE_KEY,
                 defaultEnv = ENV.SANDBOX
             )
         )
@@ -114,6 +113,11 @@ dwECIQDygv2UOuR1ifLTDo4YxOs2cK3+dAUy6s54mSuGwUeo4QIhAK7SiYDyGwGoCwqjOdgOsQkJTGoU
                 putInt(PREF_CREDENTIAL_INDEX, currentCredentialIndex)
                 putString(PREF_ENV, currentEnv.name)
             }
+        }
+
+        if (!hasDemoCredentials(currentCredential.appId, currentCredential.publicKey, currentCredential.privateKey)) {
+            showStatus("Configure demo credentials in local.properties before opening the SDK")
+            return
         }
 
         payMEMiniApp = PayMEMiniApp(

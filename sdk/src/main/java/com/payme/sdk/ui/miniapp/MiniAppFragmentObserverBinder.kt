@@ -16,6 +16,7 @@ internal class MiniAppFragmentObserverBinder(
     private val updateViewModel: PayMEUpdatePatchViewModel,
     private val notificationViewModel: NotificationViewModel,
     private val subWebViewViewModel: SubWebViewViewModel,
+    private val loadPage: (WebView, String) -> Unit,
     private val updateController: MiniAppUpdateController
 ) {
     fun bind() {
@@ -24,7 +25,7 @@ internal class MiniAppFragmentObserverBinder(
                 updateController.onDoneUpdate(
                     loadDefaultSource = updateViewModel.getLoadDefaultSource().value == true
                 ) { url ->
-                    webViewProvider()?.loadUrl(url)
+                    webViewProvider()?.let { loadPage(it, url) }
                 }
             }
         }

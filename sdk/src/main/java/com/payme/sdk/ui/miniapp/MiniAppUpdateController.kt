@@ -41,6 +41,8 @@ internal class MiniAppUpdateController(
 ) {
     private val versionRepository = VersionRepository()
     private val updateDecisionResolver = UpdateDecisionResolver()
+    val localOrigin: String? get() = localhostServerController.origin
+
     private val localhostServerController = LocalhostServerController(getLoadUrl, setLoadUrl)
     private val connectivityMonitor = ConnectivityMonitor()
     private val uiRenderer = MiniAppUpdateUiRenderer(contextProvider, activityProvider, viewsProvider)

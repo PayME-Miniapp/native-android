@@ -7,7 +7,27 @@ import java.io.File
 import java.util.Locale
 
 internal object DeviceSecurityUtils {
-    fun isRooted(context: Context?): Boolean {
+    @Volatile
+    private var rootedCache: Boolean? = null
+
+    /**
+     * Runs two process execs plus file and package probes: call off the UI thread. The result is
+     * cached per process once computed with a context (the full check, including packages).
+     */
+    fun isRooted(context: Context?): Boolean = cachedRootCheck(cacheable = context != null) { detectRoot(context) }
+
+    fun isRootCheckCached(): Boolean = rootedCache != null
+
+    internal fun cachedRootCheck(cacheable: Boolean, detect: () -> Boolean): Boolean {
+        rootedCache?.let { return it }
+        return detect().also { if (cacheable) rootedCache = it }
+    }
+
+    internal fun clearRootCacheForTest() {
+        rootedCache = null
+    }
+
+    private fun detectRoot(context: Context?): Boolean {
         val hasTestKeys = Build.TAGS?.contains("test-keys") == true
         val debuggableBuild = try {
             Runtime.getRuntime().exec("getprop ro.debuggable").inputStream.bufferedReader()

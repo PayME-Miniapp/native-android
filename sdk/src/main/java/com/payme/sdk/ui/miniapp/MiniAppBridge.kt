@@ -1,11 +1,6 @@
 package com.payme.sdk.ui.miniapp
 
-import android.util.Log
-import com.payme.sdk.PayMEMiniApp
-import com.payme.sdk.utils.MixpanelUtil
-import com.payme.sdk.utils.Formatters
 import org.json.JSONArray
-import org.json.JSONException
 import org.json.JSONObject
 
 internal class MiniAppBridge(
@@ -20,7 +15,8 @@ internal class MiniAppBridge(
     private val openSettings: () -> Unit,
     private val share: (String) -> Unit,
     private val requestPermission: (String) -> Unit,
-    private val sendNativeDeviceInfo: () -> Unit,
+    private val sendNativeDeviceInfo: (onSent: () -> Unit) -> Unit,
+    private val resendOpenMiniApp: () -> Unit,
     private val getContacts: () -> Unit,
     private val nativeOpenKeyboard: () -> Unit,
     private val openWebView: (String) -> Unit,
@@ -34,6 +30,7 @@ internal class MiniAppBridge(
     private val setListScreenBackBlocked: (JSONArray) -> Unit,
     private val setModalHeight: (Int) -> Unit,
     private val requestNFCPermission: (String) -> Unit,
+    private val trackLog: (String) -> Unit,
     private val oneSignalSendTags: ((String) -> Unit)?,
     private val oneSignalDeleteTags: ((String) -> Unit)?
 ) {
@@ -48,7 +45,9 @@ internal class MiniAppBridge(
     fun jsOpenSetting() = openSettings()
     fun jsShare(data: String) = share(data)
     fun jsRequestPermission(data: String) = requestPermission(data)
-    fun jsRequestDeviceInfo() = sendNativeDeviceInfo()
+    // The web asks for device info on every boot; after a reload it also needs openMiniApp again,
+    // sent only once the device-info reply is out (that reply can wait on the root check).
+    fun jsRequestDeviceInfo() = sendNativeDeviceInfo { resendOpenMiniApp() }
     fun jsRequestContacts() = getContacts()
     fun jsShowKeyboard() = nativeOpenKeyboard()
     fun jsOpenWebView(data: String) = openWebView(data)
@@ -74,42 +73,6 @@ internal class MiniAppBridge(
         setModalHeight(parseJson.optInt("height"))
     }
 
-    fun jsLog(data: String) {
-        try {
-            val json = JSONObject(Formatters.formatStringToValidJsonString(data))
-            MixpanelUtil.trackEvent("JSLog", json)
-            trackAccountProfile(json, data)
-        } catch (jsonE: JSONException) {
-            val properties = JSONObject()
-            properties.put("value", "[non-json]")
-            MixpanelUtil.trackEvent("JSLog", properties)
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "jsLog catch error: ${e.message}")
-        }
-    }
-
-    private fun trackAccountProfile(json: JSONObject, rawData: String) {
-        if (!rawData.contains("ewallet/sdk/account/getAccountInfo")) {
-            return
-        }
-        val type = json.optString("type", "")
-        if (type != "REQUEST-PAYME") {
-            return
-        }
-        val accountData = json.optJSONObject("data")
-            ?.optJSONObject("data")
-            ?.optJSONObject("data")
-            ?.optJSONObject("accountInfo")
-        val phone = accountData?.optString("phone", "")
-        val email = accountData?.optString("email", "")
-        val fullname = accountData?.optString("fullname", "")
-        val accountId = accountData?.opt("accountId") as? Number
-        if (phone?.isNotEmpty() == true &&
-            email?.isNotEmpty() == true &&
-            fullname?.isNotEmpty() == true &&
-            accountId != null
-        ) {
-            MixpanelUtil.setPeople(fullname, phone, email, accountId)
-        }
-    }
+    // Web logs may contain credentials and personal data: trackLog must sanitise (JsLogTelemetry).
+    fun jsLog(data: String) = trackLog(data)
 }

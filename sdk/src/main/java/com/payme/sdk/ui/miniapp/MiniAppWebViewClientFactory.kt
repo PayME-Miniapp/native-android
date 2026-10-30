@@ -1,6 +1,5 @@
 package com.payme.sdk.ui.miniapp
 
-import android.content.Intent
 import android.graphics.Bitmap
 import android.util.Log
 import android.view.View
@@ -9,13 +8,13 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import com.google.gson.Gson
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.Locale
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.runtime.PayMEConfig
+import com.payme.sdk.ui.showSubWebView
 import com.payme.sdk.utils.WebViewJsDispatcher
 import com.payme.sdk.viewmodels.DeepLinkViewModel
 import com.payme.sdk.viewmodels.MiniappViewModel
@@ -34,34 +33,40 @@ internal class MiniAppWebViewClientFactory(
     private val deepLinkViewModelProvider: () -> DeepLinkViewModel,
     private val configProvider: () -> PayMEConfig,
     private val loadUrlProvider: () -> String,
+    private val localOriginProvider: () -> String?,
+    private val loadLocalPage: (WebView, String) -> Unit,
     private val openTypeProvider: () -> OpenMiniAppType,
     private val onUnauthorizedHttpError: (String) -> Unit,
     private val onReturnError: (String) -> Unit,
     private val onRestartLocalServer: () -> Unit,
-    private val onSendNativeDeviceInfo: () -> Unit
+    private val onSendNativeDeviceInfo: (onSent: () -> Unit) -> Unit
 ) {
     fun create(): WebViewClient {
         return object : WebViewClient() {
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                return handleUrlOverride(view, url)
+                return handleNavigation(view, url, isMainFrame = true, isRedirect = false)
             }
 
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
             ): Boolean {
-                val url = request?.url.toString()
-                Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
-                return if (url.contains(".pdf")) {
-                    val pdfUrl = "https://docs.google.com/gview?embedded=true&url=$url"
-                    view?.loadUrl(pdfUrl)
-                    false
-                } else if (url.startsWith("http://") || url.startsWith("https://")) {
-                    false
-                } else {
-                    openExternalUrl(view, url)
+                if (request == null || view == null) return false
+                return handleNavigation(view, request.url.toString(), request.isForMainFrame, request.isRedirect)
+            }
+
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                if (request == null) return null
+                val url = request.url.toString()
+                if (isLocalWebSourceUrl(url)) {
+                    val file = fragment.context?.let { com.payme.sdk.utils.KycImageStore.resolve(it.filesDir, request.url.path.orEmpty()) }
+                    if (file != null) {
+                        val input = try { file.inputStream() } catch (_: Exception) { return WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", emptyMap(), java.io.ByteArrayInputStream(ByteArray(0))) }
+                        return WebResourceResponse("image/jpeg", null, 200, "OK", mapOf("Cache-Control" to "no-store"), input)
+                    }
                 }
+                return null
             }
 
             override fun onReceivedHttpError(
@@ -93,8 +98,7 @@ internal class MiniAppWebViewClientFactory(
             }
 
             override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
-                Log.d(PayMEMiniApp.TAG, "page started $url")
-                if (url == loadUrlProvider()) {
+                if (url == loadUrlProvider() && isLocalWebSourceUrl(url.orEmpty())) {
                     viewsProvider().loadingView.visibility = View.VISIBLE
                 }
             }
@@ -102,7 +106,7 @@ internal class MiniAppWebViewClientFactory(
             override fun onPageFinished(view: WebView?, url: String?) {
                 Log.d(PayMEMiniApp.TAG, "page finished $url")
                 viewsProvider().loadingView.visibility = View.GONE
-                if (url == loadUrlProvider()) {
+                if (url == loadUrlProvider() && isLocalWebSourceUrl(url.orEmpty())) {
                     dispatchMainPageFinishedEvents()
                 }
             }
@@ -123,36 +127,38 @@ internal class MiniAppWebViewClientFactory(
         }
     }
 
-    private fun handleUrlOverride(view: WebView, url: String): Boolean {
-        Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading url: $url")
-        return if (url.contains(".pdf")) {
-            val pdfUrl = "https://docs.google.com/gview?embedded=true&url=$url"
-            view.loadUrl(pdfUrl)
-            false
-        } else if (url.startsWith("http://") || url.startsWith("https://")) {
-            view.loadUrl(url)
-            false
+    private fun handleNavigation(view: WebView, url: String, isMainFrame: Boolean, isRedirect: Boolean): Boolean {
+        val action = if (isMainFrame) {
+            OriginPolicy.mainFrameNavigation(view.url, url, isRedirect, localOriginProvider())
         } else {
-            openExternalUrl(view, url)
+            OriginPolicy.subFrameNavigation(url)
+        }
+        return when (action) {
+            NavigationAction.LOAD -> false
+            NavigationAction.SUB_WEB_VIEW -> {
+                showSubWebView(fragment, OriginPolicy.subWebViewUrl(url))
+                true
+            }
+            NavigationAction.EXTERNAL -> {
+                ExternalUrlLauncher.open(view.context, url)
+                true
+            }
+            NavigationAction.BLOCK -> true
         }
     }
 
-    private fun openExternalUrl(view: WebView?, url: String): Boolean {
-        return try {
-            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-            view?.context?.startActivity(intent)
-            true
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
-            true
-        }
+    /** jsRequestDeviceInfo after a reload: same payload and trusted-origin check as onPageFinished. */
+    fun redispatchOpenMiniApp(webView: WebView) {
+        val activity = fragment.activity ?: return
+        if (!isLocalWebSourceUrl(webView.url.orEmpty())) return
+        dispatchOpenMiniApp(activity, webView)
     }
 
     private fun reloadCurrentWebSource(view: WebView?) {
         val fallbackUrl = loadUrlProvider()
         if (fallbackUrl.isNotEmpty()) {
             view?.post {
-                view.loadUrl(fallbackUrl)
+                loadLocalPage(view, fallbackUrl)
             }
         }
     }
@@ -210,12 +216,15 @@ internal class MiniAppWebViewClientFactory(
         val updateViewModel = updateViewModelProvider()
         updateViewModel.setShowUpdatingUI(false)
         updateViewModel.setWebLoaded(true)
-        onSendNativeDeviceInfo()
-
-        dispatchPendingNotification(activity, webView)
-        WebViewJsDispatcher.sendNativePreferences(activity, webView)
-        dispatchOpenMiniApp(activity, webView)
-        dispatchDeepLink(activity, webView)
+        // Device info first (its root check may finish in the background), then the rest in order.
+        onSendNativeDeviceInfo {
+            // The root check can finish later; re-check the document before sending preferences and openMiniApp.
+            if (!isLocalWebSourceUrl(webView.url.orEmpty())) return@onSendNativeDeviceInfo
+            dispatchPendingNotification(activity, webView)
+            WebViewJsDispatcher.sendNativePreferences(activity, webView)
+            dispatchOpenMiniApp(activity, webView)
+            dispatchDeepLink(activity, webView)
+        }
     }
 
     private fun dispatchPendingNotification(activity: android.app.Activity, webView: WebView) {
@@ -263,8 +272,7 @@ internal class MiniAppWebViewClientFactory(
     }
 
     private fun isLocalWebSourceUrl(url: String): Boolean {
-        return url.startsWith("http://localhost") ||
-            url.startsWith("https://localhost")
+        return OriginPolicy.isLocal(url, localOriginProvider())
     }
 
     private companion object {

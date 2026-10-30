@@ -1,9 +1,7 @@
 package com.payme.sdk.ui
 
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Message
@@ -18,8 +16,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
+import com.payme.sdk.ui.miniapp.ExternalUrlLauncher
 
 
 class SubWebView(
@@ -112,12 +112,8 @@ class SubWebView(
                             } else if (url.startsWith("http://") || url.startsWith("https://")) {
                                 view.loadUrl(url)
                                 false
-                            } else try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                view.context.startActivity(intent)
-                                true
-                            } catch (e: Exception) {
-                                Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
+                            } else {
+                                ExternalUrlLauncher.open(view.context, url)
                                 true
                             }
                         }
@@ -126,7 +122,7 @@ class SubWebView(
                             Log.d(PayMEMiniApp.TAG, "page start $url")
                             loading.visibility = View.VISIBLE
                             if (!url.isNullOrEmpty()) {
-                                MiniAppFragment.evaluateJs("nativeWebViewNavigation", "\"$url\"")
+                                MiniAppFragment.evaluateJs("nativeWebViewNavigation", com.google.gson.Gson().toJson(url))
                                 if (closeInstruction.isNotEmpty() && url.contains(closeInstruction)) {
                                     dialog?.dismiss()
                                 }
@@ -182,12 +178,8 @@ class SubWebView(
                     } else if (url.startsWith("http://") || url.startsWith("https://")) {
                         view.loadUrl(url)
                         false
-                    } else try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        view.context.startActivity(intent)
-                        true
-                    } catch (e: Exception) {
-                        Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
+                    } else {
+                        ExternalUrlLauncher.open(view.context, url)
                         true
                     }
                 }
@@ -203,12 +195,8 @@ class SubWebView(
                         false
                     } else if (url.startsWith("http://") || url.startsWith("https://")) {
                         false
-                    } else try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        view?.context?.startActivity(intent)
-                        true
-                    } catch (e: Exception) {
-                        Log.d(PayMEMiniApp.TAG, "shouldOverrideUrlLoading Exception: $e")
+                    } else {
+                        view?.context?.let { ExternalUrlLauncher.open(it, url) }
                         true
                     }
                 }
@@ -225,7 +213,7 @@ class SubWebView(
                 override fun onPageStarted(view: WebView?, url: String?, facIcon: Bitmap?) {
                     Log.d(PayMEMiniApp.TAG, "page started $url")
                     if (!url.isNullOrEmpty()) {
-                        MiniAppFragment.evaluateJs("nativeWebViewNavigation", "\"$url\"")
+                        MiniAppFragment.evaluateJs("nativeWebViewNavigation", com.google.gson.Gson().toJson(url))
                         if (closeInstruction.isNotEmpty() && url.contains(closeInstruction)) {
                             dialog?.dismiss()
                         }
@@ -284,4 +272,12 @@ class SubWebView(
         myWebView!!.removeAllViews()
         myWebView!!.destroy()
     }
+}
+
+/** Shows a SubWebView unless the host can no longer commit fragment transactions. */
+internal fun showSubWebView(fragment: Fragment, content: String, type: String = "url", closeInstruction: String = "") {
+    if (!fragment.isAdded) return
+    val manager = fragment.parentFragmentManager
+    if (manager.isStateSaved) return
+    SubWebView(content, type, closeInstruction).show(manager, "SUBWEBVIEW")
 }
