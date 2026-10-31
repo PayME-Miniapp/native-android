@@ -14,6 +14,7 @@ import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.ui.miniapp.source.ConnectivityMonitor
 import com.payme.sdk.ui.miniapp.source.LocalhostServerController
 import com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants
+import com.payme.sdk.ui.miniapp.source.OtaArtifact
 import com.payme.sdk.ui.miniapp.source.SourceDownloadException
 import com.payme.sdk.ui.miniapp.source.SourceDownloadFailureReason
 import com.payme.sdk.ui.miniapp.source.SourceDownloader
@@ -41,6 +42,8 @@ internal class MiniAppUpdateController(
 ) {
     private val versionRepository = VersionRepository()
     private val updateDecisionResolver = UpdateDecisionResolver()
+    val localOrigin: String? get() = localhostServerController.origin
+
     private val localhostServerController = LocalhostServerController(getLoadUrl, setLoadUrl)
     private val connectivityMonitor = ConnectivityMonitor()
     private val uiRenderer = MiniAppUpdateUiRenderer(contextProvider, activityProvider, viewsProvider)
@@ -54,6 +57,7 @@ internal class MiniAppUpdateController(
     private var lastDownloadUrl: String? = null
     private var lastDownloadEditor: SharedPreferences.Editor? = null
     private var lastDownloadPatch = 0
+    private var lastDownloadArtifact: OtaArtifact? = null
     private var networkError: Exception? = null
     private var backgroundDownload = false
     private var pendingMandatoryUpdate = false
@@ -117,7 +121,7 @@ internal class MiniAppUpdateController(
                         downloadedUpdateReady = false
                         backgroundDownload = true
                         updateViewModel.setDoneUpdate(true)
-                        downloadSourceWeb(decision.url, editor, decision.patch)
+                        downloadSourceWeb(decision.url, editor, decision.artifact)
                         return@Thread
                     }
 
@@ -128,7 +132,7 @@ internal class MiniAppUpdateController(
                         uiRenderer.setUpdateLabel(decision.patch)
                         updateViewModel.setShowUpdatingUI(true)
                         updateViewModel.setIsForceUpdating(true)
-                        if (!downloadSourceWeb(decision.url, editor, decision.patch)) {
+                        if (!downloadSourceWeb(decision.url, editor, decision.artifact)) {
                             return@Thread
                         }
                         Log.d(PayMEMiniApp.TAG, "downloaded source moi")
@@ -226,7 +230,12 @@ internal class MiniAppUpdateController(
         val safeContext = contextProvider() ?: return false
         val sourceInstaller = SourceInstaller(safeContext)
         val sourceWeb = sourceInstaller.updateZip
-        if (sourceWeb.exists() && !backgroundDownload && sourceWeb.length() > 0) {
+        val pendingUpdate = if (sourceWeb.exists() && !backgroundDownload && sourceWeb.length() > 0) {
+            acceptedPendingUpdate(safeContext, sourceInstaller)
+        } else {
+            null
+        }
+        if (pendingUpdate != null) {
             Log.d(PayMEMiniApp.TAG, "chay vo copy update")
             val installResult = sourceInstaller.installUpdatedSourceDetailed()
             if (!installResult.success) {
@@ -238,7 +247,7 @@ internal class MiniAppUpdateController(
                 handleUnzipError()
                 return false
             }
-            persistInstalledPatchIfNeeded()
+            persistInstalledPatch(safeContext, pendingUpdate)
             backgroundDownload = false
             pendingMandatoryUpdate = false
             return true
@@ -303,14 +312,32 @@ internal class MiniAppUpdateController(
         return false
     }
 
-    private fun persistInstalledPatchIfNeeded() {
-        if (!downloadedUpdateReady) {
-            return
+    /**
+     * A downloaded zip is installed only if it still matches its signed record, belongs to the
+     * current mode and is not older than the installed patch. Anything else (including a zip left
+     * by SDK <= 1.0.23) is deleted and the installed or bundled source keeps running.
+     */
+    private fun acceptedPendingUpdate(context: Context, sourceInstaller: SourceInstaller): OtaArtifact? {
+        val pending = sourceInstaller.verifiedPendingUpdate()
+        val preferences = context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE)
+        val storedState = StoredUpdateState(
+            mode = preferences.getString(MiniAppSourceConstants.PREF_MODE, "").orEmpty(),
+            patch = preferences.getInt(MiniAppSourceConstants.PREF_PATCH, 0)
+        )
+        if (pending != null && updateDecisionResolver.acceptsPendingUpdate(pending, currentMode(), storedState)) {
+            return pending
         }
+        Log.w(PayMEMiniApp.TAG, "Discarding pending source update: unverified, other mode or older than installed")
+        sourceInstaller.cleanUpdateArtifacts()
+        downloadedUpdateReady = false
+        return null
+    }
 
-        val editor = lastDownloadEditor ?: return
-        editor.putInt(MiniAppSourceConstants.PREF_PATCH, lastDownloadPatch)
-        editor.apply()
+    private fun persistInstalledPatch(context: Context, installed: OtaArtifact) {
+        context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE).edit()
+            .putString(MiniAppSourceConstants.PREF_MODE, installed.mode)
+            .putInt(MiniAppSourceConstants.PREF_PATCH, installed.patch)
+            .apply()
         downloadedUpdateReady = false
     }
 
@@ -459,17 +486,18 @@ internal class MiniAppUpdateController(
         val localUrl = lastDownloadUrl
         val localEditor = lastDownloadEditor
         val localPatch = lastDownloadPatch
+        val localArtifact = lastDownloadArtifact
 
         uiRenderer.showDownloadError(
             errorMessage = errorMessage,
             logPrefix = logPrefix,
-            hasRetryContext = localUrl != null && localEditor != null,
+            hasRetryContext = localUrl != null && localEditor != null && localArtifact != null,
             canRetry = { isNetworkConnected() },
             onRetry = {
-                if (localUrl != null && localEditor != null) {
+                if (localUrl != null && localEditor != null && localArtifact != null) {
                     Log.d(PayMEMiniApp.TAG, "Retrying download with - URL: $localUrl, Patch: $localPatch")
                     Handler(Looper.getMainLooper()).postDelayed({
-                        if (downloadSourceWeb(localUrl, localEditor, localPatch) && pendingMandatoryUpdate) {
+                        if (downloadSourceWeb(localUrl, localEditor, localArtifact) && pendingMandatoryUpdate) {
                             updateViewModelProvider().setIsForceUpdating(false)
                             updateViewModelProvider().setDoneUpdate(true)
                         }
@@ -479,11 +507,13 @@ internal class MiniAppUpdateController(
         )
     }
 
-    private fun downloadSourceWeb(url: String?, editor: SharedPreferences.Editor, patch: Int): Boolean {
+    private fun downloadSourceWeb(url: String?, editor: SharedPreferences.Editor, artifact: OtaArtifact): Boolean {
         val safeContext = contextProvider() ?: return false
+        val patch = artifact.patch
         lastDownloadUrl = url
         lastDownloadEditor = editor
         lastDownloadPatch = patch
+        lastDownloadArtifact = artifact
         downloadedUpdateReady = false
 
         Log.d(PayMEMiniApp.TAG, "Starting download with URL: $url, Patch: $patch")
@@ -516,7 +546,7 @@ internal class MiniAppUpdateController(
                 isDownloadInProgress = true
                 networkError = null
 
-                val downloadResult = sourceDownloader.download(it, sourceWeb) { totalBytesCopied, length, speed ->
+                val downloadResult = sourceDownloader.download(it, sourceWeb, artifact) { totalBytesCopied, length, speed ->
                     downloadMonitor.checkSpeed(speed)
 
                     val progressValuePercent =

@@ -90,5 +90,6 @@ class UpdateDecisionResolverTest {
         assertTrue(result.decision is UpdateDecision.MandatoryUpdate)
     }
 
-    private fun resolver() = UpdateDecisionResolver()
+    // These cases cover the decision table for entries that already passed verification.
+    private fun resolver() = UpdateDecisionResolver(isTrusted = { _, _ -> true })
 }

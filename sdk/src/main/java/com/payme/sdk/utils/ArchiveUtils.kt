@@ -5,10 +5,12 @@ import android.util.Log
 import com.payme.sdk.PayMEMiniApp
 import java.io.File
 import java.io.FileOutputStream
-import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 internal object ArchiveUtils {
+    /** Upper bound for an OTA bundle: extracted bytes and downloaded zip bytes. */
+    const val MAX_ARCHIVE_BYTES = 128L * 1024 * 1024
+
     fun unzipFile(filePath: String, destination: String): Boolean {
         return try {
             File(filePath).inputStream().use { inputStream ->
@@ -51,64 +53,42 @@ internal object ArchiveUtils {
         File(sourcePath).copyTo(File(destinationPath), overwrite = true)
     }
 
-    private fun unzipEntries(zipStream: ZipInputStream, destination: File): Boolean {
-        var entry: ZipEntry?
-        var unzipSuccess = false
-        val destinationCanonicalPath = destination.canonicalPath
-
-        while (zipStream.nextEntry.also { entry = it } != null) {
-            val zipEntry = entry ?: continue
-            val entryName = zipEntry.name
-            if (shouldSkipEntry(entryName)) {
-                Log.d(PayMEMiniApp.TAG, "Skipping macOS special file: $entryName")
-                continue
-            }
-
-            val outputFile = File(destination, entryName)
-            if (!isSafeOutputPath(outputFile, destinationCanonicalPath)) {
-                continue
-            }
-
-            if (zipEntry.isDirectory) {
-                outputFile.mkdirs()
-            } else {
+    internal fun unzipEntries(
+        zipStream: ZipInputStream,
+        destination: File,
+        maxBytes: Long = MAX_ARCHIVE_BYTES,
+        maxEntries: Int = 10_000
+    ): Boolean {
+        val boundary = destination.canonicalPath + File.separator
+        var total = 0L
+        var count = 0
+        var extracted = false
+        val buffer = ByteArray(8192)
+        while (true) {
+            val entry = zipStream.nextEntry ?: break
+            require(++count <= maxEntries) { "Archive entry limit exceeded" }
+            val outputFile = File(destination, entry.name)
+            require(outputFile.canonicalPath.startsWith(boundary)) { "Invalid archive path" }
+            val skip = entry.name.contains("__MACOSX") || outputFile.name.startsWith("._")
+            val output = if (!skip && !entry.isDirectory) {
                 outputFile.parentFile?.mkdirs()
-                FileOutputStream(outputFile).buffered().use { output ->
-                    zipStream.copyTo(output)
+                FileOutputStream(outputFile).buffered()
+            } else null
+            output.use {
+                while (true) {
+                    val size = zipStream.read(buffer)
+                    if (size == -1) break
+                    total += size
+                    require(total <= maxBytes) { "Archive size limit exceeded" }
+                    it?.write(buffer, 0, size)
                 }
-                unzipSuccess = true
             }
-        }
-
-        return if (unzipSuccess) {
-            Log.d(PayMEMiniApp.TAG, "Unzipping complete. path: ${destination.absolutePath}")
-            true
-        } else {
-            Log.e(PayMEMiniApp.TAG, "No files were successfully extracted to ${destination.absolutePath}")
-            false
-        }
-    }
-
-    private fun shouldSkipEntry(entryName: String): Boolean {
-        return entryName.contains("__MACOSX") || File(entryName).name.startsWith("._")
-    }
-
-    private fun isSafeOutputPath(outputFile: File, destinationCanonicalPath: String): Boolean {
-        return try {
-            val outputFileCanonicalPath = outputFile.canonicalPath
-            if (!outputFileCanonicalPath.startsWith(destinationCanonicalPath)) {
-                Log.e(
-                    PayMEMiniApp.TAG,
-                    "Security warning: Path traversal detected with $outputFileCanonicalPath"
-                )
-                false
-            } else {
-                true
+            if (!skip) {
+                if (entry.isDirectory) outputFile.mkdirs() else extracted = true
             }
-        } catch (e: Exception) {
-            Log.e(PayMEMiniApp.TAG, "Error checking path for: ${outputFile.path} - ${e.message}")
-            false
+            zipStream.closeEntry()
         }
+        return extracted
     }
 
     private fun copyAssetDirectory(context: Context, assetPath: String, destination: File): Boolean {

@@ -104,6 +104,25 @@ class LocalhostWebServerTest {
         assertEquals(NanoHTTPD.Response.Status.FORBIDDEN, response.status)
     }
 
+    @Test fun rejectsForeignMissingAndWrongPortHosts() {
+        val root = webRoot()
+        val server = WebServer("localhost", 0, root)
+        listOf(null, "localhost.evil.com", "evil.example", "localhost:12345").forEach { host ->
+            assertEquals(NanoHTTPD.Response.Status.FORBIDDEN, server.serve(TestSession("/", server, host)).status)
+        }
+    }
+
+    @Test fun privateKycFileIsNeverServedAndCorsIsAbsent() {
+        val root = webRoot()
+        File(root, "images").mkdirs()
+        File(root, "images/kycFrontIdCard.jpeg").writeText("dummy-image")
+        val server = WebServer("localhost", 0, root)
+        assertEquals(NanoHTTPD.Response.Status.FORBIDDEN, server.serve(TestSession("/images/kycFrontIdCard.jpeg", server)).status)
+        val response = server.serve(TestSession("/", server))
+        org.junit.Assert.assertNull(response.getHeader("Access-Control-Allow-Origin"))
+        org.junit.Assert.assertNull(response.getHeader("Access-Control-Allow-Credentials"))
+    }
+
     private fun webRoot() = temporaryFolder.newFolder("www").also { root ->
         root.resolve("index.html").writeText("<html><body>miniapp</body></html>")
         root.resolve("static").mkdirs()
@@ -123,11 +142,12 @@ class LocalhostWebServerTest {
 
     private class TestSession(
         private val uri: String,
-        private val server: NanoHTTPD
+        private val server: NanoHTTPD,
+        private val host: String? = "localhost:${server.listeningPort}"
     ) : NanoHTTPD.IHTTPSession {
         override fun execute() = Unit
         override fun getCookies() = server.CookieHandler(emptyMap<String, String>())
-        override fun getHeaders(): MutableMap<String, String> = mutableMapOf()
+        override fun getHeaders(): MutableMap<String, String> = if (host == null) mutableMapOf() else mutableMapOf("host" to host)
         override fun getInputStream(): InputStream = ByteArrayInputStream(ByteArray(0))
         override fun getMethod(): NanoHTTPD.Method = NanoHTTPD.Method.GET
         override fun getParms(): MutableMap<String, String> = mutableMapOf()

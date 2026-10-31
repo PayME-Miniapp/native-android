@@ -10,8 +10,8 @@ import android.util.Log
 import android.webkit.WebView
 import androidx.core.content.ContextCompat
 import com.payme.sdk.PayMEMiniApp
-import org.json.JSONArray
-import org.json.JSONObject
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 
 internal object ContactsReader {
     @SuppressLint("Range")
@@ -25,7 +25,7 @@ internal object ContactsReader {
                 return
             }
 
-            val contacts = JSONArray()
+            val contacts = mutableListOf<Pair<String?, String?>>()
             val cursor = context.contentResolver.query(
                 ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
                 null,
@@ -41,8 +41,8 @@ internal object ContactsReader {
                         )
                         val phoneNumber = cur.getString(
                             cur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                        ).replace("[^0-9]".toRegex(), "")
-                        contacts.put(JSONObject("""{name:"$name",phone:"$phoneNumber"}"""))
+                        )
+                        contacts.add(name to phoneNumber)
                     }
                 }
             }
@@ -50,11 +50,25 @@ internal object ContactsReader {
                 context as Activity,
                 webView,
                 "nativeContacts",
-                contacts.toString(),
+                contactsJson(contacts),
                 null
             )
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "util get contacts exception ${e.message}")
         }
     }
+
+    /** Contact names are arbitrary text: build the payload with a JSON writer, never by templating. */
+    internal fun contactsJson(contacts: List<Pair<String?, String?>>): String {
+        val array = JsonArray()
+        contacts.forEach { (name, phone) ->
+            array.add(JsonObject().apply {
+                addProperty("name", name.orEmpty())
+                addProperty("phone", phone.orEmpty().replace(NON_DIGITS, ""))
+            })
+        }
+        return array.toString()
+    }
+
+    private val NON_DIGITS = Regex("[^0-9]")
 }

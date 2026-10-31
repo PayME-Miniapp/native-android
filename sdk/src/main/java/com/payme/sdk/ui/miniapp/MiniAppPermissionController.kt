@@ -1,7 +1,6 @@
 package com.payme.sdk.ui.miniapp
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
@@ -11,11 +10,11 @@ import android.webkit.WebView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
-import com.payme.sdk.ui.SubWebView
+import com.payme.sdk.ui.showSubWebView
+import com.payme.sdk.utils.BridgeExecutor
 import com.payme.sdk.utils.ContactsReader
 import com.payme.sdk.utils.QrImageStore
 import com.payme.sdk.utils.WebViewJsDispatcher
@@ -54,7 +53,7 @@ internal class MiniAppPermissionController(
                     if (isGranted) "GRANTED" else "DENIED"
                 )
                 if (isGranted) {
-                    ContactsReader.sendContacts(fragment.requireContext(), webView)
+                    sendContactsInBackground(webView)
                 }
             }
         }
@@ -120,7 +119,7 @@ internal class MiniAppPermissionController(
                     fragment.requireContext(), Manifest.permission.READ_CONTACTS
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     WebViewJsDispatcher.nativePermissionStatus(activity, webView, "READ_CONTACTS", "GRANTED")
-                    ContactsReader.sendContacts(fragment.requireContext(), webView)
+                    sendContactsInBackground(webView)
                 }
 
                 ActivityCompat.shouldShowRequestPermissionRationale(
@@ -222,8 +221,8 @@ internal class MiniAppPermissionController(
 
     fun openUrl(data: String) {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, data.substring(1, data.length - 1).toUri())
-            (fragment.requireContext() as Activity).startActivity(intent)
+            val url = com.google.gson.Gson().fromJson(data, String::class.java) ?: return
+            ExternalUrlLauncher.open(fragment.requireContext(), url)
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "openurl e ${e.message}")
         }
@@ -236,8 +235,7 @@ internal class MiniAppPermissionController(
             val type = json.optString("type", "")
             val closeInstruction = json.optString("closeInstruction", "")
             if (content.isNotEmpty() && type.isNotEmpty()) {
-                val subWebView = SubWebView(content, type, closeInstruction)
-                subWebView.show(fragment.parentFragmentManager, "SUBWEBVIEW")
+                showSubWebView(fragment, content, type, closeInstruction)
             }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "openWebView exception: ${e.message} ")
@@ -250,15 +248,24 @@ internal class MiniAppPermissionController(
         if (activity == null || webView == null) {
             return
         }
-        val bitmap = QrImageStore.generateQRCode(data)
-        QrImageStore.saveImage(bitmap, fragment.requireContext(), fragment.getString(R.string.qr_folder), onSuccess = {
-            val response = JSONObject()
-            response.put("succeeded", true)
-            WebViewJsDispatcher.evaluate(activity, webView, "nativeSaveQR", response.toString())
-        }, onError = {
-            val response = JSONObject()
-            response.put("error", "Tải mã QR thất bại")
-            WebViewJsDispatcher.evaluate(activity, webView, "nativeSaveQR", response.toString())
-        })
+        val folder = fragment.getString(R.string.qr_folder)
+        // QR encoding and the MediaStore write block; evaluate() posts the result to the UI thread.
+        BridgeExecutor.execute {
+            val bitmap = QrImageStore.generateQRCode(data)
+            QrImageStore.saveImage(bitmap, activity, folder, onSuccess = {
+                val response = JSONObject()
+                response.put("succeeded", true)
+                WebViewJsDispatcher.evaluate(activity, webView, "nativeSaveQR", response.toString())
+            }, onError = {
+                val response = JSONObject()
+                response.put("error", "Tải mã QR thất bại")
+                WebViewJsDispatcher.evaluate(activity, webView, "nativeSaveQR", response.toString())
+            })
+        }
+    }
+
+    private fun sendContactsInBackground(webView: WebView) {
+        val activity = fragment.activity ?: return
+        BridgeExecutor.execute { ContactsReader.sendContacts(activity, webView) }
     }
 }

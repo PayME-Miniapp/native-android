@@ -283,6 +283,10 @@ open class MySimpleWebServer : NanoHTTPD {
 
     @Suppress("DEPRECATION")
     override fun serve(session: IHTTPSession): Response {
+        if (session.headers["host"] != "localhost:$listeningPort") {
+            return getForbiddenResponse("Invalid host")
+        }
+
         recursionCounter.set(0)
 
         return try {
@@ -340,13 +344,13 @@ open class MySimpleWebServer : NanoHTTPD {
      * ignores all headers and HTTP parameters.
      */
     open fun serveFile(uri: String, header: Map<String, String>, file: File, mime: String): Response {
+        if (file.name in com.payme.sdk.utils.KycImageStore.names) return getForbiddenResponse("Private resource")
         return WebServerFileResponder.serveFile(header, file, mime, ::getForbiddenResponse)
     }
 
     protected open fun addCORSHeaders(queryHeaders: Map<String, String>, response: Response, cors: String): Response {
         response.addHeader("Access-Control-Allow-Origin", cors)
         response.addHeader("Access-Control-Allow-Headers", calculateAllowHeaders(queryHeaders))
-        response.addHeader("Access-Control-Allow-Credentials", "true")
         response.addHeader("Access-Control-Allow-Methods", ALLOWED_METHODS)
         response.addHeader("Access-Control-Max-Age", MAX_AGE.toString())
         return response

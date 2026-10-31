@@ -2,6 +2,8 @@ package com.example.sdk
 
 import com.payme.sdk.ui.miniapp.MiniAppBridge
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MiniAppBridgeTest {
@@ -20,7 +22,8 @@ class MiniAppBridgeTest {
             openSettings = { calls.add("settings") },
             share = { calls.add("share:$it") },
             requestPermission = { calls.add("permission:$it") },
-            sendNativeDeviceInfo = { calls.add("device") },
+            sendNativeDeviceInfo = { onSent -> calls.add("device"); onSent() },
+            resendOpenMiniApp = { calls.add("openMiniApp") },
             getContacts = { calls.add("contacts") },
             nativeOpenKeyboard = { calls.add("keyboard") },
             openWebView = { calls.add("webview:$it") },
@@ -34,10 +37,15 @@ class MiniAppBridgeTest {
             setListScreenBackBlocked = { calls.add("blocked:${it.length()}") },
             setModalHeight = { calls.add("height:$it") },
             requestNFCPermission = { calls.add("nfc:$it") },
+            trackLog = { calls.add("log") },
             oneSignalSendTags = { calls.add("sendTags:$it") },
             oneSignalDeleteTags = { calls.add("deleteTags:$it") }
         )
 
+        bridge.jsLog("{\"accessToken\":\"dummy-token\",\"phone\":\"dummy-phone\"}")
+        bridge.jsLog("invalid JSON")
+        assertEquals(listOf("log", "log"), calls)
+        calls.clear()
         bridge.jsPreferences("pref")
         bridge.jsRequestPreferences()
         bridge.jsBiometricAuthentication("bio")
@@ -78,6 +86,7 @@ class MiniAppBridgeTest {
                 "share:share",
                 "permission:camera",
                 "device",
+                "openMiniApp",
                 "contacts",
                 "keyboard",
                 "webview:web",
@@ -94,5 +103,56 @@ class MiniAppBridgeTest {
             ),
             calls
         )
+        calls.clear()
+        val transport = com.payme.sdk.webServer.JavaScriptInterface(bridge)
+        transport.dispatch("invalid JSON")
+        transport.dispatch("{\"type\":\"unknown\",\"data\":{}}")
+        assertEquals(emptyList<String>(), calls)
+        transport.dispatch("{\"type\":\"jsClose\",\"data\":null}")
+        assertEquals(listOf("close"), calls)
+        calls.clear()
+        // Reload: the web boots with jsRequestDeviceInfo and needs openMiniApp after the normal reply.
+        transport.dispatch("{\"type\":\"jsRequestDeviceInfo\",\"data\":{}}")
+        assertEquals(listOf("device", "openMiniApp"), calls)
+    }
+
+    @Test
+    fun openMiniAppWaitsForDeferredDeviceInfoReply() {
+        val calls = mutableListOf<String>()
+        val pendingReplies = mutableListOf<() -> Unit>()
+        val bridge = MiniAppBridge(
+            setNativePreferences = {}, sendNativePreferences = {}, biometricAuthen = {}, startCardKyc = {},
+            startKalapaKyc = {}, startKalapaNFC = {}, startFaceKyc = {}, startFaceAuthen = {}, openSettings = {},
+            share = {}, requestPermission = {},
+            // Cold root-check cache: the reply is posted later from BridgeExecutor.
+            sendNativeDeviceInfo = { onSent -> pendingReplies.add { calls.add("device"); onSent() } },
+            resendOpenMiniApp = { calls.add("openMiniApp") },
+            getContacts = {}, nativeOpenKeyboard = {}, openWebView = {}, onSuccess = {}, onError = {},
+            closeMiniApp = {}, openUrl = {}, saveQR = {}, changeEnv = {}, changeLocale = {},
+            setListScreenBackBlocked = {}, setModalHeight = {}, requestNFCPermission = {}, trackLog = {},
+            oneSignalSendTags = null, oneSignalDeleteTags = null
+        )
+
+        bridge.jsRequestDeviceInfo()
+        assertEquals(emptyList<String>(), calls)
+        pendingReplies.single().invoke()
+        assertEquals(listOf("device", "openMiniApp"), calls)
+    }
+
+    @Test
+    fun rootCheckIsCachedPerProcessOnlyWhenComputedWithContext() {
+        com.payme.sdk.utils.DeviceSecurityUtils.clearRootCacheForTest()
+        try {
+            var runs = 0
+            val detect = { runs++; true }
+            assertTrue(com.payme.sdk.utils.DeviceSecurityUtils.cachedRootCheck(cacheable = false, detect = detect))
+            assertFalse(com.payme.sdk.utils.DeviceSecurityUtils.isRootCheckCached())
+            assertTrue(com.payme.sdk.utils.DeviceSecurityUtils.cachedRootCheck(cacheable = true, detect = detect))
+            assertTrue(com.payme.sdk.utils.DeviceSecurityUtils.isRootCheckCached())
+            assertTrue(com.payme.sdk.utils.DeviceSecurityUtils.cachedRootCheck(cacheable = true) { runs++; false })
+            assertEquals(2, runs)
+        } finally {
+            com.payme.sdk.utils.DeviceSecurityUtils.clearRootCacheForTest()
+        }
     }
 }

@@ -1,12 +1,15 @@
 package com.payme.sdk.ui.miniapp.source
 
 import android.content.Context
+import com.payme.sdk.utils.ArchiveUtils
 import com.payme.sdk.utils.copyTo
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.DigestInputStream
+import java.security.MessageDigest
 
 internal data class DownloadResult(
     val bytesCopied: Long,
@@ -20,6 +23,7 @@ internal enum class SourceDownloadFailureReason {
     INSUFFICIENT_STORAGE,
     EMPTY_BODY,
     INCOMPLETE_BODY,
+    INTEGRITY_MISMATCH,
     IO_ERROR
 }
 
@@ -43,6 +47,7 @@ internal class SourceDownloadException(
                 SourceDownloadFailureReason.INSUFFICIENT_STORAGE -> "Not enough storage to download source"
                 SourceDownloadFailureReason.EMPTY_BODY -> "Downloaded file is empty"
                 SourceDownloadFailureReason.INCOMPLETE_BODY -> "Downloaded file is incomplete"
+                SourceDownloadFailureReason.INTEGRITY_MISMATCH -> "Downloaded file does not match the signed manifest"
                 SourceDownloadFailureReason.IO_ERROR -> cause?.message ?: "Download I/O error"
             }
         }
@@ -51,7 +56,9 @@ internal class SourceDownloadException(
 
 internal class SourceDownloader private constructor(
     private val installerProvider: () -> SourceInstaller,
-    private val storageSpaceChecker: StorageSpaceChecker
+    private val storageSpaceChecker: StorageSpaceChecker,
+    private val connectionFactory: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection },
+    private val maxDownloadBytes: Long = ArchiveUtils.MAX_ARCHIVE_BYTES
 ) {
     constructor(context: Context) : this(
         installerProvider = { SourceInstaller(context) },
@@ -60,12 +67,16 @@ internal class SourceDownloader private constructor(
 
     internal constructor(
         filesDir: File,
-        storageSpaceChecker: StorageSpaceChecker = StorageSpaceChecker.unbounded()
+        storageSpaceChecker: StorageSpaceChecker = StorageSpaceChecker.unbounded(),
+        connectionFactory: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection },
+        maxDownloadBytes: Long = ArchiveUtils.MAX_ARCHIVE_BYTES
     ) : this(
         installerProvider = {
             SourceInstaller(filesDir, unzipFile = { _, _ -> false })
         },
-        storageSpaceChecker = storageSpaceChecker
+        storageSpaceChecker = storageSpaceChecker,
+        connectionFactory = connectionFactory,
+        maxDownloadBytes = maxDownloadBytes
     )
 
     fun resetDestination(): File {
@@ -75,21 +86,26 @@ internal class SourceDownloader private constructor(
         if (destination.exists()) {
             destination.delete()
         }
+        OtaArtifact.metaFile(destination).delete()
         if (installer.updateTempZip.exists()) {
             installer.updateTempZip.delete()
         }
         return destination
     }
 
+    /**
+     * Downloads [url] and accepts it only if its byte count and streamed SHA-256 equal the signed
+     * [artifact]; the artifact is then stored next to [destination] for the install step.
+     */
     fun download(
         url: String,
         destination: File,
+        artifact: OtaArtifact,
         onCopy: (totalBytesCopied: Long, length: Long, speed: Long) -> Unit
     ): DownloadResult {
         val installer = installerProvider()
         val sourceTemp = installer.updateTempZip
-        val connection = URL(url).openConnection() as? HttpURLConnection
-            ?: throw SourceDownloadException(SourceDownloadFailureReason.INVALID_CONNECTION)
+        var connection: HttpURLConnection? = null
         var lastUpdateTime = System.currentTimeMillis()
         var lastBytes = 0L
         var currentSpeed = 0L
@@ -98,12 +114,11 @@ internal class SourceDownloader private constructor(
         sourceTemp.delete()
         destination.parentFile?.mkdirs()
         destination.delete()
+        OtaArtifact.metaFile(destination).delete()
+        val digest = MessageDigest.getInstance("SHA-256")
 
         try {
-            connection.connectTimeout = CONNECT_TIMEOUT_MS
-            connection.readTimeout = READ_TIMEOUT_MS
-            connection.requestMethod = "GET"
-            connection.connect()
+            connection = OtaConnection.open(url, connectionFactory)
 
             val statusCode = connection.responseCode
             if (statusCode !in HTTP_SUCCESS_RANGE) {
@@ -114,13 +129,22 @@ internal class SourceDownloader private constructor(
             }
 
             val length = connection.contentLengthLong
+            if (length > maxDownloadBytes) throw IOException("OTA download exceeds size limit")
+            if (length > 0L && length != artifact.size) {
+                throw SourceDownloadException(SourceDownloadFailureReason.INTEGRITY_MISMATCH)
+            }
             if (length > 0L && !storageSpaceChecker.hasEnoughSpace(length)) {
                 throw SourceDownloadException(SourceDownloadFailureReason.INSUFFICIENT_STORAGE)
             }
 
-            val bytesCopied = connection.inputStream.use { input ->
+            val bytesCopied = DigestInputStream(connection.inputStream, digest).use { input ->
                 FileOutputStream(sourceTemp).use { output ->
                     input.copyTo(output, onCopy = { totalBytesCopied ->
+                        // Content-Length can be absent or wrong: count what is actually streamed.
+                        if (totalBytesCopied > maxDownloadBytes) throw IOException("OTA download exceeds size limit")
+                        if (totalBytesCopied > artifact.size) {
+                            throw SourceDownloadException(SourceDownloadFailureReason.INTEGRITY_MISMATCH)
+                        }
                         val currentTime = System.currentTimeMillis()
                         val timeDiff = currentTime - lastUpdateTime
 
@@ -148,25 +172,30 @@ internal class SourceDownloader private constructor(
             if (length >= 0 && bytesCopied < length) {
                 throw SourceDownloadException(SourceDownloadFailureReason.INCOMPLETE_BODY)
             }
+            val sha256 = OtaArtifact.hex(digest.digest())
+            if (bytesCopied != artifact.size || !MessageDigest.isEqual(sha256.toByteArray(), artifact.sha256.toByteArray())) {
+                throw SourceDownloadException(SourceDownloadFailureReason.INTEGRITY_MISMATCH)
+            }
 
             sourceTemp.copyTo(destination, overwrite = true)
+            artifact.write(destination)
             return DownloadResult(bytesCopied, length, destination)
         } catch (e: SourceDownloadException) {
             destination.delete()
+            OtaArtifact.metaFile(destination).delete()
             throw e
         } catch (e: IOException) {
             destination.delete()
+            OtaArtifact.metaFile(destination).delete()
             throw SourceDownloadException(SourceDownloadFailureReason.IO_ERROR, cause = e)
         } finally {
             sourceTemp.delete()
-            connection.disconnect()
+            connection?.disconnect()
         }
     }
 
     private companion object {
         const val MIN_SPEED_SAMPLE_MS = 50L
-        const val CONNECT_TIMEOUT_MS = 15_000
-        const val READ_TIMEOUT_MS = 30_000
         val HTTP_SUCCESS_RANGE = 200..299
     }
 }

@@ -2,7 +2,8 @@ package com.payme.sdk.network_requests
 
 import com.payme.sdk.runtime.PayMEConfig
 import org.json.JSONObject
-import kotlin.random.Random
+import java.security.SecureRandom
+import java.util.Base64
 
 internal data class EncryptedNetworkRequest(
     val body: JSONObject,
@@ -11,7 +12,7 @@ internal data class EncryptedNetworkRequest(
 
 internal class EncryptedNetworkRequestBuilder(
     private val config: PayMEConfig,
-    private val randomKeyProvider: () -> String = { Random.nextInt(0, 10000000).toString() }
+    private val randomKeyProvider: () -> String = { generateRequestPassphrase() }
 ) {
     fun build(
         apiPath: String,
@@ -43,4 +44,10 @@ internal class EncryptedNetworkRequestBuilder(
             )
         )
     }
+}
+
+internal fun generateRequestPassphrase(random: SecureRandom = SecureRandom()): String {
+    val bytes = ByteArray(16)
+    random.nextBytes(bytes)
+    return Base64.getEncoder().withoutPadding().encodeToString(bytes)
 }

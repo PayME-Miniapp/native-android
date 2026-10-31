@@ -25,6 +25,10 @@ object MixpanelUtil {
         mixpanelAPI?.flush()
     }
 
+    internal fun identify(distinctId: String) {
+        mixpanelAPI?.identify(distinctId)
+    }
+
     fun setPeople(name: String, phone: String, email: String, accountId: Number) {
         val json = JSONObject()
         json.put("\$name", name)

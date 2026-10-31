@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-def sdk_version = "1.0.23"
+def sdk_version = "1.0.24"
 def version_code = 667
 def maven_version = "0.7.2"
 
@@ -62,6 +62,7 @@ android {
 }
 
 dependencies {
+    implementation libs.androidx.webkit
     implementation libs.androidx.core.ktx
     implementation libs.androidx.fragment.ktx
     implementation libs.androidx.appcompat

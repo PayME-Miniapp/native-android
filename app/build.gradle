@@ -2,11 +2,22 @@ plugins {
     alias libs.plugins.android.application
 }
 
+def demoProperties = new Properties()
+def demoPropertiesFile = rootProject.file('local.properties')
+if (demoPropertiesFile.exists()) demoPropertiesFile.withInputStream { demoProperties.load(it) }
+
 android {
+    buildFeatures { buildConfig = true }
     compileSdkVersion 37
 
     defaultConfig {
         applicationId "com.example.app"
+        (0..3).each { preset ->
+            ['APP_ID', 'PUBLIC_KEY', 'PRIVATE_KEY'].each { field ->
+                def name = "PAYME_PRESET_${preset}_${field}"
+                buildConfigField 'String', name, groovy.json.JsonOutput.toJson(demoProperties.getProperty(name, ''))
+            }
+        }
         minSdk 26
         targetSdk 37
         versionCode 1

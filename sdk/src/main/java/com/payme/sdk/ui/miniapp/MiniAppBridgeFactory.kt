@@ -5,6 +5,7 @@ import android.webkit.WebView
 import androidx.appcompat.app.AppCompatActivity
 import com.payme.sdk.runtime.MiniAppSession
 import com.payme.sdk.utils.BiometricGateway
+import com.payme.sdk.utils.BridgeExecutor
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.WebViewJsDispatcher
 import com.payme.sdk.webServer.JavaScriptInterface
@@ -16,7 +17,8 @@ internal class MiniAppBridgeFactory(
     private val sessionProvider: () -> MiniAppSession,
     private val kycControllerProvider: () -> MiniAppKycController,
     private val permissionControllerProvider: () -> MiniAppPermissionController,
-    private val onSendNativeDeviceInfo: () -> Unit,
+    private val onSendNativeDeviceInfo: (onSent: () -> Unit) -> Unit,
+    private val onResendOpenMiniApp: () -> Unit,
     private val onSuccess: (String) -> Unit,
     private val onError: (String) -> Unit,
     private val onForceClose: () -> Unit,
@@ -41,7 +43,8 @@ internal class MiniAppBridgeFactory(
             openSettings = { activityProvider()?.let { PermissionCameraUtil().openSetting(it) } },
             share = { data -> permissionControllerProvider().share(data) },
             requestPermission = { data -> permissionControllerProvider().requestPermission(data) },
-            sendNativeDeviceInfo = { onSendNativeDeviceInfo() },
+            sendNativeDeviceInfo = { onSent -> onSendNativeDeviceInfo(onSent) },
+            resendOpenMiniApp = { onResendOpenMiniApp() },
             getContacts = { permissionControllerProvider().getContacts() },
             nativeOpenKeyboard = {
                 activityProvider()?.let { WebViewJsDispatcher.nativeOpenKeyboard(it, webViewProvider()) }
@@ -57,6 +60,7 @@ internal class MiniAppBridgeFactory(
             setListScreenBackBlocked = { data -> onSetListScreenBackBlocked(data) },
             setModalHeight = { data -> onSetModalHeight(data) },
             requestNFCPermission = { _: String -> permissionControllerProvider().requestNFCPermission() },
+            trackLog = { data -> BridgeExecutor.execute { JsLogTelemetry.track(data) } },
             oneSignalSendTags = session.callbacks.onOneSignalSendTags,
             oneSignalDeleteTags = session.callbacks.onOneSignalDeleteTags
         )

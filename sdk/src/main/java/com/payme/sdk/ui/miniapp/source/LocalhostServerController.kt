@@ -1,5 +1,6 @@
 package com.payme.sdk.ui.miniapp.source
 
+import com.payme.sdk.ui.miniapp.OriginPolicy
 import android.content.Context
 import android.util.Log
 import com.payme.sdk.PayMEMiniApp
@@ -10,6 +11,9 @@ internal class LocalhostServerController(
     private val setLoadUrl: (String) -> Unit
 ) {
     private var webSource: LocalhostWebSource? = null
+    @Volatile
+    var origin: String? = null
+        private set
     var wwwRoot: File? = null
         private set
 
@@ -17,6 +21,7 @@ internal class LocalhostServerController(
         if (webSource != null) {
             return getLoadUrl().ifEmpty { null }
         }
+        com.payme.sdk.utils.KycImageStore.clearLegacy(root)
         wwwRoot = root
         Log.d(
             PayMEMiniApp.TAG,
@@ -29,9 +34,11 @@ internal class LocalhostServerController(
             Log.e(PayMEMiniApp.TAG, "Localhost web source failed: ${e.message}")
             return null
         }
+        val replaceLoadUrl = getLoadUrl().isEmpty() || OriginPolicy.isLocal(getLoadUrl(), origin)
         webSource = provider
+        origin = sourceUrl.removeSuffix("/")
         Log.d(PayMEMiniApp.TAG, "Miniapp web source url=$sourceUrl")
-        if (shouldReplaceLoadUrl(getLoadUrl())) {
+        if (replaceLoadUrl) {
             setLoadUrl(sourceUrl)
         }
         return sourceUrl
@@ -47,9 +54,4 @@ internal class LocalhostServerController(
         webSource = null
     }
 
-    private fun shouldReplaceLoadUrl(currentLoadUrl: String): Boolean {
-        return currentLoadUrl.isEmpty() ||
-            currentLoadUrl.startsWith("http://localhost") ||
-            currentLoadUrl.startsWith("https://localhost")
-    }
 }

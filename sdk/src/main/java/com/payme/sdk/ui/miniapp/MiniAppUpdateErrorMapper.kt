@@ -46,7 +46,8 @@ internal object MiniAppUpdateErrorMapper {
             }
             SourceDownloadFailureReason.INSUFFICIENT_STORAGE -> context.getString(R.string.insufficient_storage)
             SourceDownloadFailureReason.EMPTY_BODY,
-            SourceDownloadFailureReason.INCOMPLETE_BODY -> context.getString(R.string.download_failed)
+            SourceDownloadFailureReason.INCOMPLETE_BODY,
+            SourceDownloadFailureReason.INTEGRITY_MISMATCH -> context.getString(R.string.download_failed)
             SourceDownloadFailureReason.IO_ERROR -> exceptionMessage(error.cause)
         }
     }

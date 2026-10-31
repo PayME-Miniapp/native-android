@@ -102,3 +102,17 @@ internal fun withRawHttpResponseBytes(response: ByteArray, block: (String) -> Un
         thread.join(1000)
     }
 }
+
+/** Integrity record a signed manifest entry would carry for [bytes]. */
+internal fun artifactFor(bytes: ByteArray, mode: String = "miniapp_product", patch: Int = 1) =
+    com.payme.sdk.ui.miniapp.source.OtaArtifact(
+        mode,
+        patch,
+        com.payme.sdk.ui.miniapp.source.OtaArtifact.hex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes)),
+        bytes.size.toLong()
+    )
+
+/** Marks an update zip written directly by a test as a verified download. */
+internal fun markVerifiedUpdate(zip: File, mode: String = "miniapp_product", patch: Int = 1) {
+    artifactFor(zip.readBytes(), mode, patch).write(zip)
+}

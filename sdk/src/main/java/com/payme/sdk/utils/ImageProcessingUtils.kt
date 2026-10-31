@@ -11,8 +11,6 @@ import android.view.WindowManager
 import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.objects.DetectedObject
 import com.payme.sdk.PayMEMiniApp
-import com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants
-import com.payme.sdk.ui.miniapp.source.SourceInstaller
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -56,14 +54,15 @@ internal object ImageProcessingUtils {
 
     fun compressBitmapToFile(context: Context, bitmap: Bitmap, fileName: String) {
         try {
-            val wwwDirectory = File(context.filesDir, MiniAppSourceConstants.WWW_DIR)
-            val sourceRoot = SourceInstaller.findWebRoot(wwwDirectory)
-                ?: File(wwwDirectory, MiniAppSourceConstants.SOURCE_ROOT)
-            val imagesDir = File(sourceRoot, "images")
-            if (!imagesDir.exists()) {
-                imagesDir.mkdirs()
+            if (fileName == "kycFrontIdCard.jpeg") KycImageStore.clear(context.filesDir)
+            val file = if (fileName in KycImageStore.names) {
+                KycImageStore.file(context.filesDir, fileName)
+            } else {
+                val www = File(context.filesDir, com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants.WWW_DIR)
+                val root = com.payme.sdk.ui.miniapp.source.SourceInstaller.findWebRoot(www)
+                    ?: File(www, com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants.SOURCE_ROOT)
+                File(File(root, "images").apply { mkdirs() }, fileName)
             }
-            val file = File(imagesDir, fileName)
             if (file.exists()) {
                 file.delete()
             }

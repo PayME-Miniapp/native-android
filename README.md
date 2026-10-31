@@ -204,3 +204,31 @@ Chi tiết DepositWithdrawTransferData:
 | **Tham số** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích**                                                      |
 | ----------- | ------------ | ---------------- | ------------------------------------------------------------------- |
 | **phone**   | Có           | String           | Số điện thoại của tài khoản cần lấy số dư ví (không cần format +84) |
+
+# Cập nhật OTA của miniapp (SDK 1.0.24+)
+
+SDK chỉ tải bản vá web khi mục tương ứng trong manifest có chữ ký hợp lệ. Mỗi mode (`miniapp_product`, `miniapp_sandbox`, `miniapp_staging`) có dạng:
+
+```json
+{
+  "patch": 500,
+  "latestMandatoryPatch": 500,
+  "url": "https://static.payme.vn/.../p0500.zip",
+  "sha256": "<64 ký tự hex thường: SHA-256 của file zip>",
+  "size": 4287341,
+  "sig": "<base64 của chữ ký ECDSA P-256/SHA-256 dạng DER>"
+}
+```
+
+- Chuỗi được ký (UTF-8, không có xuống dòng cuối): `payme-ota-v1|<sdkVersion>|<mode>|<patch>|<latestMandatoryPatch>|<url>|<sha256>|<size>`. Số nguyên ghi dạng thập phân.
+- `patch: 0` và `latestMandatoryPatch: 0` là kill switch, quay về bản web đóng gói sẵn; không cần `sig`.
+- Mục có `patch > 0` bị bỏ qua (giữ bản đang chạy) nếu: thiếu hoặc sai chữ ký, URL không phải `https://static.payme.vn`, `sha256`/`size` sai định dạng, `size` vượt giới hạn, hoặc `latestMandatoryPatch > patch`.
+- Sau khi tải, file phải đúng `size` byte và đúng `sha256`; nếu không sẽ bị xoá. SDK không cài bản vá thấp hơn bản đang cài của cùng mode.
+- Ký một mục bằng script trong repo web:
+
+```sh
+node script/sign-ota.cjs --zip sdkWebapp3-main.zip --sdk-version 1.0.24 --mode miniapp_product \
+  --patch 500 --latest-mandatory 500 --url https://static.payme.vn/.../p0500.zip --key <khoá-ký.pem>
+```
+
+Script in ra object của mode để dán vào manifest. Mỗi phiên bản SDK cần một mục ký riêng vì `sdkVersion` nằm trong chuỗi được ký.
