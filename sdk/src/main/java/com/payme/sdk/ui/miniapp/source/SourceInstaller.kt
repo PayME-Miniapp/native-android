@@ -6,6 +6,7 @@ import java.io.File
 
 internal enum class SourceInstallFailureReason {
     MISSING_UPDATE_ZIP,
+    UNVERIFIED_UPDATE,
     INSUFFICIENT_STORAGE,
     BUNDLED_SOURCE_COPY_FAILED,
     UNZIP_FAILED,
@@ -78,9 +79,17 @@ internal class SourceInstaller internal constructor(
         return installUpdatedSourceDetailed().success
     }
 
+    /** The pending update's signed record, if the zip still matches it; null for anything else. */
+    fun verifiedPendingUpdate(): OtaArtifact? =
+        OtaArtifact.read(updateZip)?.takeIf { it.matches(updateZip) }
+
     fun installUpdatedSourceDetailed(): SourceInstallResult {
         if (!updateZip.exists() || updateZip.length() == 0L) {
             return SourceInstallResult.failure(SourceInstallFailureReason.MISSING_UPDATE_ZIP)
+        }
+        if (verifiedPendingUpdate() == null) {
+            cleanUpdateArtifacts()
+            return SourceInstallResult.failure(SourceInstallFailureReason.UNVERIFIED_UPDATE)
         }
 
         cleanWorkingDirectories()
@@ -99,6 +108,7 @@ internal class SourceInstaller internal constructor(
         val swapped = swapStagingIntoPlace()
         if (swapped) {
             updateZip.delete()
+            OtaArtifact.metaFile(updateZip).delete()
         }
         if (!swapped || findWebRoot(wwwDirectory) == null) {
             return SourceInstallResult.failure(SourceInstallFailureReason.SWAP_FAILED)
@@ -151,6 +161,7 @@ internal class SourceInstaller internal constructor(
 
     fun cleanUpdateArtifacts() {
         updateZip.delete()
+        OtaArtifact.metaFile(updateZip).delete()
         updateTempZip.delete()
         cleanWorkingDirectories()
     }

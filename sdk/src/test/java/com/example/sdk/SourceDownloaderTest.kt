@@ -2,6 +2,7 @@ package com.example.sdk
 
 import com.payme.sdk.ui.miniapp.source.DownloadResult
 import com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants
+import com.payme.sdk.ui.miniapp.source.OtaArtifact
 import com.payme.sdk.ui.miniapp.source.SourceDownloadException
 import com.payme.sdk.ui.miniapp.source.SourceDownloadFailureReason
 import com.payme.sdk.ui.miniapp.source.SourceDownloader
@@ -11,6 +12,7 @@ import com.payme.sdk.ui.miniapp.source.StorageSpaceChecker
 import com.payme.sdk.ui.miniapp.source.VersionRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Rule
@@ -47,7 +49,7 @@ class SourceDownloaderTest {
             "HTTP/1.1 200 OK\r\nContent-Length: ${body.size}\r\n\r\n" + String(body)
         ) { url ->
             responseUrl = url
-            result = downloader.download("https://static.payme.vn/test.zip", destination) { _, _, _ -> }
+            result = downloader.download("https://static.payme.vn/test.zip", destination, artifactFor(body)) { _, _, _ -> }
         }
 
         assertEquals(body.size.toLong(), result.bytesCopied)
@@ -64,7 +66,7 @@ class SourceDownloaderTest {
         withRawHttpResponse("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n") { url ->
             responseUrl = url
             try {
-                downloader.download("https://static.payme.vn/test.zip", destination) { _, _, _ -> }
+                downloader.download("https://static.payme.vn/test.zip", destination, artifactFor("x".toByteArray())) { _, _, _ -> }
                 fail("Expected SourceDownloadException")
             } catch (e: SourceDownloadException) {
                 assertEquals(SourceDownloadFailureReason.HTTP_ERROR, e.reason)
@@ -84,7 +86,7 @@ class SourceDownloaderTest {
         withRawHttpResponse("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n") { url ->
             responseUrl = url
             try {
-                downloader.download("https://static.payme.vn/test.zip", destination) { _, _, _ -> }
+                downloader.download("https://static.payme.vn/test.zip", destination, artifactFor("x".toByteArray())) { _, _, _ -> }
                 fail("Expected SourceDownloadException")
             } catch (e: SourceDownloadException) {
                 assertEquals(SourceDownloadFailureReason.EMPTY_BODY, e.reason)
@@ -103,7 +105,7 @@ class SourceDownloaderTest {
         withRawHttpResponse("HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\n12345") { url ->
             responseUrl = url
             try {
-                downloader.download("https://static.payme.vn/test.zip", destination) { _, _, _ -> }
+                downloader.download("https://static.payme.vn/test.zip", destination, artifactFor("1234567890".toByteArray())) { _, _, _ -> }
                 fail("Expected SourceDownloadException")
             } catch (e: SourceDownloadException) {
                 assertTrue(
@@ -124,7 +126,7 @@ class SourceDownloaderTest {
 
         withRawHttpResponse("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n12345") { url ->
             responseUrl = url
-            val result = downloader.download("https://static.payme.vn/test.zip", destination) { _, length, _ ->
+            val result = downloader.download("https://static.payme.vn/test.zip", destination, artifactFor("12345".toByteArray())) { _, length, _ ->
                 assertEquals(-1L, length)
             }
 
@@ -145,7 +147,7 @@ class SourceDownloaderTest {
         withRawHttpResponse("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n" + "x".repeat(64 * 1024)) { url ->
             responseUrl = url
             try {
-                downloader.download("https://static.payme.vn/test.zip", destination) { copied, _, _ -> largestReported = copied }
+                downloader.download("https://static.payme.vn/test.zip", destination, artifactFor("x".repeat(64 * 1024).toByteArray())) { copied, _, _ -> largestReported = copied }
                 fail("Expected SourceDownloadException")
             } catch (e: SourceDownloadException) {
                 assertEquals(SourceDownloadFailureReason.IO_ERROR, e.reason)
@@ -166,7 +168,7 @@ class SourceDownloaderTest {
         withRawHttpResponse("HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\n12345") { url ->
             responseUrl = url
             try {
-                downloader.download("https://static.payme.vn/test.zip", destination) { _, _, _ -> }
+                downloader.download("https://static.payme.vn/test.zip", destination, artifactFor("12345".toByteArray())) { _, _, _ -> }
                 fail("Expected SourceDownloadException")
             } catch (e: SourceDownloadException) {
                 assertEquals(SourceDownloadFailureReason.IO_ERROR, e.reason)
@@ -218,6 +220,103 @@ class SourceDownloaderTest {
         assertFalse(versionFile.exists())
     }
 
+    private fun oldSource(filesDir: File): File =
+        File(File(filesDir, MiniAppSourceConstants.WWW_DIR).apply { mkdirs() }, "index.html").apply { writeText("old source") }
+
+    private fun expectIntegrityMismatch(downloader: SourceDownloader, destination: File, response: ByteArray, artifact: OtaArtifact) {
+        withRawHttpResponseBytes(response) { url ->
+            responseUrl = url
+            try {
+                downloader.download("https://static.payme.vn/test.zip", destination, artifact) { _, _, _ -> }
+                fail("Expected SourceDownloadException")
+            } catch (e: SourceDownloadException) {
+                assertEquals(SourceDownloadFailureReason.INTEGRITY_MISMATCH, e.reason)
+            }
+        }
+        assertFalse(destination.exists())
+        assertFalse(OtaArtifact.metaFile(destination).exists())
+    }
+
+    @Test
+    fun sha256MismatchDeletesDownloadAndInstallFails() {
+        val filesDir = temporaryFolder.newFolder("files")
+        val old = oldSource(filesDir)
+        val downloader = downloader(filesDir)
+        val destination = downloader.resetDestination()
+        val body = zipBytes("build/index.html" to "new source")
+        val response = "HTTP/1.1 200 OK\r\nContent-Length: ${body.size}\r\n\r\n".toByteArray() + body
+
+        expectIntegrityMismatch(downloader, destination, response, artifactFor(body).copy(sha256 = "0".repeat(64)))
+
+        val install = SourceInstaller(filesDir, unzipFile = ::unzipForTest).installUpdatedSourceDetailed()
+        assertFalse(install.success)
+        assertEquals(SourceInstallFailureReason.MISSING_UPDATE_ZIP, install.failureReason)
+        assertEquals("old source", old.readText())
+    }
+
+    @Test
+    fun sizeMismatchDeletesDownloadWithOrWithoutContentLength() {
+        val filesDir = temporaryFolder.newFolder("files")
+        val downloader = downloader(filesDir)
+        val destination = downloader.resetDestination()
+        val body = zipBytes("build/index.html" to "new source")
+        val unknownLength = "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n".toByteArray()
+        val signedLonger = artifactFor(body + ByteArray(1))
+        val signedShorter = artifactFor(body.copyOf(body.size - 1))
+
+        expectIntegrityMismatch(downloader, destination, unknownLength + body, signedLonger)
+        expectIntegrityMismatch(downloader, destination, unknownLength + body, signedShorter)
+        expectIntegrityMismatch(
+            downloader, destination,
+            "HTTP/1.1 200 OK\r\nContent-Length: ${body.size}\r\n\r\n".toByteArray() + body, signedShorter
+        )
+    }
+
+    @Test
+    fun verifiedDownloadIsInstalledThenItsRecordIsRemoved() {
+        val filesDir = temporaryFolder.newFolder("files")
+        oldSource(filesDir)
+        val downloader = downloader(filesDir)
+        val destination = downloader.resetDestination()
+        val body = zipBytes("build/index.html" to "new source")
+        val artifact = artifactFor(body, patch = 501)
+
+        withRawHttpResponseBytes("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n".toByteArray() + body) { url ->
+            responseUrl = url
+            downloader.download("https://static.payme.vn/test.zip", destination, artifact) { _, _, _ -> }
+        }
+
+        val installer = SourceInstaller(filesDir, unzipFile = ::unzipForTest)
+        assertEquals(artifact, installer.verifiedPendingUpdate())
+        assertTrue(installer.installUpdatedSourceDetailed().success)
+        assertEquals("new source", File(filesDir, "www/build/index.html").readText())
+        assertFalse(installer.updateZip.exists())
+        assertFalse(OtaArtifact.metaFile(installer.updateZip).exists())
+    }
+
+    @Test
+    fun pendingZipThatNoLongerMatchesOrHasNoRecordIsNeverInstalled() {
+        for (case in listOf("tampered", "legacy")) {
+            val filesDir = temporaryFolder.newFolder("files-$case")
+            val old = oldSource(filesDir)
+            val installer = SourceInstaller(filesDir, unzipFile = ::unzipForTest)
+            installer.prepareUpdateDirectory()
+            writeZip(installer.updateZip, "build/index.html" to "new source")
+            if (case == "tampered") {
+                markVerifiedUpdate(installer.updateZip)
+                installer.updateZip.appendBytes(byteArrayOf(0))
+            }
+            // "legacy": a zip downloaded by SDK <= 1.0.23 has no signed record.
+
+            assertNull(installer.verifiedPendingUpdate())
+            val install = installer.installUpdatedSourceDetailed()
+            assertEquals(SourceInstallFailureReason.UNVERIFIED_UPDATE, install.failureReason)
+            assertEquals("old source", old.readText())
+            assertFalse(installer.updateZip.exists())
+            assertFalse(OtaArtifact.metaFile(installer.updateZip).exists())
+        }
+    }
+
     @Test
     fun downloaderRejectsKnownContentLengthWhenStorageIsInsufficient() {
         val filesDir = temporaryFolder.newFolder("files")
@@ -233,7 +332,7 @@ class SourceDownloaderTest {
         ) { url ->
             responseUrl = url
             try {
-                downloader.download("https://static.payme.vn/test.zip", destination) { _, _, _ -> }
+                downloader.download("https://static.payme.vn/test.zip", destination, artifactFor(body)) { _, _, _ -> }
                 fail("Expected SourceDownloadException")
             } catch (e: SourceDownloadException) {
                 assertEquals(SourceDownloadFailureReason.INSUFFICIENT_STORAGE, e.reason)
@@ -265,7 +364,7 @@ class SourceDownloaderTest {
             "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n".toByteArray() + zipBytes
         ) { url ->
             responseUrl = url
-            val result = downloader.download("https://static.payme.vn/test.zip", destination) { _, length, _ ->
+            val result = downloader.download("https://static.payme.vn/test.zip", destination, artifactFor(zipBytes)) { _, length, _ ->
                 assertEquals(-1L, length)
             }
 

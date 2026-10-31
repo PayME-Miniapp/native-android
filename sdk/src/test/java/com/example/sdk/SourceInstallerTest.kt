@@ -26,6 +26,7 @@ class SourceInstallerTest {
         java.io.File(installer.wwwDirectory, "index.html").writeText("old source")
         installer.prepareUpdateDirectory()
         installer.updateZip.writeBytes(zipBytes("build/index.html" to "new source", "../escape" to "bad"))
+        markVerifiedUpdate(installer.updateZip)
         org.junit.Assert.assertFalse(installer.installUpdatedSourceDetailed().success)
         org.junit.Assert.assertEquals("old source", java.io.File(installer.wwwDirectory, "index.html").readText())
         org.junit.Assert.assertFalse(installer.stagingDirectory.exists())
@@ -68,6 +69,7 @@ class SourceInstallerTest {
             MiniAppSourceConstants.SOURCE_ZIP
         )
         updateZip.writeText("invalid")
+        markVerifiedUpdate(updateZip)
         val installer = SourceInstaller(filesDir, unzipFile = { _, _ -> false })
 
         assertFalse(installer.installUpdatedSource())
@@ -84,6 +86,7 @@ class SourceInstallerTest {
             MiniAppSourceConstants.SOURCE_ZIP
         )
         writeZip(updateZip, "build/index.html" to "new source")
+        markVerifiedUpdate(updateZip)
         val installer = SourceInstaller(filesDir, unzipFile = ::unzipForTest)
 
         assertTrue(installer.installUpdatedSource())
@@ -102,6 +105,7 @@ class SourceInstallerTest {
             MiniAppSourceConstants.SOURCE_ZIP
         )
         writeZip(updateZip, "index.html" to "new source")
+        markVerifiedUpdate(updateZip)
         val installer = SourceInstaller(
             filesDir = filesDir,
             unzipFile = ::unzipForTest,
@@ -172,6 +176,7 @@ class SourceInstallerTest {
             MiniAppSourceConstants.SOURCE_ZIP
         )
         writeZip(updateZip, "build/index.html" to "new source")
+        markVerifiedUpdate(updateZip)
         val installer = SourceInstaller(
             filesDir = filesDir,
             unzipFile = ::unzipForTest,
