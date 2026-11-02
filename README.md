@@ -207,7 +207,7 @@ Chi tiết DepositWithdrawTransferData:
 
 # Cập nhật OTA của miniapp (SDK 1.0.24+)
 
-SDK chỉ tải bản vá web khi mục tương ứng trong manifest có chữ ký hợp lệ. Mỗi mode (`miniapp_product`, `miniapp_sandbox`, `miniapp_staging`) có dạng:
+SDK chỉ tải bản vá web khi mục tương ứng trong manifest có chữ ký hợp lệ. Mỗi mode trên manifest (`miniapp_*`, `pm_*`, `bank`, …) có dạng:
 
 ```json
 {

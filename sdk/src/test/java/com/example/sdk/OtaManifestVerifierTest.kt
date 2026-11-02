@@ -108,7 +108,10 @@ class OtaManifestVerifierTest {
             "size above cap" to good.copy(size = ArchiveUtils.MAX_ARCHIVE_BYTES + 1)
         )
         malformed.forEach { (name, entry) -> assertFalse(name, verifier.isTrusted(sign(entry, pair.private), mode)) }
-        assertFalse("unknown mode", verifier.isTrusted(sign(good, pair.private, signedMode = "miniapp_dev"), "miniapp_dev"))
+        assertFalse("malformed mode", verifier.isTrusted(sign(good, pair.private, signedMode = "Miniapp-Product"), "Miniapp-Product"))
+        listOf("pm_product", "pm_staging", "pm_sandbox", "bank").forEach { other ->
+            assertTrue(other, verifier.isTrusted(sign(good, pair.private, signedMode = other), other))
+        }
         val badSdk = OtaEntryVerifier(listOf(pair.public), "1.0")
         assertFalse("sdk version", badSdk.isTrusted(sign(good, pair.private, sdk = "1.0"), mode))
     }
