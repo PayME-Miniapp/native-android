@@ -17,7 +17,8 @@ import java.util.Base64
  */
 internal object OtaManifest {
     const val PAYLOAD_VERSION = "payme-ota-v1"
-    val MODES = setOf("miniapp_product", "miniapp_sandbox", "miniapp_staging")
+    /** The manifest has miniapp_*, pm_* and bank modes; the mode is signed, so any well-formed name is accepted. */
+    val MODE_NAME = Regex("[a-z][a-z0-9_]{0,31}")
 
     /** Production signing keys (SPKI DER, base64). Add the next key here before rotating. */
     val PINNED_PUBLIC_KEYS = listOf(
@@ -46,7 +47,7 @@ internal class OtaEntryVerifier(
 ) {
     fun isTrusted(entry: RemoteUpdateMode, mode: String): Boolean {
         val wellFormed = SDK_VERSION.matches(sdkVersion) &&
-            mode in OtaManifest.MODES &&
+            OtaManifest.MODE_NAME.matches(mode) &&
             entry.patch >= 1 &&
             entry.latestMandatoryPatch >= 1 &&
             entry.latestMandatoryPatch <= entry.patch &&
@@ -115,7 +116,7 @@ internal data class OtaArtifact(
             if (parts.size != 4) return null
             val patch = parts[1].toIntOrNull() ?: return null
             val size = parts[3].toLongOrNull() ?: return null
-            if (parts[0] !in OtaManifest.MODES || patch < 1 || size < 1 || !Regex("[0-9a-f]{64}").matches(parts[2])) return null
+            if (!OtaManifest.MODE_NAME.matches(parts[0]) || patch < 1 || size < 1 || !Regex("[0-9a-f]{64}").matches(parts[2])) return null
             return OtaArtifact(parts[0], patch, parts[2], size)
         }
 
