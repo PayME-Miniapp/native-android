@@ -5,7 +5,7 @@ plugins {
 
 def sdk_version = "1.0.24"
 def version_code = 667
-def maven_version = "0.7.2"
+def maven_version = "0.8.0"
 
 android {
     compileSdkVersion 37
