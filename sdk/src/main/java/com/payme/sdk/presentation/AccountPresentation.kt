@@ -16,6 +16,8 @@ import com.payme.sdk.runtime.PayMERuntime
 import org.json.JSONObject
 
 object AccountPresentation {
+    private const val HTTP_STATUS_UNAUTHORIZED = 401
+
     private const val PLATFORM = "ANDROID_V2"
     private const val CHANNEL = "channel"
 
@@ -70,6 +72,17 @@ object AccountPresentation {
         }
     }
 
+    /** identityToken sai hoặc hết hạn: response vẫn giải mã được nhưng có `errors[0].code = 401` (giống luồng web). */
+    internal fun isUnauthorized(response: JSONObject): Boolean =
+        response.optJSONArray("errors")?.optJSONObject(0)?.optInt("code") == HTTP_STATUS_UNAUTHORIZED
+
+    /** Cùng mã với lỗi 401 miniapp báo về khi đóng, để app đối tác xử lý một chỗ. */
+    private fun unauthorizedError(context: Context) = PayMEError(
+        PayMEErrorType.MiniApp,
+        HTTP_STATUS_UNAUTHORIZED.toString(),
+        context.getString(R.string.session_expired)
+    )
+
     /** getAccountInfo body: identityToken replaces phone (SDK 1.0.24). Sent encrypted, never logged. */
     internal fun accountInfoParams(identityToken: String, clientId: String): MutableMap<String, String> =
         mutableMapOf("identityToken" to identityToken, "clientId" to clientId)
@@ -93,6 +106,10 @@ object AccountPresentation {
                 ActionOpenMiniApp.GET_ACCOUNT_INFO,
                 config
             ).setOnRequest(onError = onError, onSuccess = { jsonObjectAccount ->
+                if (isUnauthorized(jsonObjectAccount)) {
+                    onError(ActionOpenMiniApp.GET_ACCOUNT_INFO, unauthorizedError(context))
+                    return@setOnRequest
+                }
                 val accountInfoObject =
                     jsonObjectAccount.optJSONObject("data")?.optJSONObject("accountInfo")
                 val accountId = accountInfoObject?.optInt("accountId", -1) ?: -1
@@ -131,6 +148,10 @@ object AccountPresentation {
                 ActionOpenMiniApp.GET_BALANCE,
                 config
             ).setOnRequest(onError = onError, onSuccess = { jsonObjectAccount ->
+                if (isUnauthorized(jsonObjectAccount)) {
+                    onError(ActionOpenMiniApp.GET_BALANCE, unauthorizedError(context))
+                    return@setOnRequest
+                }
                 val data = jsonObjectAccount.optJSONObject("data")
                 val accessToken = data?.optString("accessToken") // Simplify accessToken extraction
 
