@@ -2,29 +2,36 @@
 
 **Thêm maven jitpack.io**
 
-Update file build.gradle project
+Nếu project khai báo repository trong `build.gradle` của project:
 
-```kotlin
+```groovy
 allprojects {
   repositories {
     ...
-    maven {
-        url "https://jitpack.io"
-    }
- }
+    maven { url "https://jitpack.io" }
+  }
+}
+```
+
+Nếu project dùng `dependencyResolutionManagement` trong `settings.gradle`:
+
+```groovy
+dependencyResolutionManagement {
+  repositories {
+    ...
+    maven { url "https://jitpack.io" }
+  }
 }
 ```
 
 **Thêm dependency thư viện PayMEMiniapp**
 
-Cập nhật file build.gradle module
-TAG: version hiện tại của sdk, ví dụ 0.1.1
+Cập nhật file `build.gradle` của module, thay `TAG` bằng phiên bản SDK, ví dụ `0.8.0`:
 
-```java
+```groovy
 dependencies {
-...
-    implementation 'com.github.PayME-Miniapp:native-android:TAG'
-...
+  ...
+  implementation 'com.github.PayME-Miniapp:native-android:TAG'
 }
 ```
 
@@ -38,12 +45,14 @@ dependencies {
 | **appId**      | Có           | String                 |
 | **publicKey**  | Có           | String                 |
 | **privateKey** | Có           | String                 |
-| **env**        | Có           | "PRODUCTION","SANDBOX" |
+| **env**        | Không        | ENV (`ENV.PRODUCTION`, `ENV.SANDBOX`), mặc định `ENV.PRODUCTION` |
+| **locale**     | Không        | Locale (`Locale.vi`, `Locale.en`), mặc định `Locale.vi` |
 
 Chú thích:
 - appId: mỗi đối tác tích hợp PayME Miniapp sẽ được cấp 1 appId riêng biệt
 - publicKey, privateKey: cặp key được gen khi đăng ký đối tác với PayME
 - env: môi trường miniapp mà đối tác muốn sử dụng
+- locale: ngôn ngữ hiển thị của Miniapp. Có thể đổi sau bằng `setLanguage`
 
 ```kotlin
 import com.payme.sdk.PayMEMiniApp
@@ -52,7 +61,8 @@ payMEMiniApp = PayMEMiniApp(
     "your appId here",
     "your publicKey here",
     "your privateKey here",
-    ENV.PRODUCTION
+    ENV.PRODUCTION,
+    Locale.vi
 )
 ```
 
@@ -78,7 +88,7 @@ Chú thích:
 
 Chi tiết các kiểu dữ liệu
 
-**ActionOpenMiniApp:** (action thao tác Miniapp) enum "PAYME" | "OPEN" | "PAY" | "GET_BALANCE"
+**ActionOpenMiniApp:** (action thao tác Miniapp)
 | **Giá trị** | **Giải thích** |
 |-----------------|-----------------------------------------------------------------------------------------------------------|
 | **PAYME** | Dùng riêng cho app ví PayME |  
@@ -90,6 +100,9 @@ Chi tiết các kiểu dữ liệu
 | **WITHDRAW** | Mở giao diện rút tiền |
 | **TRANSFER** | Mở giao diện chuyển tiền |
 | **KYC** | Mở giao diện kyc |
+| **PAYMENT** | Mở giao diện thanh toán giao dịch do đối tác tạo sẵn |
+| **TRANSFER_QR** | Mở giao diện chuyển tiền từ ví PayME đến tài khoản đích do đối tác truyền vào |
+| **GET_ACCOUNT_INFO** | Lấy thông tin tài khoản PayME |
 
 **PayMEError:** (lỗi trong quá trình thao tác Miniapp)
 | **Thuộc tính** | **Kiểu dữ liệu** | **Giải thích** |
@@ -167,6 +180,8 @@ Chi tiết PaymentData:
 | **amount** | Có | Int | Tổng số tiền giao dịch |  
 | **note** | Không | String | Ghi chú của giao dịch |
 | **ipnUrl** | Không | String | Đường dẫn để server PayME ipn đến khi giao dịch có tiến triển (thành công/thất bại) |
+| **extraData** | Không | Map<String, Any> | Dữ liệu bổ sung do đối tác quy định, được trả về đối tác khi thanh toán thành công |
+| **isShowResult** | Không | Boolean | Có hiển thị màn hình kết quả của PayME không (mặc định: true) |
 
 **OpenMiniAppDepositData:** đối tác dùng action này khi muốn mở giao diện nạp tiền vào ví PayME
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
@@ -174,7 +189,7 @@ Chi tiết PaymentData:
 | **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 | **additionalData** | Có | DepositWithdrawTransferData | Thông tin thêm để phục vụ việc |
 
-**OpenMiniAppWithDrawData:** đối tác dùng action này khi muốn mở giao diện rút tiền ra ví PayME
+**OpenMiniAppWithdrawData:** đối tác dùng action này khi muốn mở giao diện rút tiền ra ví PayME
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|--------------------------------------|----------------------------------|
 | **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
@@ -191,11 +206,61 @@ Chi tiết DepositWithdrawTransferData:
 |---------------------|--------------|------------------|-------------------------------------------------------|
 | **description** | Không | String | Miêu tả giao dịch |  
 | **amount** | Không | Int | Tổng số tiền giao dịch |
+| **extraData** | Không | Map<String, Any> | Dữ liệu bổ sung do đối tác quy định, được trả về đối tác khi giao dịch thành công |
+| **isBackToApp** | Không | Boolean | Quay về app đối tác sau khi hoàn tất |
+| **isShowResult** | Không | Boolean | Có hiển thị màn hình kết quả của PayME không (mặc định: true) |
 
 **OpenMiniAppKYCData:** đối tác dùng action này khi muốn mở giao diện kyc
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|--------------------------------------|----------------------------------|
 | **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
+
+**OpenMiniAppServiceData:** đối tác dùng action này khi muốn mở giao diện thanh toán dịch vụ
+| **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
+|---------------------|--------------|------------------|----------------------------------|
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
+| **additionalData** | Có | ServiceData | Thông tin dịch vụ cần thanh toán |
+
+Chi tiết ServiceData:
+| **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
+|---------------------|--------------|------------------|-------------------------------------------------------|
+| **service** | Có | String | Mã dịch vụ, ví dụ `POWE` (điện), `WATE` (nước), `ADSL` (internet), `TIVI` (truyền hình), `PPMB` (điện thoại trả sau), `MOBILE_CARD`, `MOBILE_TOPUP`, `GAME_CARD` |
+| **extraData** | Không | Map<String, Any> | Dữ liệu bổ sung do đối tác quy định, được trả về đối tác khi thanh toán thành công |
+| **isBackToApp** | Không | Boolean | Quay về app đối tác sau khi hoàn tất |
+| **isShowResult** | Không | Boolean | Có hiển thị màn hình kết quả của PayME không (mặc định: true) |
+
+**OpenMiniAppPaymentDirectData:** (action PAYMENT) đối tác dùng action này khi đã tạo sẵn giao dịch ở hệ thống của mình và muốn mở giao diện thanh toán giao dịch đó
+| **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
+|---------------------|--------------|------------------|--------------------------------------------|
+| **identityToken** | Không | String? | Có: trả được bằng ví PayME. Không có: thanh toán như khách vãng lai (thẻ, QR) |
+| **paymentDirectData** | Có | PaymentDirectData | Thông tin giao dịch |
+
+Chi tiết PaymentDirectData:
+| **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
+|---------------------|--------------|------------------|--------------------------------------------------------------------------------------|
+| **transaction** | Có | String | Mã giao dịch |
+| **extraData** | Không | Map<String, Any> | Dữ liệu bổ sung do đối tác quy định, được trả về đối tác khi thanh toán thành công |
+| **isShowResult** | Không | Boolean | Có hiển thị màn hình kết quả của PayME không (mặc định: true) |
+
+**OpenMiniAppTransferQRData:** đối tác dùng action này khi muốn chuyển tiền từ ví PayME đến tài khoản đích do đối tác truyền vào
+| **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
+|---------------------|--------------|------------------|--------------------------------------------|
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
+| **transferQRData** | Có | TransferQRData | Thông tin chuyển tiền |
+
+Chi tiết TransferQRData:
+| **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
+|---------------------|--------------|------------------|--------------------------------------------------------------------------------------|
+| **amount** | Có | Int | Số tiền giao dịch (nếu không có số tiền thì truyền 0) |
+| **bankNumber** | Có | String | Số thẻ hoặc số tài khoản ngân hàng |
+| **swiftCode** | Có | String | Mã swiftCode của ngân hàng |
+| **cardHolder** | Có | String | Tên chủ thẻ |
+| **note** | Không | String | Ghi chú của giao dịch |
+| **partnerTransaction** | Không | String | Mã giao dịch của đối tác |
+| **extraData** | Không | Map<String, Any> | Dữ liệu bổ sung do đối tác quy định, được trả về đối tác khi thanh toán thành công |
+| **isShowResult** | Không | Boolean | Có hiển thị màn hình kết quả của PayME không (mặc định: true) |
+
+**OpenMiniAppPayMEData:** (action PAYME) mở ví PayME. Không có tham số; người dùng tự nhập số điện thoại và đăng nhập bằng PIN
 
 ### Hàm getBalance
 
@@ -224,6 +289,26 @@ Chi tiết DepositWithdrawTransferData:
 | **Tham số** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích**                                                      |
 | ----------- | ------------ | ---------------- | ------------------------------------------------------------------- |
 | **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
+
+### Hàm setLanguage
+
+Đối tác dùng hàm này để đổi ngôn ngữ hiển thị của Miniapp
+
+```kotlin
+fun setLanguage(lang: Locale)
+```
+
+| **Tham số** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
+| ----------- | ------------ | ---------------- | -------------- |
+| **lang** | Có | Locale | `Locale.vi` hoặc `Locale.en` |
+
+### Hàm close
+
+Đối tác dùng hàm này để đóng Miniapp đang mở
+
+```kotlin
+fun close()
+```
 
 # Cập nhật OTA của miniapp (SDK 1.0.24+)
 
