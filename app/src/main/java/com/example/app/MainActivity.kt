@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -37,6 +38,7 @@ import org.json.JSONObject
 class MainActivity : AppCompatActivity() {
     private lateinit var payMEMiniApp: PayMEMiniApp
     private lateinit var statusText: TextView
+    private lateinit var identityTokenInput: EditText
     private lateinit var currentCredential: ExampleCredential
     private var currentCredentialIndex: Int = DEFAULT_CREDENTIAL_INDEX
     private var currentEnv: ENV = ENV.PRODUCTION
@@ -56,7 +58,6 @@ class MainActivity : AppCompatActivity() {
         private const val PREF_ENV = "PAYME_WALLET_ENV"
         private const val PREF_LOCALE = "PAYME_WALLET_LOCALE"
         private const val DEFAULT_CREDENTIAL_INDEX = 1
-        private const val SAMPLE_PHONE = "0795550300"
         private const val SAMPLE_BANK_NUMBER = "9704000000000018"
         private const val SAMPLE_SWIFT_CODE = "SBITVNVX"
         private val CREDENTIAL_PRESETS = listOf(
@@ -95,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.status)
+        identityTokenInput = findViewById(R.id.identity_token)
 
         val sharedPreference = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val hasSavedCredential = sharedPreference.contains(PREF_CREDENTIAL_INDEX)
@@ -195,34 +197,39 @@ class MainActivity : AppCompatActivity() {
             openMiniApp(OpenMiniAppType.modal, OpenMiniAppPayMEData())
         }
         findViewById<Button>(R.id.open_wallet).setOnClickListener {
-            openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData(phone = SAMPLE_PHONE))
+            withIdentityToken { openMiniApp(OpenMiniAppType.screen, OpenMiniAppOpenData(identityToken = it)) }
         }
         findViewById<Button>(R.id.open_payment).setOnClickListener {
-            openMiniApp(
-                OpenMiniAppType.modal,
-                OpenMiniAppPaymentData(phone = SAMPLE_PHONE, paymentData = samplePaymentData())
-            )
+            withIdentityToken {
+                openMiniApp(
+                    OpenMiniAppType.modal,
+                    OpenMiniAppPaymentData(identityToken = it, paymentData = samplePaymentData())
+                )
+            }
         }
         findViewById<Button>(R.id.open_payment_direct).setOnClickListener {
             openMiniApp(
                 OpenMiniAppType.modal,
+                // Optional: without identityToken PAYMENT runs as a guest (card, QR).
                 OpenMiniAppPaymentDirectData(
-                    phone = SAMPLE_PHONE,
+                    identityToken = identityTokenOrNull(identityTokenInput.text),
                     paymentDirectData = samplePaymentDirectData()
                 )
             )
         }
         findViewById<Button>(R.id.open_transfer_qr).setOnClickListener {
-            openMiniApp(
-                OpenMiniAppType.modal,
-                OpenMiniAppTransferQRData(phone = SAMPLE_PHONE, transferQRData = sampleTransferQRData())
-            )
+            withIdentityToken {
+                openMiniApp(
+                    OpenMiniAppType.modal,
+                    OpenMiniAppTransferQRData(identityToken = it, transferQRData = sampleTransferQRData())
+                )
+            }
         }
         findViewById<Button>(R.id.open_service).setOnClickListener {
             openMiniApp(
                 OpenMiniAppType.modal,
                 OpenMiniAppServiceData(
-                    phone = SAMPLE_PHONE,
+                    identityToken = requireIdentityToken() ?: return@setOnClickListener,
                     additionalData = ServiceData(
                         service = "POWE",
                         extraData = sampleExtraData(),
@@ -236,7 +243,7 @@ class MainActivity : AppCompatActivity() {
             openMiniApp(
                 OpenMiniAppType.modal,
                 OpenMiniAppDepositData(
-                    phone = SAMPLE_PHONE,
+                    identityToken = requireIdentityToken() ?: return@setOnClickListener,
                     additionalData = sampleWalletActionData("Deposit from Android example")
                 )
             )
@@ -245,7 +252,7 @@ class MainActivity : AppCompatActivity() {
             openMiniApp(
                 OpenMiniAppType.modal,
                 OpenMiniAppWithdrawData(
-                    phone = SAMPLE_PHONE,
+                    identityToken = requireIdentityToken() ?: return@setOnClickListener,
                     additionalData = sampleWalletActionData("Withdraw from Android example")
                 )
             )
@@ -254,21 +261,25 @@ class MainActivity : AppCompatActivity() {
             openMiniApp(
                 OpenMiniAppType.modal,
                 OpenMiniAppTransferData(
-                    phone = SAMPLE_PHONE,
+                    identityToken = requireIdentityToken() ?: return@setOnClickListener,
                     additionalData = sampleWalletActionData("Transfer from Android example")
                 )
             )
         }
         findViewById<Button>(R.id.open_kyc).setOnClickListener {
-            openMiniApp(OpenMiniAppType.screen, OpenMiniAppKYCData(phone = SAMPLE_PHONE))
+            withIdentityToken { openMiniApp(OpenMiniAppType.screen, OpenMiniAppKYCData(identityToken = it)) }
         }
         findViewById<Button>(R.id.get_balance).setOnClickListener {
-            showStatus("Requesting balance for $SAMPLE_PHONE")
-            payMEMiniApp.getBalance(SAMPLE_PHONE)
+            withIdentityToken {
+                showStatus("Requesting balance")
+                payMEMiniApp.getBalance(it)
+            }
         }
         findViewById<Button>(R.id.get_account_information).setOnClickListener {
-            showStatus("Requesting account information for $SAMPLE_PHONE")
-            payMEMiniApp.getAccountInformation(SAMPLE_PHONE)
+            withIdentityToken {
+                showStatus("Requesting account information")
+                payMEMiniApp.getAccountInformation(it)
+            }
         }
         findViewById<Button>(R.id.switch_language).setOnClickListener {
             currentLocale = if (currentLocale == Locale.vi) Locale.en else Locale.vi
@@ -294,6 +305,14 @@ class MainActivity : AppCompatActivity() {
             payMEMiniApp.close()
             showStatus("SDK session closed")
         }
+    }
+
+    /** The pasted identityToken, or null after asking for it. Never log or persist the value. */
+    private fun requireIdentityToken(): String? =
+        identityTokenOrNull(identityTokenInput.text) ?: null.also { showStatus(getString(R.string.identity_token_required)) }
+
+    private fun withIdentityToken(action: (String) -> Unit) {
+        requireIdentityToken()?.let(action)
     }
 
     private fun openMiniApp(openType: OpenMiniAppType, data: OpenMiniAppDataInterface) {

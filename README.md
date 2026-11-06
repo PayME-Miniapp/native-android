@@ -111,6 +111,24 @@ Ví dụ sử dụng:
 )
 ```
 
+### Tích hợp identityToken (SDK 0.8.0 — thay đổi không tương thích với 0.7.x)
+
+Từ SDK 0.8.0 (SDK 1.0.24), SDK **không còn nhận số điện thoại** (`phone`). App đối tác truyền `identityToken`: chuỗi do BE PayME ký cho người dùng, gắn với `appId` và có hạn dùng.
+
+1. BE đối tác gọi API cấp chuỗi ký của BE PayME (server tới server) với số điện thoại của người dùng. Không gọi API này từ app.
+2. App đối tác truyền `identityToken` vào các `OpenMiniAppData`, `getBalance(identityToken)` và `getAccountInformation(identityToken)`.
+3. Chuỗi sai hoặc hết hạn: Miniapp đóng và trả lỗi `401` qua `onError`.
+
+| Action | identityToken |
+| --- | --- |
+| `OpenMiniAppOpenData`, `OpenMiniAppKYCData`, `OpenMiniAppServiceData`, `OpenMiniAppDepositData`, `OpenMiniAppWithdrawData`, `OpenMiniAppTransferData`, `OpenMiniAppPaymentData`, `OpenMiniAppTransferQRData` | Bắt buộc (`String`) |
+| `OpenMiniAppPaymentDirectData` (PAYMENT) | Tuỳ chọn (`String? = null`). Có: trả được bằng ví PayME. Không có: chỉ thanh toán như khách vãng lai (thẻ, QR) |
+| `OpenMiniAppPayMEData` (PAYME) | Không có tham số; người dùng tự nhập số điện thoại và đăng nhập bằng PIN như cũ |
+
+Nâng cấp từ 0.7.x: đổi `phone = ...` thành `identityToken = ...` ở mọi chỗ gọi. Dòng 0.7.x (SDK 1.0.23) vẫn dùng `phone`.
+
+**Bảo mật:** `identityToken` chỉ giữ trong bộ nhớ. Không ghi log, không lưu (SharedPreferences, Bundle, file, database) và không đưa lên URL. SDK không lưu chuỗi này và xoá tham chiếu khi đóng Miniapp.
+
 ### Hàm openMiniApp:
 
 Đối tác dùng hàm này để mở giao diện PayME Miniapp sau khi đã khởi tạo
@@ -132,12 +150,12 @@ Chi tiết các OpenMiniAppData:
 **OpenMiniAppOpenData:** đối tác dùng action này khi muốn mở giao diện trang chủ ví PayME để sử dụng các dịch vụ tiện ích của PayME. Nếu chưa kích hoạt tài khoản ví PayME thì kích hoạt, nếu đã kích hoạt thì mở giao diện trang chủ ví PayME
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|------------------|------------------------------|
-| **phone** | Có | String | Số điện thoại của tài khoản |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 
 **OpenMiniAppPaymentData:** đối tác dùng action này khi muốn mở giao diện thanh toán của Miniapp
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|------------------|--------------------------------------------|
-| **phone** | Có | String | Số điện thoại của tài khoản |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 | **paymentData** | Có | PaymentData | Thông tin thêm để phục vụ việc thanh toán |
 
 Chi tiết PaymentData:
@@ -151,19 +169,19 @@ Chi tiết PaymentData:
 **OpenMiniAppDepositData:** đối tác dùng action này khi muốn mở giao diện nạp tiền vào ví PayME
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|--------------------------------------|----------------------------------|
-| **phone** | Có | String | Số điện thoại của tài khoản |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 | **additionalData** | Có | DepositWithdrawTransferData | Thông tin thêm để phục vụ việc |
 
 **OpenMiniAppWithDrawData:** đối tác dùng action này khi muốn mở giao diện rút tiền ra ví PayME
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|--------------------------------------|----------------------------------|
-| **phone** | Có | String | Số điện thoại của tài khoản |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 | **additionalData** | Có | DepositWithdrawTransferData | Thông tin thêm để phục vụ việc |
 
 **OpenMiniAppTransferData:** đối tác dùng action này khi muốn mở giao diện chuyển tiền
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|--------------------------------------|----------------------------------|
-| **phone** | Có | String | Số điện thoại của tài khoản |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 | **additionalData** | Có | DepositWithdrawTransferData | Thông tin thêm để phục vụ việc |
 
 Chi tiết DepositWithdrawTransferData:
@@ -175,7 +193,7 @@ Chi tiết DepositWithdrawTransferData:
 **OpenMiniAppKYCData:** đối tác dùng action này khi muốn mở giao diện kyc
 | **Thuộc tính** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích** |
 |---------------------|--------------|--------------------------------------|----------------------------------|
-| **phone** | Có | String | Số điện thoại của tài khoản |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 
 ### Hàm getBalance
 
@@ -183,27 +201,27 @@ Chi tiết DepositWithdrawTransferData:
 
 ```kotlin
  fun getBalance(
-    phone: String,
+    identityToken: String,
 )
 ```
 
 | **Tham số** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích**                                                      |
 | ----------- | ------------ | ---------------- | ------------------------------------------------------------------- |
-| **phone**   | Có           | String           | Số điện thoại của tài khoản cần lấy số dư ví (không cần format +84) |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 
-### Hàm getAccountInfo
+### Hàm getAccountInformation
 
 Đối tác dùng hàm này để lấy thông tin tài khoản PayME, kết quả sẽ được trả về ở event onResponse, action GET_ACCOUNT_INFO
 
 ```kotlin
- fun getAccountInfo(
-    phone: String,
+ fun getAccountInformation(
+    identityToken: String,
 )
 ```
 
 | **Tham số** | **Bắt buộc** | **Kiểu dữ liệu** | **Giải thích**                                                      |
 | ----------- | ------------ | ---------------- | ------------------------------------------------------------------- |
-| **phone**   | Có           | String           | Số điện thoại của tài khoản cần lấy số dư ví (không cần format +84) |
+| **identityToken** | Có | String | Chuỗi do BE PayME ký cho người dùng (xem mục Tích hợp identityToken) |
 
 # Cập nhật OTA của miniapp (SDK 1.0.24+)
 

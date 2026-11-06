@@ -11,7 +11,6 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.google.gson.Gson
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
@@ -20,7 +19,7 @@ import com.payme.sdk.models.OpenMiniAppKYCData
 import com.payme.sdk.models.OpenMiniAppType
 import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.PayMEErrorType
-import com.payme.sdk.models.getPhoneFromOpenMiniAppData
+import com.payme.sdk.models.getIdentityTokenFromOpenMiniAppData
 import com.payme.sdk.runtime.MiniAppSession
 import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.BridgeExecutor
@@ -379,6 +378,25 @@ class MiniAppFragment : Fragment() {
             session.close()
         }
         PayMERuntime.removeSession(session.id)
+        releaseOpenMiniAppData()
+    }
+
+    /**
+     * openMiniAppData carries identityToken: kept in memory across a configuration change only, never past the session,
+     * and never written to the saved-state Bundle (the system persists it). Recreation uses EXTRA_SESSION_ID instead.
+     */
+    private fun retainOrReleaseOpenMiniAppData() {
+        val retained = retainedOpenMiniAppData(
+            isChangingConfigurations = activity?.isChangingConfigurations == true,
+            isSessionRegistered = PayMERuntime.getSession(session.id) != null,
+            data = openMiniAppData
+        )
+        if (retained != null) miniappViewModel.openMiniAppData = retained else releaseOpenMiniAppData()
+    }
+
+    private fun releaseOpenMiniAppData() {
+        if (::miniappViewModel.isInitialized) miniappViewModel.openMiniAppData = null
+        clearOpenMiniAppData()
     }
 
     private fun forceCloseMiniApp() {
@@ -400,8 +418,8 @@ class MiniAppFragment : Fragment() {
             session.config.env,
             session.config.locale
         )
-        val phone = getPhoneFromOpenMiniAppData(openMiniAppData)
-        phone?.let {
+        val identityToken = getIdentityTokenFromOpenMiniAppData(openMiniAppData)
+        identityToken?.let {
             payMEMiniApp.openMiniApp(
                 OpenMiniAppType.screen, OpenMiniAppKYCData(it)
             )
@@ -448,7 +466,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-        miniappViewModel.openMiniAppData = openMiniAppData
+        retainOrReleaseOpenMiniAppData()
         updateController.dispose()
         if (activity?.isChangingConfigurations != true) context?.let { com.payme.sdk.utils.KycImageStore.clear(it.filesDir) }
     }
@@ -456,14 +474,7 @@ class MiniAppFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         myWebView?.let { webViewController.removeBridge(it) }
-        miniappViewModel.openMiniAppData = openMiniAppData
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        if (miniappViewModel.openMiniAppData != null) {
-            outState.putString("openMiniAppData", Gson().toJson(miniappViewModel.openMiniAppData))
-        }
+        retainOrReleaseOpenMiniAppData()
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
@@ -476,7 +487,8 @@ class MiniAppFragment : Fragment() {
     companion object {
         private const val HTTP_STATUS_UNAUTHORIZED = 401
 
-        internal lateinit var openMiniAppData: OpenMiniAppDataInterface
+        @Volatile
+        internal var openMiniAppData: OpenMiniAppDataInterface? = null
 
         var notificationViewModel: NotificationViewModel = NotificationViewModel()
         var deepLinkViewModel: DeepLinkViewModel = DeepLinkViewModel()
@@ -494,8 +506,22 @@ class MiniAppFragment : Fragment() {
             openMiniAppData = data
         }
 
+        /** What the activity-scoped ViewModel may keep when this fragment is destroyed: only data for a live session
+         *  that is being recreated (rotation). A modal's ViewModel belongs to the partner's activity, so anything else
+         *  would keep identityToken alive after the mini-app has closed. */
+        internal fun retainedOpenMiniAppData(
+            isChangingConfigurations: Boolean,
+            isSessionRegistered: Boolean,
+            data: OpenMiniAppDataInterface
+        ): OpenMiniAppDataInterface? = data.takeIf { isChangingConfigurations && isSessionRegistered }
+
+        /** Drops the legacy static reference when the mini-app session ends; it may carry identityToken. */
+        internal fun clearOpenMiniAppData() {
+            openMiniAppData = null
+        }
+
         fun isOpenMiniAppInit(): Boolean {
-            return PayMERuntime.activeSession() != null || ::openMiniAppData.isInitialized
+            return PayMERuntime.activeSession() != null || openMiniAppData != null
         }
 
         fun setDeepLink(data: String) {
@@ -508,10 +534,8 @@ class MiniAppFragment : Fragment() {
 
         fun getMiniAppAction(): ActionOpenMiniApp {
             PayMERuntime.activeSession()?.let { return it.action }
-            if (!::openMiniAppData.isInitialized) {
-                return ActionOpenMiniApp.PAYME
-            }
-            val json = openMiniAppData.toJsonData()
+            val data = openMiniAppData ?: return ActionOpenMiniApp.PAYME
+            val json = data.toJsonData()
             val jsonObject = JSONObject(json.toString())
             val actionString = jsonObject.getString("action")
 

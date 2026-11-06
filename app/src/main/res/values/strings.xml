@@ -19,4 +19,6 @@
   <string name="switch_credentials">Switch credentials</string>
   <string name="switch_env">Switch environment</string>
   <string name="close_sdk">Close SDK session</string>
+    <string name="identity_token_hint">identityToken (BE PayME ký)</string>
+    <string name="identity_token_required">Nhập identityToken</string>
 </resources>

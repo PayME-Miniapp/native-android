@@ -21,11 +21,17 @@ abstract class OpenMiniAppDataInterface(open val action: ActionOpenMiniApp = Act
     }
 
     abstract fun appendAdditionalData(jsonObject: JsonObject): JsonObject
+
+    /**
+     * Final, so data classes do not generate a toString() that prints identityToken (or any other field).
+     * identityToken is memory-only: never log, persist or put it in a URL.
+     */
+    final override fun toString(): String = "${this::class.simpleName}(action=$action)"
 }
 
 // service
 data class OpenMiniAppServiceData(
-    val phone: String,
+    val identityToken: String,
     var additionalData: ServiceData
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.SERVICE) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
@@ -33,30 +39,30 @@ data class OpenMiniAppServiceData(
         additionalData.extraData?.let { addExtraData(jsonObject, it) }
         jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
         jsonObject.addProperty("isShowResult", additionalData.isShowResult)
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         return jsonObject
     }
 }
 
 // kyc
 data class OpenMiniAppKYCData(
-    val phone: String,
+    val identityToken: String,
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.KYC) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         return jsonObject
     }
 }
 
 // deposit
 data class OpenMiniAppDepositData(
-    val phone: String,
+    val identityToken: String,
     var additionalData: DepositWithdrawTransferData
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.DEPOSIT) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
         jsonObject.addProperty("description", additionalData.description)
         jsonObject.addProperty("amount", additionalData.amount)
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         additionalData.extraData?.let { addExtraData(jsonObject, it) }
         jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
         jsonObject.addProperty("isShowResult", additionalData.isShowResult)
@@ -66,13 +72,13 @@ data class OpenMiniAppDepositData(
 
 // withdraw
 data class OpenMiniAppWithdrawData(
-    val phone: String,
+    val identityToken: String,
     var additionalData: DepositWithdrawTransferData
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.WITHDRAW) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
         jsonObject.addProperty("description", additionalData.description)
         jsonObject.addProperty("amount", additionalData.amount)
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         additionalData.extraData?.let { addExtraData(jsonObject, it) }
         jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
         jsonObject.addProperty("isShowResult", additionalData.isShowResult)
@@ -82,13 +88,13 @@ data class OpenMiniAppWithdrawData(
 
 // transfer
 data class OpenMiniAppTransferData(
-    val phone: String,
+    val identityToken: String,
     var additionalData: DepositWithdrawTransferData
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.TRANSFER) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
         jsonObject.addProperty("description", additionalData.description)
         jsonObject.addProperty("amount", additionalData.amount)
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         additionalData.extraData?.let { addExtraData(jsonObject, it) }
         jsonObject.addProperty("isBackToApp", additionalData.isBackToApp)
         jsonObject.addProperty("isShowResult", additionalData.isShowResult)
@@ -98,13 +104,13 @@ data class OpenMiniAppTransferData(
 
 // payment có chọn method
 data class OpenMiniAppPaymentData(
-    val phone: String,
+    val identityToken: String,
     var paymentData: PaymentData
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.PAY) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
         jsonObject.addProperty("transactionId", paymentData.transactionId)
         jsonObject.addProperty("amount", paymentData.amount)
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         jsonObject.addProperty("note", paymentData.note)
         jsonObject.addProperty("ipnUrl", paymentData.ipnUrl)
         jsonObject.addProperty("isShowResult", paymentData.isShowResult)
@@ -115,21 +121,21 @@ data class OpenMiniAppPaymentData(
 
 // payment ko chọn method
 data class OpenMiniAppPaymentDirectData(
-    val phone: String,
+    val identityToken: String? = null,
     var paymentDirectData: PaymentDirectData
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.PAYMENT) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
         jsonObject.addProperty("transaction", paymentDirectData.transaction)
         paymentDirectData.extraData?.let { addExtraData(jsonObject, it) }
         jsonObject.addProperty("isShowResult", paymentDirectData.isShowResult)
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         return jsonObject
     }
 }
 
 // quét QR chuyển tiền
 data class OpenMiniAppTransferQRData(
-    val phone: String,
+    val identityToken: String,
     var transferQRData: TransferQRData
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.TRANSFER_QR) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
@@ -141,7 +147,7 @@ data class OpenMiniAppTransferQRData(
         jsonObject.addProperty("partnerTransaction", transferQRData.partnerTransaction)
         transferQRData.extraData?.let { addExtraData(jsonObject, it) }
         jsonObject.addProperty("isShowResult", transferQRData.isShowResult)
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         return jsonObject
     }
 }
@@ -155,10 +161,10 @@ class OpenMiniAppPayMEData() : OpenMiniAppDataInterface(ActionOpenMiniApp.PAYME)
 
 // open wallet
 data class OpenMiniAppOpenData(
-    val phone: String,
+    val identityToken: String,
 ) : OpenMiniAppDataInterface(ActionOpenMiniApp.OPEN) {
     override fun appendAdditionalData(jsonObject: JsonObject): JsonObject {
-        jsonObject.addProperty("phone", phone)
+        addIdentityToken(jsonObject, identityToken)
         return jsonObject
     }
 }
@@ -212,19 +218,24 @@ enum class Locale {
     vi, en
 }
 
-fun getPhoneFromOpenMiniAppData(openMiniAppData: OpenMiniAppDataInterface): String? {
+internal fun getIdentityTokenFromOpenMiniAppData(openMiniAppData: OpenMiniAppDataInterface): String? {
     return when (openMiniAppData) {
-        is OpenMiniAppServiceData -> openMiniAppData.phone
-        is OpenMiniAppKYCData -> openMiniAppData.phone
-        is OpenMiniAppDepositData -> openMiniAppData.phone
-        is OpenMiniAppWithdrawData -> openMiniAppData.phone
-        is OpenMiniAppTransferData -> openMiniAppData.phone
-        is OpenMiniAppPaymentData -> openMiniAppData.phone
-        is OpenMiniAppPaymentDirectData -> openMiniAppData.phone
-        is OpenMiniAppTransferQRData -> openMiniAppData.phone
-        is OpenMiniAppOpenData -> openMiniAppData.phone
+        is OpenMiniAppServiceData -> openMiniAppData.identityToken
+        is OpenMiniAppKYCData -> openMiniAppData.identityToken
+        is OpenMiniAppDepositData -> openMiniAppData.identityToken
+        is OpenMiniAppWithdrawData -> openMiniAppData.identityToken
+        is OpenMiniAppTransferData -> openMiniAppData.identityToken
+        is OpenMiniAppPaymentData -> openMiniAppData.identityToken
+        is OpenMiniAppPaymentDirectData -> openMiniAppData.identityToken
+        is OpenMiniAppTransferQRData -> openMiniAppData.identityToken
+        is OpenMiniAppOpenData -> openMiniAppData.identityToken
         else -> null
-    }
+    }?.takeIf { it.isNotEmpty() }
+}
+
+/** identityToken goes to the web bootstrap payload only when present (optional for PAYMENT). */
+private fun addIdentityToken(jsonObject: JsonObject, identityToken: String?) {
+    if (!identityToken.isNullOrEmpty()) jsonObject.addProperty("identityToken", identityToken)
 }
 
 private fun addExtraData(jsonObject: JsonObject, extraData: Map<String, Any?>) {

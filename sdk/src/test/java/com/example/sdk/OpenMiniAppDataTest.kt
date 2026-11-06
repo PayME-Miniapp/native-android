@@ -13,7 +13,7 @@ class OpenMiniAppDataTest {
     @Test
     fun paymentDataUsesProvidedSessionConfig() {
         val data = OpenMiniAppPaymentData(
-            phone = "0900000000",
+            identityToken = "dummy-identity-token",
             paymentData = PaymentData(
                 transactionId = "txn-1",
                 amount = 120000,
@@ -40,7 +40,8 @@ class OpenMiniAppDataTest {
         assertEquals("private-key", json.get("privateKey").asString)
         assertEquals("SANDBOX", json.get("env").asString)
         assertEquals("en", json.get("locale").asString)
-        assertEquals("0900000000", json.get("phone").asString)
+        assertEquals("dummy-identity-token", json.get("identityToken").asString)
+        assertTrue(!json.has("phone"))
         assertEquals("txn-1", json.get("transactionId").asString)
         assertTrue(json.getAsJsonObject("extraData").getAsJsonObject("nested").get("flag").asBoolean)
     }

@@ -10,4 +10,10 @@ class DemoCredentialsTest {
         assertFalse(hasDemoCredentials("dummy-app", "dummy-public", ""))
         assertTrue(hasDemoCredentials("dummy-app", "dummy-public", "dummy-private"))
     }
+
+    @Test fun identityTokenIsTrimmedAndBlankMeansNone() {
+        assertNull(identityTokenOrNull(null))
+        assertNull(identityTokenOrNull("   "))
+        assertEquals("dummy-identity-token", identityTokenOrNull("  dummy-identity-token \n"))
+    }
 }

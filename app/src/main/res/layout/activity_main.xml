@@ -28,6 +28,18 @@
       android:text="@string/status_ready"
       android:textSize="14sp" />
 
+    <!-- identityToken stays in memory: saveEnabled=false keeps it out of the saved view state. -->
+    <EditText
+      android:id="@+id/identity_token"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginBottom="16dp"
+      android:hint="@string/identity_token_hint"
+      android:importantForAutofill="no"
+      android:inputType="textNoSuggestions|textVisiblePassword"
+      android:saveEnabled="false"
+      android:singleLine="true" />
+
     <Button
       android:id="@+id/open_payme_screen"
       android:layout_width="match_parent"

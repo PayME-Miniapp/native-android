@@ -70,19 +70,20 @@ object AccountPresentation {
         }
     }
 
+    /** getAccountInfo body: identityToken replaces phone (SDK 1.0.24). Sent encrypted, never logged. */
+    internal fun accountInfoParams(identityToken: String, clientId: String): MutableMap<String, String> =
+        mutableMapOf("identityToken" to identityToken, "clientId" to clientId)
+
     @SuppressLint("HardwareIds")
     fun getAccountInfo(
         context: Context,
-        phone: String,
+        identityToken: String,
         onResponse: (ActionOpenMiniApp, JSONObject?) -> Unit,
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
         registerDevice(context, ActionOpenMiniApp.GET_ACCOUNT_INFO, onError) { deviceId ->
             val config = PayMERuntime.requireConfig()
-            val paramsAccount = mutableMapOf(
-                "phone" to phone,
-                "clientId" to deviceId
-            )
+            val paramsAccount = accountInfoParams(identityToken, deviceId)
             NetworkRequest(
                 context,
                 NetworkUtils.getApiUrl(config.env),
@@ -114,16 +115,13 @@ object AccountPresentation {
     @SuppressLint("HardwareIds")
     fun getBalance(
         context: Context,
-        phone: String,
+        identityToken: String,
         onResponse: (ActionOpenMiniApp, JSONObject?) -> Unit,
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
         registerDevice(context, ActionOpenMiniApp.GET_BALANCE, onError) { deviceId ->
             val config = PayMERuntime.requireConfig()
-            val paramsAccount = mutableMapOf(
-                "phone" to phone,
-                "clientId" to deviceId
-            )
+            val paramsAccount = accountInfoParams(identityToken, deviceId)
             NetworkRequest(
                 context,
                 NetworkUtils.getApiUrl(config.env),

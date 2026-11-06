@@ -92,21 +92,23 @@ class PayMEMiniApp(
         }
     }
 
+    /** [identityToken]: signed by PayME BE for the partner's user. Memory-only: never log or persist it. */
     fun getBalance(
-        phone: String,
+        identityToken: String,
     ) {
         val callbacks = PayMERuntime.callbacks()
         AccountPresentation.getBalance(
-            context, phone, callbacks.onResponse, callbacks.onError
+            context, identityToken, callbacks.onResponse, callbacks.onError
         )
     }
 
+    /** [identityToken]: signed by PayME BE for the partner's user. Memory-only: never log or persist it. */
     fun getAccountInformation(
-        phone: String,
+        identityToken: String,
     ) {
         val callbacks = PayMERuntime.callbacks()
         AccountPresentation.getAccountInfo(
-            context, phone, callbacks.onResponse, callbacks.onError
+            context, identityToken, callbacks.onResponse, callbacks.onError
         )
     }
 
