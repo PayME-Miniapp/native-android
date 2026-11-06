@@ -49,6 +49,7 @@
   <string name="error_occurred">An error occurred</string>
   <string name="user_closed_payme_miniapp">User closed PayMEMiniApp</string>
   <string name="user_cancel_miniapp">User closed PayMEMiniApp</string>
+  <string name="identity_token_required">identityToken is missing. Get an identityToken from the backend before opening PayMEMiniApp</string>
   <string name="encryption_failed">Encryption failed</string>
   <string name="decryption_failed">Decryption failed</string>
   <string name="network_connection_failed">Network connection failed, please check and try again. Thank you!</string>

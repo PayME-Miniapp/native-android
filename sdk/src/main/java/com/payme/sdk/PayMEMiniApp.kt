@@ -97,6 +97,7 @@ class PayMEMiniApp(
         identityToken: String,
     ) {
         val callbacks = PayMERuntime.callbacks()
+        if (identityToken.isBlank()) return callbacks.onError(ActionOpenMiniApp.GET_BALANCE, identityTokenRequiredError())
         AccountPresentation.getBalance(
             context, identityToken, callbacks.onResponse, callbacks.onError
         )
@@ -107,10 +108,19 @@ class PayMEMiniApp(
         identityToken: String,
     ) {
         val callbacks = PayMERuntime.callbacks()
+        if (identityToken.isBlank()) {
+            return callbacks.onError(ActionOpenMiniApp.GET_ACCOUNT_INFO, identityTokenRequiredError())
+        }
         AccountPresentation.getAccountInfo(
             context, identityToken, callbacks.onResponse, callbacks.onError
         )
     }
+
+    private fun identityTokenRequiredError() = PayMEError(
+        PayMEErrorType.MiniApp,
+        "IDENTITY_TOKEN_REQUIRED",
+        context.getString(R.string.identity_token_required)
+    )
 
     fun close() {
         val sessionId = activeSessionId ?: PayMERuntime.activeSession()?.id
@@ -125,6 +135,11 @@ class PayMEMiniApp(
         openType: OpenMiniAppType = OpenMiniAppType.screen,
         openMiniAppData: OpenMiniAppDataInterface,
     ) {
+        // Thiếu token thì web không có định danh và đứng ở màn chờ: báo lỗi ngay cho app đối tác.
+        if (isMissingRequiredIdentityToken(openMiniAppData)) {
+            PayMERuntime.callbacks().onError(openMiniAppData.action, identityTokenRequiredError())
+            return
+        }
         try {
             val session = PayMERuntime.createSession(openType, openMiniAppData)
             activeSessionId = session.id

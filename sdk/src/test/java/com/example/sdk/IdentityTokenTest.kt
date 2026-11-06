@@ -22,6 +22,7 @@ import com.payme.sdk.models.PaymentDirectData
 import com.payme.sdk.models.ServiceData
 import com.payme.sdk.models.TransferQRData
 import com.payme.sdk.models.getIdentityTokenFromOpenMiniAppData
+import com.payme.sdk.models.isMissingRequiredIdentityToken
 import com.payme.sdk.presentation.AccountPresentation
 import com.payme.sdk.runtime.PayMEConfig
 import com.payme.sdk.runtime.PayMERuntime
@@ -38,6 +39,20 @@ import org.junit.Test
 
 class IdentityTokenTest {
     private val token = "dummy-identity-token"
+
+    @Test
+    fun requiredActionsRejectAMissingOrBlankIdentityToken() {
+        assertTrue(isMissingRequiredIdentityToken(OpenMiniAppOpenData(identityToken = "")))
+        assertTrue(isMissingRequiredIdentityToken(OpenMiniAppKYCData(identityToken = "   ")))
+        assertFalse(isMissingRequiredIdentityToken(OpenMiniAppOpenData(identityToken = token)))
+        // PAYMENT: token tuỳ chọn (khách vãng lai); PAYME: người dùng tự đăng nhập.
+        assertFalse(
+            isMissingRequiredIdentityToken(
+                OpenMiniAppPaymentDirectData(paymentDirectData = PaymentDirectData("dummy-tx", null, true))
+            )
+        )
+        assertFalse(isMissingRequiredIdentityToken(OpenMiniAppPayMEData()))
+    }
     private val config = PayMEConfig(
         appId = "dummy-app",
         publicKey = "dummy-public",

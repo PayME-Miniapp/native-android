@@ -233,6 +233,12 @@ internal fun getIdentityTokenFromOpenMiniAppData(openMiniAppData: OpenMiniAppDat
     }?.takeIf { it.isNotEmpty() }
 }
 
+/** Mọi action đều cần identityToken, trừ PAYMENT (tuỳ chọn) và PAYME (người dùng tự đăng nhập bằng số và PIN). */
+internal fun isMissingRequiredIdentityToken(openMiniAppData: OpenMiniAppDataInterface): Boolean =
+    openMiniAppData !is OpenMiniAppPaymentDirectData &&
+        openMiniAppData !is OpenMiniAppPayMEData &&
+        getIdentityTokenFromOpenMiniAppData(openMiniAppData).isNullOrBlank()
+
 /** identityToken goes to the web bootstrap payload only when present (optional for PAYMENT). */
 private fun addIdentityToken(jsonObject: JsonObject, identityToken: String?) {
     if (!identityToken.isNullOrEmpty()) jsonObject.addProperty("identityToken", identityToken)

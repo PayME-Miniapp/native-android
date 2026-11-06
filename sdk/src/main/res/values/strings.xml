@@ -49,6 +49,7 @@ Bạn kiểm tra và chụp lại.</string>
   <string name="error_occurred">Có lỗi xảy ra</string>
   <string name="user_closed_payme_miniapp">Người dùng đóng PayMEMiniApp</string>
   <string name="user_cancel_miniapp">User đóng PayMEMiniApp</string>
+  <string name="identity_token_required">Thiếu identityToken. App cần lấy identityToken từ BE trước khi mở PayMEMiniApp</string>
   <string name="encryption_failed">Mã hóa không thành công</string>
   <string name="decryption_failed">Giải mã không thành công</string>
   <string name="network_connection_failed">Kết nối mạng bị sự cố, vui lòng kiểm tra và thử lại. Xin cảm ơn!</string>

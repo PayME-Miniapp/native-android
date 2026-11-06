@@ -474,7 +474,8 @@ class MiniAppFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         myWebView?.let { webViewController.removeBridge(it) }
-        retainOrReleaseOpenMiniAppData()
+        // Không xoá payload ở đây: view có thể được dựng lại trong khi fragment và phiên vẫn sống,
+        // khi đó redispatchOpenMiniApp cần payload. Payload được xoá ở onDestroy và khi đóng miniapp.
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {

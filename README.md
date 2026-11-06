@@ -118,6 +118,7 @@ Từ SDK 0.8.0 (SDK 1.0.24), SDK **không còn nhận số điện thoại** (`p
 1. BE đối tác gọi API cấp chuỗi ký của BE PayME (server tới server) với số điện thoại của người dùng. Không gọi API này từ app.
 2. App đối tác truyền `identityToken` vào các `OpenMiniAppData`, `getBalance(identityToken)` và `getAccountInformation(identityToken)`.
 3. Chuỗi sai hoặc hết hạn: Miniapp đóng và trả lỗi `401` qua `onError`.
+4. Thiếu chuỗi (rỗng) ở action bắt buộc, `getBalance` hoặc `getAccountInformation`: SDK không mở Miniapp, trả `onError` với code `IDENTITY_TOKEN_REQUIRED`.
 
 | Action | identityToken |
 | --- | --- |
