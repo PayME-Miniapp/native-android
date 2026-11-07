@@ -6,15 +6,16 @@ import androidx.fragment.app.Fragment
 import com.payme.sdk.R
 import com.payme.sdk.ui.FaceAuthenticationActivity
 import com.payme.sdk.ui.FaceDetectorActivity
+import com.payme.sdk.utils.SdkLocale
 import org.json.JSONArray
 import org.json.JSONObject
 
 internal object FaceKycGateway {
     fun createFaceDetectorIntent(fragment: Fragment, data: JSONObject): Intent {
         val hints = data.optJSONArray("hints") ?: JSONArray().apply {
-            put(fragment.getString(R.string.face_detector_hint1))
-            put(fragment.getString(R.string.face_detector_hint2))
-            put(fragment.getString(R.string.face_detector_hint3))
+            put(SdkLocale.wrap(fragment.requireContext()).getString(R.string.face_detector_hint1))
+            put(SdkLocale.wrap(fragment.requireContext()).getString(R.string.face_detector_hint2))
+            put(SdkLocale.wrap(fragment.requireContext()).getString(R.string.face_detector_hint3))
         }
         return Intent(fragment.requireContext(), FaceDetectorActivity::class.java).apply {
             putExtra("title", data.optString("title", ""))
@@ -26,7 +27,7 @@ internal object FaceKycGateway {
 
     fun createFaceAuthenticationIntent(context: Context, fragment: Fragment, data: JSONObject): Intent {
         val hints = data.optJSONArray("hints") ?: JSONArray().apply {
-            put(fragment.getString(R.string.face_detector_hint1))
+            put(SdkLocale.wrap(fragment.requireContext()).getString(R.string.face_detector_hint1))
         }
         return Intent(context, FaceAuthenticationActivity::class.java).apply {
             putExtra("title", data.optString("title", ""))

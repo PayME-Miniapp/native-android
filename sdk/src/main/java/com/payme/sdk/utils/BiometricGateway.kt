@@ -3,7 +3,7 @@ package com.payme.sdk.utils
 import android.content.Context
 import android.util.Log
 import android.webkit.WebView
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
@@ -16,7 +16,7 @@ internal object BiometricGateway {
         return hasBiometricCapability(context) == BiometricManager.BIOMETRIC_SUCCESS
     }
 
-    fun authenticate(activity: AppCompatActivity, webView: WebView, data: String) {
+    fun authenticate(activity: FragmentActivity, webView: WebView, data: String) {
         Log.d(PayMEMiniApp.TAG, "vo hàm bio")
         activity.runOnUiThread {
             try {
@@ -61,7 +61,7 @@ internal object BiometricGateway {
     }
 
     private fun authenticationCallback(
-        activity: AppCompatActivity,
+        activity: FragmentActivity,
         webView: WebView
     ): BiometricPrompt.AuthenticationCallback {
         return object : BiometricPrompt.AuthenticationCallback() {
@@ -83,7 +83,7 @@ internal object BiometricGateway {
     }
 
     private fun sendBiometricResult(
-        activity: AppCompatActivity,
+        activity: FragmentActivity,
         webView: WebView,
         success: Boolean,
         error: BiometricError? = null

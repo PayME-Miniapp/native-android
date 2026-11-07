@@ -230,7 +230,7 @@ fun setUpListener(
 - `onResponse`: gọi khi một action kết thúc thành công, kèm action và dữ liệu `JSONObject` do mini-app hoặc API trả về.
 - `onError`: gọi khi có lỗi hoặc người dùng đóng mini-app, kèm action và `PayMEError`.
 - Listener dùng chung cho mọi instance `PayMEMiniApp`; lần gọi sau ghi đè lần trước. Truyền `null` thì giữ listener cũ.
-- Callback được gọi trên main thread, riêng `IDENTITY_TOKEN_REQUIRED` được gọi đồng bộ trên luồng đã gọi hàm.
+- Callback được gọi trên main thread, riêng `IDENTITY_TOKEN_REQUIRED`, `MINIAPP_ALREADY_OPEN` và `MINIAPP_CANNOT_PRESENT` được gọi đồng bộ trên luồng đã gọi hàm.
 
 Nếu dữ liệu `onResponse` có `"isCloseMiniApp": true` thì SDK đóng mini-app sau khi gọi callback. Nội dung `JSONObject` của các action mở mini-app do mini-app quy định; dữ liệu của `getBalance` và `getAccountInformation` được mô tả ở mục tương ứng.
 
@@ -271,7 +271,7 @@ fun openMiniApp(
 
 | Tham số | Kiểu | Bắt buộc | Mô tả |
 | --- | --- | --- | --- |
-| `openType` | `OpenMiniAppType` | Không, mặc định `screen` | `OpenMiniAppType.screen`: mở toàn màn hình trong Activity riêng của SDK. `OpenMiniAppType.modal`: bottom sheet trên Activity hiện tại, yêu cầu `context` là `FragmentActivity` (nếu không, mini-app không mở và không có callback) |
+| `openType` | `OpenMiniAppType` | Không, mặc định `screen` | `OpenMiniAppType.screen`: mở toàn màn hình trong Activity riêng của SDK. `OpenMiniAppType.modal`: bottom sheet trên Activity hiện tại, yêu cầu `context` là `FragmentActivity` (nếu không, mini-app không mở và `onError` trả `MINIAPP_CANNOT_PRESENT`) |
 | `openMiniAppData` | `OpenMiniAppDataInterface` | Có | Một trong các lớp `OpenMiniApp*Data` bên dưới; lớp quyết định action |
 
 Ví dụ thanh toán giao dịch tạo sẵn, không có `identityToken` (dùng tham số đặt tên vì `identityToken` đứng trước):
@@ -306,6 +306,15 @@ payME.openMiniApp(
     )
 )
 ```
+
+#### Mở, đóng và nút back
+
+- **Mỗi lúc chỉ một mini-app.** Gọi `openMiniApp` khi đang có mini-app mở (kể cả gọi từ một Activity khác trong lúc modal đang hiện) bị từ chối với `MINIAPP_ALREADY_OPEN`; mini-app đang mở giữ nguyên.
+- **Mở lại ngay trong callback đóng được.** Khi mini-app đang đóng (`USER_CANCEL`, `isCloseMiniApp = true` trong `onResponse`/`onError`, hoặc sau `close()`), gọi `openMiniApp` ngay trong callback hay ngay sau `close()` mở được mini-app mới.
+- **Nút back của hệ thống** (cả `screen` và `modal`): trước tiên mini-app web tự xử lý (đóng popup trên cùng hoặc chặn back ở màn đang thanh toán); nếu không, lùi về trang trước trong mini-app; hết trang thì đóng mini-app và `onError` trả `USER_CANCEL`.
+- **Đóng modal** bằng cách chạm ngoài hoặc nút đóng trong mini-app trả `USER_CANCEL` với `type = UserCancel`.
+- **App đóng Activity đang chứa mini-app** (`finish()` Activity có modal, xoá task...) khi mini-app còn mở: `onError` trả `USER_CANCEL` một lần. Xoay màn hình, đổi dark mode/ngôn ngữ hay hệ thống tạm huỷ Activity không đóng mini-app.
+- **Thời gian khởi động 15 giây:** nếu sau 15 giây mini-app vừa mở vẫn chưa hiển thị được (Activity/modal không được tạo, ví dụ app bị chuyển nền ngay), lần `openMiniApp` tiếp theo coi phiên đó là đã mất: báo `USER_CANCEL` cho phiên cũ rồi mở phiên mới thay vì trả `MINIAPP_ALREADY_OPEN`.
 
 ### Các lớp OpenMiniApp*Data
 
@@ -415,7 +424,7 @@ Lỗi trả qua `onError` với action `GET_ACCOUNT_INFO`: `IDENTITY_TOKEN_REQUI
 fun setLanguage(lang: Locale)
 ```
 
-Đổi ngôn ngữ mini-app (`Locale.vi` hoặc `Locale.en`) cho các lần mở sau. Lưu ý: khi khởi tạo và khi gọi hàm này, SDK đặt `java.util.Locale.setDefault(...)` và cập nhật cấu hình resources của `context` theo ngôn ngữ đã chọn.
+Đổi ngôn ngữ mini-app (`Locale.vi` hoặc `Locale.en`) cho các lần mở sau. Ngôn ngữ chỉ áp dụng cho giao diện và chuỗi của SDK: SDK không đổi `java.util.Locale` mặc định hay resources của app, và hàm này không gọi `onChangeLocale` (callback đó chỉ được gọi khi người dùng đổi ngôn ngữ bên trong mini-app).
 
 ### setMode
 
@@ -431,7 +440,7 @@ Chọn kênh cập nhật OTA của mini-app (xem [Cập nhật OTA](#cập-nh�
 fun close()
 ```
 
-Đóng mini-app đang mở bởi instance này (cả `screen` và `modal`). Đóng chủ động bằng `close()` không gọi `onError`.
+Đóng mini-app đang mở (cả `screen` và `modal`). Đóng chủ động bằng `close()` không gọi `onError`. `close()` không bao giờ ném exception (kể cả khi Activity chứa modal đang bị hệ thống huỷ tạm) và gọi khi không có mini-app nào mở thì không làm gì; có thể gọi `openMiniApp` ngay sau đó.
 
 > Các hàm `setChangeEnvFunction`, `setChangeLocaleFunction`, `setOneSignalFunctions` chỉ dành cho app ví PayME; đối tác không cần gọi.
 
@@ -443,7 +452,9 @@ Nên xử lý theo `code`, không dựa vào `type`.
 | --- | --- | --- | --- |
 | `IDENTITY_TOKEN_REQUIRED` | `MiniApp` | `identityToken` rỗng ở action bắt buộc, `getBalance` hoặc `getAccountInformation`. Mini-app không được mở | Lấy `identityToken` từ server trước khi gọi |
 | `401` | `MiniApp` | `identityToken` sai hoặc hết hạn (hoặc phiên hết hạn khi đang dùng). Mini-app đóng (`isCloseMiniApp = true`); `getBalance`/`getAccountInformation` cũng trả mã này | Server lấy `identityToken` mới rồi mở lại |
-| `USER_CANCEL` | `UserCancel` | Người dùng đóng mini-app (nút trong mini-app, vuốt hoặc chạm ngoài modal). Mỗi lần đóng chỉ báo một lần | Không coi là lỗi; quay về luồng của app |
+| `USER_CANCEL` | `UserCancel` | Người dùng đóng mini-app (nút trong mini-app, nút back của hệ thống khi hết trang, chạm ngoài modal), hoặc app đóng Activity đang chứa mini-app. Mỗi lần đóng chỉ báo một lần | Không coi là lỗi; quay về luồng của app |
+| `MINIAPP_ALREADY_OPEN` | `MiniApp` | Gọi `openMiniApp` khi đang có mini-app mở (kể cả từ Activity khác). Mini-app mới không được mở, mini-app đang mở giữ nguyên | Đợi mini-app hiện tại đóng, hoặc gọi `close()` rồi mở lại |
+| `MINIAPP_CANNOT_PRESENT` | `MiniApp` | Không hiển thị được mini-app: mở `modal` mà `context` không phải `FragmentActivity`, hoặc không mở được Activity/modal (ví dụ Activity đã lưu trạng thái) | Truyền `FragmentActivity` đang hiển thị; thử lại khi Activity ở foreground |
 | `CONNECTION_LOST` | `Network` | Mất kết nối, đăng ký thiết bị thất bại hoặc không giải mã được phản hồi | Báo người dùng kiểm tra mạng, cho thử lại |
 | `TIMED_OUT` | `Network` | Quá thời gian chờ máy chủ | Cho thử lại |
 | `SERVER_ERROR` | `Network` | Máy chủ trả lỗi HTTP | Thử lại sau |

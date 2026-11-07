@@ -1,5 +1,6 @@
 package com.payme.sdk.ui
 
+import android.app.Dialog
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Build
@@ -26,11 +27,19 @@ import androidx.fragment.app.Fragment
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.ui.miniapp.ExternalUrlLauncher
+import com.payme.sdk.utils.LightContext
 
 
-class SubWebView(
-    private val content: String, private val type: String, private val closeInstruction: String
-) : DialogFragment() {
+/**
+ * Không có tham số constructor: FragmentManager dựng lại fragment sau đổi cấu hình (xoay, dark mode, ngôn ngữ,
+ * multi-window) bằng constructor rỗng. Tham số nằm trong [SubWebViewParams] (bộ nhớ, không vào saved state
+ * vì url có thể mang token); mất (process bị huỷ) thì cửa sổ tự đóng.
+ */
+class SubWebView : DialogFragment() {
+    private var content: String = ""
+    private var type: String = "url"
+    private var closeInstruction: String = ""
+    private var paramsMissing = false
     private var rootView: View? = null
     private var myWebView: WebView? = null
     private var subWebView: WebView? = null
@@ -43,11 +52,25 @@ class SubWebView(
         super.onCreate(savedInstanceState)
         isCancelable = false
         setStyle(STYLE_NO_FRAME, R.style.DialogStyle)
+        val params = SubWebViewParams.get(arguments?.getString(ARG_PARAMS_ID))
+        if (params == null) {
+            paramsMissing = true
+            dismissAllowingStateLoss()
+            return
+        }
+        content = params.content
+        type = params.type
+        closeInstruction = params.closeInstruction
     }
+
+    // Giống mini-app: luôn sáng + ngôn ngữ SDK, không lấy dark mode/locale của Activity partner
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
+        ComponentDialog(LightContext.wrap(requireContext()), theme)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
+        if (paramsMissing) return View(inflater.context)
         val view: View = inflater.inflate(
             R.layout.sub_webview, container, false
         )
@@ -103,7 +126,8 @@ class SubWebView(
                         return true
                     }
                     loading.visibility = View.VISIBLE
-                    val newWebView = WebView(requireContext())
+                    // Cùng context đã bọc (sáng + ngôn ngữ SDK) với WebView chính
+                    val newWebView = WebView(view.context)
                     SubWebViewSettingsConfigurator.configure(newWebView, useOverview = true)
                     subWebView = newWebView
                     newWebView.layoutParams = LinearLayout.LayoutParams(
@@ -271,6 +295,7 @@ class SubWebView(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (paramsMissing) return
         // White header and footer sit under the system bars: use dark bar icons so they stay visible.
         dialog?.window?.let { window ->
             WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -315,8 +340,44 @@ class SubWebView(
 
     override fun onDestroy() {
         super.onDestroy()
-        myWebView!!.removeAllViews()
-        myWebView!!.destroy()
+        myWebView?.removeAllViews()
+        myWebView?.destroy()
+        myWebView = null
+        // Đóng hẳn (không phải dựng lại do đổi cấu hình / hệ thống huỷ tạm): bỏ tham số
+        if (isRemoving || activity?.isFinishing == true) SubWebViewParams.remove(arguments?.getString(ARG_PARAMS_ID))
+    }
+
+    companion object {
+        internal const val ARG_PARAMS_ID = "com.payme.sdk.extra.SUB_WEBVIEW_PARAMS"
+
+        internal fun newInstance(content: String, type: String, closeInstruction: String): SubWebView =
+            SubWebView().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_PARAMS_ID, SubWebViewParams.put(content, type, closeInstruction))
+                }
+            }
+    }
+}
+
+/** Tham số SubWebView giữ trong bộ nhớ theo id (giới hạn số mục để không giữ mãi). */
+internal object SubWebViewParams {
+    data class Params(val content: String, val type: String, val closeInstruction: String)
+
+    private const val MAX_ENTRIES = 4
+    private val entries = object : LinkedHashMap<String, Params>() {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Params>?) = size > MAX_ENTRIES
+    }
+
+    @Synchronized
+    fun put(content: String, type: String, closeInstruction: String): String =
+        java.util.UUID.randomUUID().toString().also { entries[it] = Params(content, type, closeInstruction) }
+
+    @Synchronized
+    fun get(id: String?): Params? = id?.let { entries[it] }
+
+    @Synchronized
+    fun remove(id: String?) {
+        if (id != null) entries.remove(id)
     }
 }
 
@@ -350,5 +411,5 @@ internal fun showSubWebView(fragment: Fragment, content: String, type: String = 
     if (!fragment.isAdded) return
     val manager = fragment.parentFragmentManager
     if (manager.isStateSaved) return
-    SubWebView(content, type, closeInstruction).show(manager, "SUBWEBVIEW")
+    SubWebView.newInstance(content, type, closeInstruction).show(manager, "SUBWEBVIEW")
 }

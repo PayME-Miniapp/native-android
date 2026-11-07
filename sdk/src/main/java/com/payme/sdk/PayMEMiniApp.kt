@@ -6,12 +6,16 @@ import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.models.*
 import com.payme.sdk.presentation.AccountPresentation
+import com.payme.sdk.runtime.PayMECallbacks
 import com.payme.sdk.runtime.PayMEConfig
 import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.ui.MiniAppActivity
 import com.payme.sdk.ui.MiniAppBottomSheetDialog
+import com.payme.sdk.ui.dismissSafely
 import com.payme.sdk.utils.MixpanelUtil
+import com.payme.sdk.utils.SdkLocale
 import org.json.JSONObject
+import java.lang.ref.WeakReference
 
 class PayMEMiniApp(
     private val context: Context,
@@ -41,6 +45,9 @@ class PayMEMiniApp(
         internal var onChangeEnv: ((String) -> Unit)? = null
         internal var onChangeLocale: ((String) -> Unit)? = null
         internal var isOpen = false
+        // Không hiển thị được mini-app (cùng mã với iOS)
+        internal const val MINIAPP_CANNOT_PRESENT = "MINIAPP_CANNOT_PRESENT"
+        internal const val MINIAPP_ALREADY_OPEN = "MINIAPP_ALREADY_OPEN"
     }
 
     init {
@@ -48,34 +55,7 @@ class PayMEMiniApp(
         PayMERuntime.initialize(config)
         syncLegacyConfig(config)
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
-        
-        // Áp dụng cấu hình ngôn ngữ ngay khi khởi tạo
-        applyLanguageConfiguration(locale)
-    }
-    
-    /**
-     * Áp dụng cấu hình ngôn ngữ cho cả ứng dụng
-     */
-    private fun applyLanguageConfiguration(lang: Locale) {
-        // Chuyển đổi từ PayME.Locale sang java.util.Locale
-        val javaLocale = when (lang) {
-            Locale.vi -> java.util.Locale("vi", "VN")
-            Locale.en -> java.util.Locale("en", "US")
-        }
-        
-        // Đặt Locale mặc định
-        java.util.Locale.setDefault(javaLocale)
-        
-        // Cập nhật cấu hình resources
-        try {
-            val config = android.content.res.Configuration()
-            config.setLocale(javaLocale)
-            context.resources.updateConfiguration(config, context.resources.displayMetrics)
-            
-            Log.d(TAG, "Language configuration applied: $lang")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error applying language configuration: ${e.message}")
-        }
+        // Ngôn ngữ chỉ áp dụng cho UI mini-app (SdkLocale), không đổi Locale/Resources của app partner
     }
 
     fun setUpListener(
@@ -99,7 +79,7 @@ class PayMEMiniApp(
         val callbacks = PayMERuntime.callbacks()
         if (identityToken.isBlank()) return callbacks.onError(ActionOpenMiniApp.GET_BALANCE, identityTokenRequiredError())
         AccountPresentation.getBalance(
-            context, identityToken, callbacks.onResponse, callbacks.onError
+            SdkLocale.wrap(context), identityToken, callbacks.onResponse, callbacks.onError
         )
     }
 
@@ -112,61 +92,117 @@ class PayMEMiniApp(
             return callbacks.onError(ActionOpenMiniApp.GET_ACCOUNT_INFO, identityTokenRequiredError())
         }
         AccountPresentation.getAccountInfo(
-            context, identityToken, callbacks.onResponse, callbacks.onError
+            SdkLocale.wrap(context), identityToken, callbacks.onResponse, callbacks.onError
         )
     }
 
-    private fun identityTokenRequiredError() = PayMEError(
-        PayMEErrorType.MiniApp,
-        "IDENTITY_TOKEN_REQUIRED",
-        context.getString(R.string.identity_token_required)
-    )
+    private fun identityTokenRequiredError() = Launcher.identityTokenRequiredError(context)
 
+    /** Đóng mini-app đang mở. Không bao giờ ném lỗi cho partner. */
     fun close() {
-        val sessionId = activeSessionId ?: PayMERuntime.activeSession()?.id
-        val session = PayMERuntime.getSession(sessionId)
-        session?.isCloseRequested = true
-        PayMERuntime.closeSession(sessionId)
-        PayMERuntime.removeSession(sessionId)
-        activeSessionId = null
+        try {
+            val session = PayMERuntime.getSession(activeSessionId)?.takeIf { !it.isCloseRequested }
+                ?: PayMERuntime.activeSession()
+            if (session != null) {
+                try {
+                    PayMERuntime.markCloseRequested(session)
+                    PayMERuntime.closeSession(session.id)
+                } finally {
+                    PayMERuntime.removeSession(session.id)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "close failed: ${e.javaClass.simpleName}")
+        } finally {
+            activeSessionId = null
+        }
     }
 
     fun openMiniApp(
         openType: OpenMiniAppType = OpenMiniAppType.screen,
         openMiniAppData: OpenMiniAppDataInterface,
     ) {
-        // Thiếu token thì web không có định danh và đứng ở màn chờ: báo lỗi ngay cho app đối tác.
-        if (isMissingRequiredIdentityToken(openMiniAppData)) {
-            PayMERuntime.callbacks().onError(openMiniAppData.action, identityTokenRequiredError())
-            return
-        }
-        try {
-            val session = PayMERuntime.createSession(openType, openMiniAppData)
-            activeSessionId = session.id
-            PayMERuntime.activate(session.id)
-            when (openType) {
-                OpenMiniAppType.modal -> {
-                    val modal = MiniAppBottomSheetDialog.newInstance(session.id)
-                    session.closeAction = {
-                        PayMERuntime.markSessionClosed(session.id)
-                        modal.dismiss()
-                    }
-                    modal.show((context as FragmentActivity).supportFragmentManager, null)
-                }
-                OpenMiniAppType.screen -> {
-                    session.closeAction = {
-                        PayMERuntime.markSessionClosed(session.id)
-                    }
-                    val intent = Intent(context, MiniAppActivity::class.java)
-                    intent.putExtra(PayMERuntime.EXTRA_SESSION_ID, session.id)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
-                }
+        Launcher.launch(context, openType, openMiniAppData)?.let { activeSessionId = it }
+    }
+
+    internal object Launcher {
+        /**
+         * Mở một phiên mới; trả về id phiên hoặc null nếu bị từ chối (đã báo onError).
+         * [config]/[callbacks] null: dùng cấu hình chung (KYC từ modal truyền bản sao của phiên cũ).
+         */
+        internal fun launch(
+            context: Context,
+            openType: OpenMiniAppType,
+            openMiniAppData: OpenMiniAppDataInterface,
+            config: PayMEConfig? = null,
+            callbacks: PayMECallbacks? = null
+        ): String? {
+            val onError = (callbacks ?: PayMERuntime.callbacks()).onError
+            fun reject(code: String, description: Int): String? {
+                onError(openMiniAppData.action, openError(context, code, description))
+                return null
             }
-        } catch (e: Exception) {
-            PayMERuntime.syncLegacyOpenState()
-            Log.d(TAG, "ex cast: ${e.message}")
+            // Thiếu token thì web không có định danh và đứng ở màn chờ: báo lỗi ngay cho app đối tác.
+            if (isMissingRequiredIdentityToken(openMiniAppData)) {
+                onError(openMiniAppData.action, identityTokenRequiredError(context))
+                return null
+            }
+            // Modal gắn vào FragmentManager của partner: context phải là FragmentActivity
+            if (openType == OpenMiniAppType.modal && context !is FragmentActivity) {
+                return reject(MINIAPP_CANNOT_PRESENT, R.string.modal_requires_fragment_activity)
+            }
+            // Phiên kẹt (host đã mất) không được chặn mãi
+            PayMERuntime.clearStaleSessions { SdkLocale.wrap(context).getString(R.string.user_cancel_miniapp).orEmpty() }
+            // Không chồng mini-app: lần mở thứ hai bị từ chối, phiên đang mở giữ nguyên
+            if (PayMERuntime.isOpen()) return reject(MINIAPP_ALREADY_OPEN, R.string.miniapp_already_open)
+            var sessionId: String? = null
+            return try {
+                val session = if (config != null && callbacks != null) {
+                    PayMERuntime.createSession(openType, openMiniAppData, config, callbacks)
+                } else {
+                    PayMERuntime.createSession(openType, openMiniAppData)
+                }
+                sessionId = session.id
+                PayMERuntime.activate(session.id)
+                when (openType) {
+                    OpenMiniAppType.modal -> {
+                        val fragmentManager = (context as FragmentActivity).supportFragmentManager
+                        val modal = MiniAppBottomSheetDialog.newInstance(session.id)
+                        // Giữ yếu; MiniAppBottomSheetDialog.onCreate thay closeAction này
+                        val modalRef = WeakReference(modal)
+                        session.closeAction = {
+                            PayMERuntime.markSessionClosed(session.id)
+                            modalRef.get()?.dismissSafely()
+                        }
+                        modal.show(fragmentManager, null)
+                    }
+                    OpenMiniAppType.screen -> {
+                        session.closeAction = {
+                            PayMERuntime.markSessionClosed(session.id)
+                        }
+                        val intent = Intent(context, MiniAppActivity::class.java)
+                        intent.putExtra(PayMERuntime.EXTRA_SESSION_ID, session.id)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    }
+                }
+                session.id
+            } catch (e: Exception) {
+                // Không hiển thị được (Activity đã lưu state, startActivity lỗi...): không để lại phiên mồ côi
+                Log.e(TAG, "openMiniApp failed: ${e.javaClass.simpleName}")
+                PayMERuntime.removeSession(sessionId)
+                reject(MINIAPP_CANNOT_PRESENT, R.string.error_occurred)
+            }
         }
+
+        private fun openError(context: Context, code: String, description: Int) =
+            PayMEError(PayMEErrorType.MiniApp, code, SdkLocale.wrap(context).getString(description).orEmpty())
+
+        internal fun identityTokenRequiredError(context: Context) = PayMEError(
+            PayMEErrorType.MiniApp,
+            "IDENTITY_TOKEN_REQUIRED",
+            SdkLocale.wrap(context).getString(R.string.identity_token_required)
+        )
     }
 
     fun setMode(mode: String) {
@@ -184,12 +220,7 @@ class PayMEMiniApp(
         } else {
             PayMEMiniApp.locale = lang
             PayMERuntime.updateConfigs { config -> config.locale = lang }
-            
-            // Áp dụng cấu hình ngôn ngữ mới
-            applyLanguageConfiguration(lang)
-            
-            // Thông báo thay đổi ngôn ngữ cho các module khác nếu cần
-            PayMERuntime.callbacks().onChangeLocale?.invoke(lang.toString())
+            // onChangeLocale chỉ báo khi người dùng đổi ngôn ngữ trong mini-app (jsChangeLocale), không gọi lại ở đây
         }
     }
 

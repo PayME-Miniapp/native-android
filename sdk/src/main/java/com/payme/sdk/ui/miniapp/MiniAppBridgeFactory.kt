@@ -2,7 +2,7 @@ package com.payme.sdk.ui.miniapp
 
 import android.app.Activity
 import android.webkit.WebView
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.runtime.MiniAppSession
 import com.payme.sdk.utils.BiometricGateway
 import com.payme.sdk.utils.BridgeExecutor
@@ -33,7 +33,10 @@ internal class MiniAppBridgeFactory(
             setNativePreferences = { data -> activityProvider()?.let { WebViewJsDispatcher.setNativePreferences(it, data) } },
             sendNativePreferences = { activityProvider()?.let { WebViewJsDispatcher.sendNativePreferences(it, webView) } },
             biometricAuthen = { data ->
-                BiometricGateway.authenticate(activityProvider() as AppCompatActivity, webViewProvider()!!, data)
+                // Modal chạy trên Activity của partner: chỉ chắc chắn là FragmentActivity, không phải AppCompatActivity
+                val activity = activityProvider() as? FragmentActivity
+                val web = webViewProvider()
+                if (activity != null && web != null) BiometricGateway.authenticate(activity, web, data)
             },
             startCardKyc = { data -> kycControllerProvider().startCardKyc(data) },
             startFaceKyc = { data -> kycControllerProvider().startFaceKyc(data) },

@@ -80,17 +80,34 @@ class UserCancelTest {
     }
 
     @Test
-    fun closeRequestedByPartnerSendsNoCallback() {
+    fun partnerCloseDismissesOnceAndSendsNoCallback() {
+        // Đi qua PayMEMiniApp.close() thật, rồi host bị dismiss như modal/Activity thật
+        val sdk = PayMEMiniApp(object : android.content.ContextWrapper(null) {}, "app", "pub", "priv", ENV.SANDBOX, Locale.en)
         var closeActionCalls = 0
         session.closeAction = { closeActionCalls++ }
-        session.isCloseRequested = true
 
-        session.close()
-        session.close()
+        sdk.close()
+        sdk.close()
+        PayMERuntime.endSessionFromHost(session.id) { "cancel" }
 
         assertEquals(1, closeActionCalls)
+        assertTrue(session.isCloseRequested)
         assertFalse(session.shouldNotifyUserCancelOnDismiss())
         assertTrue(errors.isEmpty())
+        assertEquals(null, PayMERuntime.getSession(session.id))
+        assertFalse(PayMEMiniApp.isOpen)
+    }
+
+    @Test
+    fun closeNeverThrowsWhenTheHostCannotDismiss() {
+        // Modal đã tách khỏi Activity (Don't keep activities): closeAction lỗi không được lọt ra partner
+        val sdk = PayMEMiniApp(object : android.content.ContextWrapper(null) {}, "app", "pub", "priv", ENV.SANDBOX, Locale.en)
+        session.closeAction = { throw IllegalStateException("Fragment not associated with a fragment manager") }
+
+        sdk.close()
+
+        assertEquals(null, PayMERuntime.getSession(session.id))
+        assertFalse(PayMEMiniApp.isOpen)
     }
 }
 

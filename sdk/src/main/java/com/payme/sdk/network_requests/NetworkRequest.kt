@@ -40,21 +40,19 @@ internal class NetworkRequest(
         val responseCryptoRSA = CryptoRSA(config.publicKey, config.privateKey)
         val responseCryptoAES = CryptoAES()
 
-        val queue = Volley.newRequestQueue(context)
+        val queue = sharedQueue(context)
         val request = object : JsonObjectRequest(Method.POST,
             baseUrl + apiPath,
             encryptedRequest.body,
             Response.Listener { response ->
-                try {
+                val finalJSONObject = try {
                     val headers = response.getJSONObject("headers")
                     val receivedEncryptedKey = headers.getString("x-api-key")
                     val decryptedKey = responseCryptoRSA.decrypt(receivedEncryptedKey)
                     val decryptedMessage =
                         responseCryptoAES.decryptAES(decryptedKey, response.getString("x-api-message"))
 
-                    val finalJSONObject = JSONObject(decryptedMessage)
-                    Log.d(PayMEMiniApp.TAG, "Network request succeeded: action=$action path=$apiPath")
-                    onSuccess(finalJSONObject)
+                    JSONObject(decryptedMessage)
                 } catch (error: Exception) {
                     Log.d(PayMEMiniApp.TAG, "error ${error.message}")
                     onError(
@@ -64,7 +62,11 @@ internal class NetworkRequest(
                             context.getString(getPayMENetworkErrorDescription(PayMENetworkErrorCode.CONNECTION_LOST.toString()))
                         )
                     )
+                    return@Listener
                 }
+                Log.d(PayMEMiniApp.TAG, "Network request succeeded: action=$action path=$apiPath")
+                // Ngoài try: lỗi trong onSuccess (callback partner) không được báo thêm onError
+                onSuccess(finalJSONObject)
             },
             Response.ErrorListener { error ->
                 val errorCode = NetworkErrorMapper.code(error)
@@ -104,5 +106,16 @@ internal class NetworkRequest(
         )
         request.retryPolicy = defaultRetryPolicy
         queue.add(request)
+    }
+
+    private companion object {
+        @Volatile
+        private var queue: RequestQueue? = null
+
+        // Một queue dùng chung: mỗi Volley.newRequestQueue tạo 5 thread không bao giờ dừng
+        fun sharedQueue(context: Context): RequestQueue =
+            queue ?: synchronized(this) {
+                queue ?: Volley.newRequestQueue(context.applicationContext).also { queue = it }
+            }
     }
 }

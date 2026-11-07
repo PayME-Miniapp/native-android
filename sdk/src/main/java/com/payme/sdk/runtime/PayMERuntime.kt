@@ -14,6 +14,8 @@ internal object PayMERuntime {
     private val callbacks = PayMECallbacks()
     private var defaultConfig: PayMEConfig? = null
     private var activeSessionId: String? = null
+    // Đồng hồ cho hạn khởi động host; test thay được
+    internal var clock: () -> Long = { android.os.SystemClock.elapsedRealtime() }
 
     fun initialize(config: PayMEConfig) {
         defaultConfig = config
@@ -39,18 +41,20 @@ internal object PayMERuntime {
         activeSession()?.callbacks?.let(update)
     }
 
+    /** [config]/[callbacks]: mặc định chụp từ cấu hình chung; KYC từ modal truyền bản sao của phiên cũ. */
     fun createSession(
         openType: OpenMiniAppType,
-        openMiniAppData: OpenMiniAppDataInterface
+        openMiniAppData: OpenMiniAppDataInterface,
+        config: PayMEConfig = requireConfig().copy(),
+        callbacks: PayMECallbacks = this.callbacks.copy()
     ): MiniAppSession {
-        val configSnapshot = requireConfig().copy()
-        val callbackSnapshot = callbacks.copy()
         val session = MiniAppSession(
             id = UUID.randomUUID().toString(),
-            config = configSnapshot,
-            callbacks = callbackSnapshot,
+            config = config,
+            callbacks = callbacks,
             openType = openType,
-            openMiniAppData = openMiniAppData
+            openMiniAppData = openMiniAppData,
+            createdAt = clock()
         )
         sessions[session.id] = session
         activeSessionId = session.id
@@ -79,6 +83,15 @@ internal object PayMERuntime {
         syncLegacyOpenState()
     }
 
+    /**
+     * Đặt trước khi gọi callback đóng (USER_CANCEL, isCloseMiniApp, close()): partner mở lại ngay trong callback
+     * không bị MINIAPP_ALREADY_OPEN. Phiên vẫn isOpen để session.close() còn đóng được nơi chứa.
+     */
+    fun markCloseRequested(session: MiniAppSession) {
+        session.isCloseRequested = true
+        syncLegacyOpenState()
+    }
+
     fun markSessionClosed(sessionId: String?) {
         getSession(sessionId)?.isOpen = false
         syncLegacyOpenState()
@@ -93,8 +106,32 @@ internal object PayMERuntime {
         syncLegacyOpenState()
     }
 
+    /**
+     * Nơi chứa mini-app (modal hoặc MiniAppActivity) bị đóng/huỷ hẳn: xoá phiên, báo USER_CANCEL
+     * nếu chưa có lệnh đóng hay kết quả đóng nào. Gọi lại nhiều lần chỉ có tác dụng lần đầu.
+     */
+    fun endSessionFromHost(sessionId: String?, cancelDescription: () -> String) {
+        val session = getSession(sessionId) ?: return
+        val shouldNotifyCancel = session.shouldNotifyUserCancelOnDismiss()
+        session.closeAction = null
+        markSessionClosed(session.id)
+        try {
+            if (shouldNotifyCancel) session.notifyUserCancel(cancelDescription())
+        } finally {
+            removeSession(session.id)
+        }
+    }
+
+    /** Phiên còn "mở" nhưng host đã mất mà không dọn: dọn (USER_CANCEL nếu chưa có kết quả đóng) để mở mới được. */
+    fun clearStaleSessions(cancelDescription: () -> String) {
+        val now = clock()
+        sessions.values.filter { it.isOpen && !it.isHostAlive(now) }
+            .forEach { endSessionFromHost(it.id, cancelDescription) }
+    }
+
     fun isOpen(): Boolean {
-        return sessions.values.any { it.isOpen }
+        // Phiên đang đóng (đã có lệnh đóng) không chặn lần mở mới
+        return sessions.values.any { it.isOpen && !it.isCloseRequested }
     }
 
     fun syncLegacyOpenState() {

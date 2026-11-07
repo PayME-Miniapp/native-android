@@ -17,6 +17,7 @@ import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.airbnb.lottie.LottieAnimationView
 import com.payme.sdk.R
+import com.payme.sdk.utils.SdkLocale
 import com.payme.sdk.camerax.GraphicOverlay
 import com.payme.sdk.face_detection.FaceDetectorActiveFrame
 import com.payme.sdk.face_detection.FaceDetectorCameraManager
@@ -43,7 +44,7 @@ class FaceDetectorActivity : AppCompatActivity() {
     // Chỉ ép giao diện sáng cho activity này; setDefaultNightMode sẽ đổi chế độ tối của cả app partner
     override fun attachBaseContext(newBase: Context) {
         delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_NO
-        super.attachBaseContext(newBase)
+        super.attachBaseContext(SdkLocale.configurationContext(newBase))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

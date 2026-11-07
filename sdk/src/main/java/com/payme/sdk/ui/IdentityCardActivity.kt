@@ -47,6 +47,11 @@ class IdentityCardActivity : FragmentActivity() {
 
     private var identityCardType: String = "FRONT"
 
+    // Ngôn ngữ mini-app chỉ cho Activity này
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.payme.sdk.utils.SdkLocale.configurationContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_identity_card)

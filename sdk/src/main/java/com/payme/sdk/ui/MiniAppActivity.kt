@@ -12,14 +12,17 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
+import com.payme.sdk.utils.SdkLocale
+import com.payme.sdk.runtime.HostLifecycle
 import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.MixpanelUtil
+import java.lang.ref.WeakReference
 
 class MiniAppActivity : AppCompatActivity() {
   // Tắt dark mode chỉ cho mini-app; setDefaultNightMode sẽ đổi chế độ tối của cả app partner
   override fun attachBaseContext(newBase: Context) {
     delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_NO
-    super.attachBaseContext(newBase)
+    super.attachBaseContext(SdkLocale.configurationContext(newBase))
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,12 +58,13 @@ class MiniAppActivity : AppCompatActivity() {
       return
     }
     PayMERuntime.activate(sessionId)
+    session.attachHost(this) { !it.isFinishing && !it.isDestroyed }
+    // Giữ yếu: phiên static không được giữ Activity đã huỷ
+    val selfRef = WeakReference(this)
     session.closeAction = {
-      session.isCloseRequested = true
+      PayMERuntime.markCloseRequested(session)
       PayMERuntime.markSessionClosed(session.id)
-      if (!isFinishing) {
-        finish()
-      }
+      selfRef.get()?.takeIf { !it.isFinishing }?.finish()
     }
 
     if (savedInstanceState == null) {
@@ -72,6 +76,12 @@ class MiniAppActivity : AppCompatActivity() {
 
   override fun onDestroy() {
     super.onDestroy()
+    // Activity bị đóng hẳn mà chưa qua close()/jsClose (vd. finishAffinity, xoá task): dọn phiên, báo USER_CANCEL một lần.
+    // Xoay màn hình hoặc hệ thống huỷ tạm thì giữ phiên để khôi phục.
+    if (HostLifecycle.shouldEndSessionOnActivityDestroy(isFinishing)) {
+      val description = getString(R.string.user_cancel_miniapp)
+      PayMERuntime.endSessionFromHost(intent.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)) { description }
+    }
     MixpanelUtil.flushEvents()
   }
 }

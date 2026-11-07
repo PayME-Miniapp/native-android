@@ -13,10 +13,15 @@ internal object LightContext {
     fun lightUiMode(uiMode: Int): Int =
         (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_NO
 
-    fun wrap(base: Context): Context {
-        val config = Configuration(base.resources.configuration).apply { uiMode = lightUiMode(uiMode) }
-        return ContextThemeWrapper(base, androidx.appcompat.R.style.Theme_AppCompat_Light).apply {
-            applyOverrideConfiguration(config)
+    /**
+     * Cấu hình override dạng delta: chỉ bit night + ngôn ngữ mini-app (SdkLocale). Không chép cả Configuration,
+     * nếu không orientation/kích thước màn hình bị đóng băng với Activity tự xử lý configChanges (RN/Flutter).
+     */
+    fun overrideConfiguration(): Configuration =
+        SdkLocale.apply(SdkLocale.emptyOverride().apply { uiMode = Configuration.UI_MODE_NIGHT_NO })
+
+    fun wrap(base: Context): Context =
+        ContextThemeWrapper(base, androidx.appcompat.R.style.Theme_AppCompat_Light).apply {
+            applyOverrideConfiguration(overrideConfiguration())
         }
-    }
 }

@@ -1,5 +1,7 @@
 package com.payme.sdk.ui.miniapp
 
+import com.payme.sdk.utils.SdkLocale
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -248,7 +250,7 @@ internal class MiniAppPermissionController(
         if (activity == null || webView == null) {
             return
         }
-        val folder = fragment.getString(R.string.qr_folder)
+        val folder = SdkLocale.wrap(activity).getString(R.string.qr_folder)
         // QR encoding and the MediaStore write block; evaluate() posts the result to the UI thread.
         BridgeExecutor.execute {
             val bitmap = QrImageStore.generateQRCode(data)

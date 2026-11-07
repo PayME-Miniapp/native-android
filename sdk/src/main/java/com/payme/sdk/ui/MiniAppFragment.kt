@@ -1,6 +1,6 @@
 package com.payme.sdk.ui
 
-import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.activity.ComponentDialog
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -23,10 +24,12 @@ import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.getIdentityTokenFromOpenMiniAppData
 import com.payme.sdk.runtime.MiniAppSession
 import com.payme.sdk.runtime.PayMERuntime
+import com.payme.sdk.runtime.SessionClose
 import com.payme.sdk.utils.BridgeExecutor
 import com.payme.sdk.utils.DeviceSecurityUtils
 import com.payme.sdk.utils.LightContext
 import com.payme.sdk.utils.MixpanelUtil
+import com.payme.sdk.utils.SdkLocale
 import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.utils.WebViewJsDispatcher
 import com.payme.sdk.ui.miniapp.MiniAppBackPressCallback
@@ -154,7 +157,7 @@ class MiniAppFragment : Fragment() {
         activity?.runOnUiThread {
             val errorJson = JSONObject().apply {
                 put("code", HTTP_STATUS_UNAUTHORIZED.toString())
-                put("description", getString(R.string.session_expired))
+                put("description", sdkString(R.string.session_expired))
                 put("isCloseMiniApp", true)
             }.toString()
             returnError(errorJson)
@@ -176,13 +179,6 @@ class MiniAppFragment : Fragment() {
         PayMERuntime.activate(session.id)
         if (savedInstanceState == null) com.payme.sdk.utils.KycImageStore.clear(requireContext().filesDir)
 
-        requireActivity().onBackPressedDispatcher.addCallback(
-            this,
-            MiniAppBackPressCallback(
-                webViewProvider = { myWebView },
-                blockedScreensProvider = { listScreenBackBlocked }
-            )
-        )
         permissionController = MiniAppPermissionController(
             fragment = this,
             webViewProvider = { myWebView },
@@ -196,7 +192,7 @@ class MiniAppFragment : Fragment() {
             restartWithScreen = { reStartWithScreen() }
         )
         updateController = MiniAppUpdateController(
-            contextProvider = { context },
+            contextProvider = { localizedContext() },
             activityProvider = { activity },
             viewsProvider = { views },
             updateViewModelProvider = { payMEUpdatePatchViewModel },
@@ -274,7 +270,24 @@ class MiniAppFragment : Fragment() {
             loadPage = { webView, url -> webViewController.load(webView, url) }
         ).bind()
 
+        registerBackCallback()
         return view
+    }
+
+    /** Back của modal đi vào dialog, không vào Activity của partner; màn hình thì vào MiniAppActivity. */
+    private fun registerBackCallback() {
+        val dispatcher = when (val host = parentFragment) {
+            is DialogFragment -> (host.dialog as? ComponentDialog)?.onBackPressedDispatcher
+            else -> requireActivity().onBackPressedDispatcher
+        } ?: return
+        dispatcher.addCallback(
+            viewLifecycleOwner,
+            MiniAppBackPressCallback(
+                webViewProvider = { myWebView },
+                blockedScreensProvider = { listScreenBackBlocked },
+                onClose = { forceCloseMiniApp() }
+            )
+        )
     }
 
     private fun createJavaScriptInterface(webView: WebView): JavaScriptInterface {
@@ -295,6 +308,17 @@ class MiniAppFragment : Fragment() {
             onSetModalHeight = { updateModalHeight(it) }
         ).create(webView)
     }
+
+    // Modal dùng context của Activity partner: chuỗi SDK phải lấy theo ngôn ngữ mini-app (SdkLocale)
+    private var localized: Pair<Context, Context>? = null
+
+    private fun localizedContext(): Context? {
+        val base = context ?: return null
+        localized?.takeIf { it.first === base }?.let { return it.second }
+        return SdkLocale.wrap(base, session.config.locale).also { localized = base to it }
+    }
+
+    private fun sdkString(id: Int): String = (localizedContext() ?: requireContext()).getString(id)
 
     private fun changeEnv(env: String) {
         session.callbacks.onChangeEnv?.let { it(env) }
@@ -343,12 +367,9 @@ class MiniAppFragment : Fragment() {
 
     private fun returnSuccess(data: String) {
         try {
+            // Partner mở lại ngay trong onResponse được; callback ném lỗi thì vẫn đóng
             val json = JSONObject(data)
-            session.callbacks.onResponse(openMiniAppData.action, json)
-            val isCloseMiniApp = json.optBoolean("isCloseMiniApp", false)
-            if (isCloseMiniApp) {
-                closeMiniApp()
-            }
+            SessionClose.response(session, json, json.optBoolean("isCloseMiniApp", false)) { closeMiniApp() }
         } catch (e: Exception) {
             Log.d(PayMEMiniApp.TAG, "miniapp returnSuccess: ${e.message} ")
         }
@@ -369,11 +390,7 @@ class MiniAppFragment : Fragment() {
                 session.isTerminalErrorHandled = true
                 stopWebViewAfterTerminalError()
             }
-            session.callbacks.onError(
-                openMiniAppData.action,
-                PayMEError(PayMEErrorType.MiniApp, code, description, isCloseMiniApp)
-            )
-            if (isCloseMiniApp) {
+            SessionClose.error(session, PayMEError(PayMEErrorType.MiniApp, code, description, isCloseMiniApp)) {
                 closeMiniApp()
             }
         } catch (e: Exception) {
@@ -386,12 +403,11 @@ class MiniAppFragment : Fragment() {
             return
         }
         isCloseMiniAppRequested = true
-        session.isCloseRequested = true
-        if (openType == OpenMiniAppType.modal) {
-            session.close()
-        } else if (openType == OpenMiniAppType.screen) {
-            (requireContext() as Activity).finish()
-            session.close()
+        PayMERuntime.markCloseRequested(session)
+        // closeAction của nơi chứa đóng modal / finish MiniAppActivity, chỉ một lần
+        session.close()
+        if (openType == OpenMiniAppType.screen) {
+            activity?.takeIf { !it.isFinishing }?.finish()
         }
         PayMERuntime.removeSession(session.id)
         releaseOpenMiniAppData()
@@ -417,33 +433,28 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun releaseOpenMiniAppData() {
-        if (::miniappViewModel.isInitialized) miniappViewModel.openMiniAppData = null
+        // ViewModel của modal thuộc Activity partner, có thể đã mang payload của phiên mới (mở lại trong callback)
+        if (::miniappViewModel.isInitialized && miniappViewModel.openMiniAppData === session.openMiniAppData) {
+            miniappViewModel.openMiniAppData = null
+        }
         clearOpenMiniAppData()
     }
 
     private fun forceCloseMiniApp() {
         // Đã đóng (lỗi kết thúc, close() hoặc jsClose lặp lại): không báo USER_CANCEL lần nữa
-        if (isCloseMiniAppRequested || session.isCloseRequested) return
-        session.notifyUserCancel(getString(R.string.user_cancel_miniapp))
-        closeMiniApp()
+        if (isCloseMiniAppRequested) return
+        SessionClose.userCancel(session, sdkString(R.string.user_cancel_miniapp)) { closeMiniApp() }
     }
 
+    /** KYC từ modal: mở lại dạng màn hình với bản sao cấu hình/callback của phiên (không khởi tạo lại SDK). */
     private fun reStartWithScreen() {
-        closeMiniApp()
-
-        val payMEMiniApp = PayMEMiniApp(
-            requireContext(),
-            session.config.appId,
-            session.config.publicKey,
-            session.config.privateKey,
-            session.config.env,
-            session.config.locale
-        )
+        val ctx = context ?: return
+        val config = session.config.copy()
+        val callbacks = session.callbacks.copy()
         val identityToken = getIdentityTokenFromOpenMiniAppData(openMiniAppData)
+        closeMiniApp()
         identityToken?.let {
-            payMEMiniApp.openMiniApp(
-                OpenMiniAppType.screen, OpenMiniAppKYCData(it)
-            )
+            PayMEMiniApp.Launcher.launch(ctx, OpenMiniAppType.screen, OpenMiniAppKYCData(it), config, callbacks)
         }
     }
 
@@ -498,7 +509,15 @@ class MiniAppFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         if (sessionMissing) return
-        myWebView?.let { webViewController.removeBridge(it) }
+        myWebView?.let {
+            webViewController.removeBridge(it)
+            // Huỷ WebView để không giữ Activity/renderer sau khi đóng
+            it.stopLoading()
+            (it.parent as? ViewGroup)?.removeView(it)
+            it.destroy()
+        }
+        myWebView = null
+        rootView = null
         // Không xoá payload ở đây: view có thể được dựng lại trong khi fragment và phiên vẫn sống,
         // khi đó redispatchOpenMiniApp cần payload. Payload được xoá ở onDestroy và khi đóng miniapp.
     }

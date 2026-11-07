@@ -230,7 +230,7 @@ fun setUpListener(
 - `onResponse`: called when an action completes successfully, with the action and a `JSONObject` returned by the mini-app or the API.
 - `onError`: called on errors or when the user closes the mini-app, with the action and a `PayMEError`.
 - Listeners are shared by all `PayMEMiniApp` instances; a later call replaces the earlier one. Passing `null` keeps the existing listener.
-- Callbacks run on the main thread, except `IDENTITY_TOKEN_REQUIRED`, which is delivered synchronously on the calling thread.
+- Callbacks run on the main thread, except `IDENTITY_TOKEN_REQUIRED`, `MINIAPP_ALREADY_OPEN` and `MINIAPP_CANNOT_PRESENT`, which are delivered synchronously on the calling thread.
 
 If the `onResponse` data contains `"isCloseMiniApp": true`, the SDK closes the mini-app after the callback. The `JSONObject` content for actions that open the mini-app is defined by the mini-app; the payloads of `getBalance` and `getAccountInformation` are described in their sections.
 
@@ -271,7 +271,7 @@ fun openMiniApp(
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `openType` | `OpenMiniAppType` | No, defaults to `screen` | `OpenMiniAppType.screen`: full screen in the SDK's own Activity. `OpenMiniAppType.modal`: a bottom sheet over the current Activity; `context` must be a `FragmentActivity` (otherwise nothing opens and no callback fires) |
+| `openType` | `OpenMiniAppType` | No, defaults to `screen` | `OpenMiniAppType.screen`: full screen in the SDK's own Activity. `OpenMiniAppType.modal`: a bottom sheet over the current Activity; `context` must be a `FragmentActivity` (otherwise nothing opens and `onError` reports `MINIAPP_CANNOT_PRESENT`) |
 | `openMiniAppData` | `OpenMiniAppDataInterface` | Yes | One of the `OpenMiniApp*Data` classes below; the class determines the action |
 
 Paying a pre-created transaction without an `identityToken` (use the named argument because `identityToken` comes first):
@@ -306,6 +306,15 @@ payME.openMiniApp(
     )
 )
 ```
+
+#### Opening, closing and the back button
+
+- **One mini-app at a time.** Calling `openMiniApp` while a mini-app is open (including from another Activity while a modal is showing) is rejected with `MINIAPP_ALREADY_OPEN`; the open mini-app is left as it is.
+- **Reopening from a closing callback works.** While a mini-app is closing (`USER_CANCEL`, `isCloseMiniApp = true` in `onResponse`/`onError`, or after `close()`), calling `openMiniApp` inside the callback or right after `close()` opens a new mini-app.
+- **System back button** (both `screen` and `modal`): the mini-app web handles it first (closes its top popup, or blocks back on a payment screen); otherwise it goes back one page inside the mini-app; with no page left it closes the mini-app and `onError` reports `USER_CANCEL`.
+- **Dismissing the modal** by tapping outside or with the mini-app's close button reports `USER_CANCEL` with `type = UserCancel`.
+- **The app finishing the Activity that hosts the mini-app** (`finish()` on the Activity showing the modal, removing the task...) while it is open: `onError` reports `USER_CANCEL` once. Rotation, dark mode/language changes or the system temporarily destroying the Activity do not close the mini-app.
+- **15-second start window:** if a just-opened mini-app still has not appeared after 15 seconds (its Activity/modal was never created, for example the app went to the background right away), the next `openMiniApp` treats that session as lost: it reports `USER_CANCEL` for the old session and opens the new one instead of returning `MINIAPP_ALREADY_OPEN`.
 
 ### OpenMiniApp*Data classes
 
@@ -415,7 +424,7 @@ Errors arrive in `onError` with action `GET_ACCOUNT_INFO`: `IDENTITY_TOKEN_REQUI
 fun setLanguage(lang: Locale)
 ```
 
-Changes the mini-app language (`Locale.vi` or `Locale.en`) for subsequent openings. Note: in the constructor and in this method, the SDK calls `java.util.Locale.setDefault(...)` and updates the resources configuration of the `context` to match the selected language.
+Changes the mini-app language (`Locale.vi` or `Locale.en`) for subsequent openings. The language applies only to the SDK's own UI and strings: the SDK does not change the default `java.util.Locale` or the app's resources, and this method does not call `onChangeLocale` (that callback fires only when the user changes the language inside the mini-app).
 
 ### setMode
 
@@ -431,7 +440,7 @@ Selects the mini-app OTA update channel (see [OTA updates](#mini-app-ota-updates
 fun close()
 ```
 
-Closes the mini-app opened by this instance (both `screen` and `modal`). Closing it with `close()` does not call `onError`.
+Closes the open mini-app (both `screen` and `modal`). Closing it with `close()` does not call `onError`. `close()` never throws (even while the Activity hosting the modal is temporarily destroyed by the system) and does nothing when no mini-app is open; you can call `openMiniApp` right after it.
 
 > `setChangeEnvFunction`, `setChangeLocaleFunction` and `setOneSignalFunctions` are for the PayME wallet app only; partners do not need them.
 
@@ -443,7 +452,9 @@ Handle errors by `code`, not by `type`.
 | --- | --- | --- | --- |
 | `IDENTITY_TOKEN_REQUIRED` | `MiniApp` | Blank `identityToken` for a required action, `getBalance` or `getAccountInformation`. The mini-app is not opened | Get an `identityToken` from your server before calling |
 | `401` | `MiniApp` | Invalid or expired `identityToken` (or the session expired while in use). The mini-app closes (`isCloseMiniApp = true`); `getBalance`/`getAccountInformation` return the same code | Get a new `identityToken` on the server and open again |
-| `USER_CANCEL` | `UserCancel` | The user closed the mini-app (in-app close button, or swiping/tapping outside the modal). Reported once per close | Not an error; return to the app flow |
+| `USER_CANCEL` | `UserCancel` | The user closed the mini-app (in-app close button, system back with no page left, tapping outside the modal), or the app finished the Activity hosting the mini-app. Reported once per close | Not an error; return to the app flow |
+| `MINIAPP_ALREADY_OPEN` | `MiniApp` | `openMiniApp` was called while a mini-app is open (including from another Activity). The new one does not open; the open one is left as it is | Wait for the current mini-app to close, or call `close()` and open again |
+| `MINIAPP_CANNOT_PRESENT` | `MiniApp` | The mini-app cannot be shown: `modal` with a `context` that is not a `FragmentActivity`, or the Activity/modal could not be opened (for example the Activity has already saved its state) | Pass the visible `FragmentActivity`; retry when the Activity is in the foreground |
 | `CONNECTION_LOST` | `Network` | No connection, device registration failed, or the response could not be decrypted | Ask the user to check the network and retry |
 | `TIMED_OUT` | `Network` | Server timeout | Retry |
 | `SERVER_ERROR` | `Network` | The server returned an HTTP error | Retry later |

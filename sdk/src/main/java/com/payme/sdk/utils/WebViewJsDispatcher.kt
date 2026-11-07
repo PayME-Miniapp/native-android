@@ -15,6 +15,10 @@ internal object WebViewJsDispatcher {
     private val origins = java.util.WeakHashMap<WebView, String>()
     fun trust(webView: WebView, origin: String) { origins[webView] = origin }
 
+    /** Trang hiện tại là trang mini-app (origin localhost đã tin cậy): chỉ khi đó mới gọi hook JS của web. */
+    fun isTrustedPage(webView: WebView): Boolean =
+        com.payme.sdk.ui.miniapp.OriginPolicy.isLocal(webView.url.orEmpty(), origins[webView])
+
     fun evaluate(
         activity: Activity,
         webView: WebView,

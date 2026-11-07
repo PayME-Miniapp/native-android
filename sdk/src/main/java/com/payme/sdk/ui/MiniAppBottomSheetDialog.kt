@@ -8,25 +8,50 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.DialogFragment
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
+import com.payme.sdk.runtime.HostLifecycle
 import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.LightContext
+import com.payme.sdk.utils.SdkLocale
 import com.payme.sdk.utils.Utils
+import java.lang.ref.WeakReference
+
+/**
+ * close() không được ném lỗi: fragment đã tách khỏi Activity (Don't keep activities, Activity chưa dựng lại)
+ * thì bỏ qua; bản khôi phục tự đóng vì phiên đã bị xoá.
+ */
+internal fun DialogFragment.dismissSafely() {
+    if (isRemoving) return
+    try {
+        dismissAllowingStateLoss()
+    } catch (e: IllegalStateException) {
+        Log.w(PayMEMiniApp.TAG, "dismiss skipped: fragment detached")
+    }
+}
 
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
     private val sessionId: String?
         get() = arguments?.getString(PayMERuntime.EXTRA_SESSION_ID)
+    private var isDestroyingView = false
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // Modal luôn sáng mà không đụng tới Activity của partner
         val dialog = BottomSheetDialog(LightContext.wrap(requireContext()), theme)
+        // Không cancelable: back của Material chỉ thu nhỏ sheet (không hideable) và chặn back của mini-app.
+        // Back do MiniAppFragment xử lý qua onBackPressedDispatcher của dialog; chạm ngoài vẫn đóng (bên dưới).
+        isCancelable = false
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.parseColor("#80000000")))
         dialog.setOnShowListener {
+            // onShow tới qua Handler: fragment có thể đã bị huỷ (xoay màn hình liên tiếp) -> resources sẽ crash
+            if (!isAdded) return@setOnShowListener
             val bottomSheetDialog = it as BottomSheetDialog
             val parentLayout =
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
@@ -40,8 +65,12 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
                 parentView.background = backgroundDrawable
 
                 parentView.layoutParams.height = convertContentHeight(currentModalHeight())
+                // Phiên nằm trong PayMERuntime (static): chỉ giữ yếu view/fragment
+                val viewRef = WeakReference(parentView)
+                val selfRef = WeakReference(this)
                 PayMERuntime.getSession(sessionId)?.onSetModalHeight = { ot ->
-                    setupModalHeight(parentView, ot)
+                    val v = viewRef.get()
+                    if (v != null) selfRef.get()?.setupModalHeight(v, ot)
                 }
 
                 behaviour.state = BottomSheetBehavior.STATE_EXPANDED
@@ -50,22 +79,29 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
                 behaviour.isDraggable = false
                 parentView.clipToOutline = true
             }
+            bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.touch_outside)?.setOnClickListener {
+                // Người dùng chạm ngoài: đóng như trước, onDismiss báo USER_CANCEL
+                bottomSheetDialog.cancel()
+            }
         }
         return dialog
     }
 
     // Không dùng setOnDismissListener: nó thay listener của DialogFragment, fragment không được gỡ khi dismiss
+    // DialogFragment.onDestroyView cũng gọi onDismiss (cả khi xoay màn hình hoặc Activity partner bị huỷ)
     override fun onDismiss(dialog: DialogInterface) {
-        PayMERuntime.getSession(sessionId)?.let { session ->
-            val shouldNotifyCancel = session.shouldNotifyUserCancelOnDismiss()
-            PayMERuntime.markSessionClosed(session.id)
-            session.closeAction = null
-            if (shouldNotifyCancel) {
-                session.notifyUserCancel(getString(R.string.user_cancel_miniapp))
-            }
-            PayMERuntime.removeSession(session.id)
+        val hostRecreating = HostLifecycle.isModalHostRecreating(isDestroyingView, isRemoving, activity?.isFinishing == true)
+        // Xoay màn hình / hệ thống huỷ tạm Activity: phiên giữ nguyên cho modal được khôi phục
+        if (!hostRecreating) {
+            val description = SdkLocale.wrap(requireContext()).getString(R.string.user_cancel_miniapp)
+            PayMERuntime.endSessionFromHost(sessionId) { description }
         }
         super.onDismiss(dialog)
+    }
+
+    override fun onDestroyView() {
+        isDestroyingView = true
+        super.onDestroyView()
     }
 
     private fun isFullHeightModal(): Boolean {
@@ -91,7 +127,7 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
     }
 
     private fun setupModalHeight(bottomSheet: View, contentHeight: Int?) {
-        if (contentHeight == null || contentHeight == 0) {
+        if (contentHeight == null || contentHeight == 0 || !isAdded) {
             return
         }
 
@@ -111,16 +147,21 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
             return
         }
         PayMERuntime.activate(sessionId)
+        session.attachHost(this) { f -> f.isAdded && f.activity?.let { !it.isFinishing && !it.isDestroyed } == true }
+        // Giữ yếu: phiên static không được giữ fragment/Activity đã huỷ
+        val selfRef = WeakReference(this)
         session.closeAction = {
-            session.isCloseRequested = true
+            PayMERuntime.markCloseRequested(session)
             PayMERuntime.markSessionClosed(session.id)
-            dismissAllowingStateLoss()
+            selfRef.get()?.dismissSafely()
         }
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
+        // Fragment được dựng lại view (cùng instance): bỏ cờ của lần huỷ view trước
+        isDestroyingView = false
         return inflater.inflate(R.layout.bottom_sheet_dialog_miniapp, container, false)
     }
 
