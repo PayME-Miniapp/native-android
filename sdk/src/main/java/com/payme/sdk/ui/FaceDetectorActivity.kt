@@ -1,6 +1,7 @@
 package com.payme.sdk.ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -39,10 +40,15 @@ class FaceDetectorActivity : AppCompatActivity() {
 
     private var timerTask: TimerTask? = null
 
+    // Chỉ ép giao diện sáng cho activity này; setDefaultNightMode sẽ đổi chế độ tối của cả app partner
+    override fun attachBaseContext(newBase: Context) {
+        delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_NO
+        super.attachBaseContext(newBase)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_face_detector)
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         preview = findViewById(R.id.preview)

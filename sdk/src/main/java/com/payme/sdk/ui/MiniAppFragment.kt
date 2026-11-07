@@ -25,6 +25,7 @@ import com.payme.sdk.runtime.MiniAppSession
 import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.BridgeExecutor
 import com.payme.sdk.utils.DeviceSecurityUtils
+import com.payme.sdk.utils.LightContext
 import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.utils.WebViewJsDispatcher
@@ -226,6 +227,13 @@ class MiniAppFragment : Fragment() {
         miniappViewModel.openMiniAppData = openMiniAppData
     }
 
+    override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
+        val inflater = super.onGetLayoutInflater(savedInstanceState)
+        // Trong modal, view (kể cả WebView/prefers-color-scheme) dùng context Activity partner: ép sáng cục bộ
+        if (parentFragment !is DialogFragment) return inflater
+        return inflater.cloneInContext(LightContext.wrap(inflater.context))
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -414,10 +422,9 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun forceCloseMiniApp() {
-        session.callbacks.onError(
-            openMiniAppData.action,
-            PayMEError(PayMEErrorType.UserCancel, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
-        )
+        // Đã đóng (lỗi kết thúc, close() hoặc jsClose lặp lại): không báo USER_CANCEL lần nữa
+        if (isCloseMiniAppRequested || session.isCloseRequested) return
+        session.notifyUserCancel(getString(R.string.user_cancel_miniapp))
         closeMiniApp()
     }
 

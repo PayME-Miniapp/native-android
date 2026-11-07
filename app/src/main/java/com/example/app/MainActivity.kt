@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
             onError = { actionOpenMiniApp: ActionOpenMiniApp, payMEError: PayMEError ->
                 Log.d(
                     PayMEMiniApp.TAG,
-                    "onError action: $actionOpenMiniApp code: ${payMEError.code}"
+                    "onError action: $actionOpenMiniApp type: ${payMEError.type} code: ${payMEError.code}"
                 )
                 showStatus("Error: $actionOpenMiniApp ${payMEError.description}")
                 runOnUiThread {

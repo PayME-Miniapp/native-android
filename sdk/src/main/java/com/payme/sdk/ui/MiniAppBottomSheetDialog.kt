@@ -1,6 +1,7 @@
 package com.payme.sdk.ui
 
 import android.app.Dialog
+import android.content.DialogInterface
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -13,9 +14,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.payme.sdk.R
 import com.payme.sdk.models.ActionOpenMiniApp
-import com.payme.sdk.models.PayMEError
-import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.runtime.PayMERuntime
+import com.payme.sdk.utils.LightContext
 import com.payme.sdk.utils.Utils
 
 class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
@@ -23,23 +23,11 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
         get() = arguments?.getString(PayMERuntime.EXTRA_SESSION_ID)
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val dialog = BottomSheetDialog(requireContext(), theme)
+        // Modal luôn sáng mà không đụng tới Activity của partner
+        val dialog = BottomSheetDialog(LightContext.wrap(requireContext()), theme)
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.parseColor("#80000000")))
         dialog.setOnShowListener {
             val bottomSheetDialog = it as BottomSheetDialog
-            bottomSheetDialog.setOnDismissListener {
-                val session = PayMERuntime.getSession(sessionId) ?: return@setOnDismissListener
-                val shouldNotifyCancel = !session.isCloseRequested && session.isOpen
-                PayMERuntime.markSessionClosed(session.id)
-                session.closeAction = null
-                if (shouldNotifyCancel) {
-                    session.callbacks.onError(
-                        session.action,
-                        PayMEError(PayMEErrorType.MiniApp, "USER_CANCEL", getString(R.string.user_cancel_miniapp))
-                    )
-                }
-                PayMERuntime.removeSession(session.id)
-            }
             val parentLayout =
                 bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
             parentLayout?.let { parentView ->
@@ -64,6 +52,20 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
             }
         }
         return dialog
+    }
+
+    // Không dùng setOnDismissListener: nó thay listener của DialogFragment, fragment không được gỡ khi dismiss
+    override fun onDismiss(dialog: DialogInterface) {
+        PayMERuntime.getSession(sessionId)?.let { session ->
+            val shouldNotifyCancel = session.shouldNotifyUserCancelOnDismiss()
+            PayMERuntime.markSessionClosed(session.id)
+            session.closeAction = null
+            if (shouldNotifyCancel) {
+                session.notifyUserCancel(getString(R.string.user_cancel_miniapp))
+            }
+            PayMERuntime.removeSession(session.id)
+        }
+        super.onDismiss(dialog)
     }
 
     private fun isFullHeightModal(): Boolean {

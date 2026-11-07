@@ -1,5 +1,6 @@
 package com.payme.sdk.ui
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +16,12 @@ import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.utils.MixpanelUtil
 
 class MiniAppActivity : AppCompatActivity() {
+  // Tắt dark mode chỉ cho mini-app; setDefaultNightMode sẽ đổi chế độ tối của cả app partner
+  override fun attachBaseContext(newBase: Context) {
+    delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_NO
+    super.attachBaseContext(newBase)
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     val sessionId = intent.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)
     val session = PayMERuntime.getSession(sessionId)
@@ -35,9 +42,6 @@ class MiniAppActivity : AppCompatActivity() {
       window.decorView.systemUiVisibility =
           View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
     }
-
-    // Tắt chế độ tối (dark mode)
-    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
     // Đặt màu của thanh trạng thái thành trong suốt
     window.statusBarColor = ContextCompat.getColor(this, android.R.color.transparent)
