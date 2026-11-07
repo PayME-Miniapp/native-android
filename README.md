@@ -26,7 +26,7 @@ dependencyResolutionManagement {
 
 **Thêm dependency thư viện PayMEMiniapp**
 
-Cập nhật file `build.gradle` của module, thay `TAG` bằng phiên bản SDK, ví dụ `0.8.1` (không dùng `0.8.0`: bản trên JitPack được build từ commit cũ):
+Cập nhật file `build.gradle` của module, thay `TAG` bằng phiên bản SDK, ví dụ `0.8.2` (không dùng `0.8.0`: bản trên JitPack được build từ commit cũ):
 
 ```groovy
 dependencies {
