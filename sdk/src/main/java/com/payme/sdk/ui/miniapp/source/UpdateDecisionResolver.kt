@@ -89,6 +89,10 @@ internal class UpdateDecisionResolver(
         pending.mode == currentMode && pending.patch > bundledPatch &&
             (storedState.mode != pending.mode || pending.patch >= storedState.patch)
 
+    /** Zip OTA đang chờ mà mới hơn bản manifest hiện tại (bản bị rút lại): xoá, không cài ở lần mở sau. */
+    fun discardsPendingUpdate(pending: OtaArtifact?, remotePatch: Int?): Boolean =
+        pending != null && remotePatch != null && pending.patch > remotePatch
+
     private fun resolve(
         remoteMode: RemoteUpdateMode,
         currentMode: String,

@@ -12,6 +12,7 @@ import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.PayMENetworkErrorCode
 import com.payme.sdk.network_requests.NetworkRequest
 import com.payme.sdk.network_requests.NetworkUtils
+import com.payme.sdk.runtime.PartnerCallbacks
 import com.payme.sdk.runtime.PayMERuntime
 import org.json.JSONObject
 
@@ -94,6 +95,11 @@ object AccountPresentation {
         onResponse: (ActionOpenMiniApp, JSONObject?) -> Unit,
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
+        // Lỗi trong callback partner chỉ ghi log; lỗi của SDK mới thành onError
+        @Suppress("NAME_SHADOWING")
+        val onResponse = PartnerCallbacks.guard("onResponse", onResponse)
+        @Suppress("NAME_SHADOWING")
+        val onError = PartnerCallbacks.guard("onError", onError)
         registerDevice(context, ActionOpenMiniApp.GET_ACCOUNT_INFO, onError) { deviceId ->
             val config = PayMERuntime.requireConfig()
             val paramsAccount = accountInfoParams(identityToken, deviceId)
@@ -136,6 +142,11 @@ object AccountPresentation {
         onResponse: (ActionOpenMiniApp, JSONObject?) -> Unit,
         onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
+        // Lỗi trong callback partner chỉ ghi log; lỗi của SDK mới thành onError
+        @Suppress("NAME_SHADOWING")
+        val onResponse = PartnerCallbacks.guard("onResponse", onResponse)
+        @Suppress("NAME_SHADOWING")
+        val onError = PartnerCallbacks.guard("onError", onError)
         registerDevice(context, ActionOpenMiniApp.GET_BALANCE, onError) { deviceId ->
             val config = PayMERuntime.requireConfig()
             val paramsAccount = accountInfoParams(identityToken, deviceId)

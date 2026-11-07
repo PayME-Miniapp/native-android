@@ -5,6 +5,7 @@ import com.payme.sdk.ui.miniapp.source.InstalledSource
 import com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants
 import com.payme.sdk.ui.miniapp.source.OtaArtifact
 import com.payme.sdk.ui.miniapp.source.RemoteUpdateMode
+import com.payme.sdk.ui.miniapp.source.SourceInstaller
 import com.payme.sdk.ui.miniapp.source.SourceKind
 import com.payme.sdk.ui.miniapp.source.StoredUpdateState
 import com.payme.sdk.ui.miniapp.source.UpdateDecision
@@ -34,24 +35,68 @@ class BundledSourcePolicyTest {
 
     @Test
     fun sourceLeftByAnOlderSdkIsReplaced() {
-        // SDK cũ không ghi bản đang cài: bundled 0500/0501 hoặc OTA 0411 từ 0.7.x (PREF_PATCH 411)
-        assertNull(BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, legacyPatch = 0, bundledPatch = bundled))
-        assertNull(BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, legacyPatch = 411, bundledPatch = bundled))
-        assertNull(BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, legacyPatch = -1, bundledPatch = bundled))
+        // SDK cũ không ghi bản đang cài; patch đọc từ www: bundled 0500/0501, OTA 0411, hoặc không đọc được
+        assertNull(BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, wwwPatch = 501, bundledPatch = bundled))
+        assertNull(BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, wwwPatch = 411, bundledPatch = bundled))
+        assertNull(BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, wwwPatch = null, bundledPatch = bundled))
         assertTrue(install(hasWebRoot = true, installed = null))
     }
 
     @Test
     fun legacyOtaNewerThanBundledIsKept() {
-        val legacy = BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, legacyPatch = 503, bundledPatch = bundled)
+        val legacy = BundledSourcePolicy.installedOrLegacy(null, legacyMode = mode, wwwPatch = 503, bundledPatch = bundled)
         assertEquals(InstalledSource(SourceKind.OTA, 503, mode), legacy)
         assertFalse(install(hasWebRoot = true, installed = legacy))
     }
 
     @Test
-    fun recordedSourceWinsOverLegacyPatch() {
+    fun recordedSourceWinsOverWwwContent() {
         val recorded = InstalledSource(SourceKind.BUNDLED, 502)
-        assertEquals(recorded, BundledSourcePolicy.installedOrLegacy(recorded, legacyMode = mode, legacyPatch = 600, bundledPatch = bundled))
+        assertEquals(recorded, BundledSourcePolicy.installedOrLegacy(recorded, legacyMode = mode, wwwPatch = 600, bundledPatch = bundled))
+    }
+
+    @Test
+    fun webPatchIsReadFromTheBundleJs() {
+        assertEquals(502, BundledSourcePolicy.parseWebPatch("a({version:C.version,patch:\"0502\"})x b({patch:\"0502\"})"))
+        assertEquals(503, BundledSourcePolicy.parseWebPatch("patch:\"503\""))
+        assertNull(BundledSourcePolicy.parseWebPatch("no patch here"))
+        // Hai giá trị khác nhau: không chắc → coi như không biết
+        assertNull(BundledSourcePolicy.parseWebPatch("patch:\"0501\" patch:\"0502\""))
+    }
+
+    @Test
+    fun webPatchIsReadFromTheInstalledWww() {
+        val root = kotlin.io.path.createTempDirectory("www").toFile()
+        try {
+            assertNull(SourceInstaller.readWebPatch(root))
+            File(root, "static/js").mkdirs()
+            File(root, "static/js/index.abc.js").writeText("x={patch:\"0503\"}")
+            File(root, "static/js/other.js").writeText("x={patch:\"0400\"}")
+            assertEquals(503, SourceInstaller.readWebPatch(root))
+            assertNull(SourceInstaller.readWebPatch(null))
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun bundledInstallResetsTheOtaPatchSoAMandatoryOtaIsDownloadedAgain() {
+        // Kill switch / đổi mode đưa www về bundled khi đã cài OTA 505; server lại yêu cầu bắt buộc 505
+        val resolver = UpdateDecisionResolver(isTrusted = { _, _ -> true }, bundledPatch = bundled)
+        val remote = RemoteUpdateMode(505, 505, "https://cdn/p505.zip")
+        // PAYME_PATCH cũ (505) còn giữ thì kẹt ở bundled
+        assertEquals(UpdateDecision.NoUpdate, resolver.resolve(remote, mode, StoredUpdateState(mode, 505)).decision)
+        // Sau khi cài bundled, PAYME_PATCH = 0
+        assertTrue(resolver.resolve(remote, mode, StoredUpdateState(mode, 0)).decision is UpdateDecision.MandatoryUpdate)
+    }
+
+    @Test
+    fun pendingZipNewerThanTheManifestIsDiscarded() {
+        val resolver = UpdateDecisionResolver(isTrusted = { _, _ -> true }, bundledPatch = bundled)
+        assertTrue(resolver.discardsPendingUpdate(OtaArtifact(mode, 506, "", 1), remotePatch = 505))
+        assertFalse(resolver.discardsPendingUpdate(OtaArtifact(mode, 505, "", 1), remotePatch = 505))
+        assertFalse(resolver.discardsPendingUpdate(OtaArtifact(mode, 506, "", 1), remotePatch = null))
+        assertFalse(resolver.discardsPendingUpdate(null, remotePatch = 505))
     }
 
     @Test
@@ -108,7 +153,11 @@ class BundledSourcePolicyTest {
         val found = ZipFile(zip).use { file ->
             file.entries().asSequence()
                 .filter { it.name.matches(Regex(".*/static/js/index\\.[^/]*\\.js")) }
-                .any { entry -> file.getInputStream(entry).bufferedReader().readText().contains(expected) }
+                .any { entry ->
+                    val js = file.getInputStream(entry).bufferedReader().readText()
+                    // Cùng cách đọc với SDK cũ → mới (readWebPatch)
+                    js.contains(expected) && BundledSourcePolicy.parseWebPatch(js) == MiniAppSourceConstants.BUNDLED_PATCH
+                }
         }
         assertTrue("bundled zip does not contain $expected", found)
     }

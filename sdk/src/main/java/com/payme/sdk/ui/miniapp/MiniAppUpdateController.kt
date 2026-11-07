@@ -31,7 +31,6 @@ import com.payme.sdk.utils.LocaleUtils
 import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.viewmodels.PayMEUpdatePatchViewModel
 import org.json.JSONObject
-import javax.net.ssl.SSLException
 
 internal class MiniAppUpdateController(
     private val contextProvider: () -> Context?,
@@ -112,6 +111,7 @@ internal class MiniAppUpdateController(
 
                     UpdateDecision.NoUpdate -> {
                         Log.d(PayMEMiniApp.TAG, "do not update")
+                        discardWithdrawnPendingUpdate(safeContext, versionLookup.modeJson?.optJSONObject(currentMode())?.optInt("patch"))
                         pendingMandatoryUpdate = false
                         downloadedUpdateReady = false
                         updateViewModel.setDoneUpdate(true)
@@ -143,9 +143,8 @@ internal class MiniAppUpdateController(
                         updateViewModel.setDoneUpdate(true)
                     }
                 }
-            } catch (e: SSLException) {
-                Log.d(PayMEMiniApp.TAG, "SSLException ex $e")
             } catch (e: Exception) {
+                // Kể cả SSLException: không kẹt loading, chạy www hiện có / bundled
                 updateViewModelProvider().setDoneUpdate(true)
                 Log.d(PayMEMiniApp.TAG, "thread ex $e")
             }
@@ -267,7 +266,10 @@ internal class MiniAppUpdateController(
     private fun ensureBundledSource(context: Context, sourceInstaller: SourceInstaller, forceBundled: Boolean): Boolean {
         val bundledPatch = MiniAppSourceConstants.BUNDLED_PATCH
         val hasWebRoot = SourceInstaller.findWebRoot(sourceInstaller.wwwDirectory) != null
-        if (!BundledSourcePolicy.shouldInstallBundled(hasWebRoot, installedSource(context), bundledPatch, currentMode(), forceBundled)) {
+        val installed = installedSource(context, sourceInstaller)
+        if (!BundledSourcePolicy.shouldInstallBundled(hasWebRoot, installed, bundledPatch, currentMode(), forceBundled)) {
+            // Bản OTA mới hơn từ SDK cũ: ghi lại để không phải đọc www lần sau
+            if (installed != null && !hasRecordedSource(context)) recordInstalledSource(context, installed)
             return true
         }
         Log.d(PayMEMiniApp.TAG, "install bundled source patch $bundledPatch")
@@ -292,10 +294,17 @@ internal class MiniAppUpdateController(
     private fun unzipDefaultSource(): Boolean {
         val safeContext = contextProvider() ?: return false
         Log.d(PayMEMiniApp.TAG, "chay vo unzipDefaultSource")
-        return ensureBundledSource(safeContext, SourceInstaller(safeContext), forceBundled = true)
+        val sourceInstaller = SourceInstaller(safeContext)
+        // Kill switch: zip OTA đang chờ (có thể là bản lỗi) không được cài ở lần mở sau
+        sourceInstaller.cleanUpdateArtifacts()
+        return ensureBundledSource(safeContext, sourceInstaller, forceBundled = true)
     }
 
-    private fun installedSource(context: Context): InstalledSource? {
+    private fun hasRecordedSource(context: Context): Boolean =
+        context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .contains(MiniAppSourceConstants.PREF_SOURCE_KIND)
+
+    private fun installedSource(context: Context, sourceInstaller: SourceInstaller): InstalledSource? {
         val preferences = context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE)
         val recorded = SourceKind.fromPref(preferences.getString(MiniAppSourceConstants.PREF_SOURCE_KIND, null))
             ?.let {
@@ -308,13 +317,16 @@ internal class MiniAppUpdateController(
         return BundledSourcePolicy.installedOrLegacy(
             recorded,
             legacyMode = preferences.getString(MiniAppSourceConstants.PREF_MODE, "").orEmpty(),
-            legacyPatch = preferences.getInt(MiniAppSourceConstants.PREF_PATCH, 0),
+            wwwPatch = if (recorded == null) SourceInstaller.readWebPatch(SourceInstaller.findWebRoot(sourceInstaller.wwwDirectory)) else null,
             bundledPatch = MiniAppSourceConstants.BUNDLED_PATCH
         )
     }
 
     private fun recordInstalledSource(context: Context, source: InstalledSource) {
-        context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE).edit()
+        val editor = context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE).edit()
+        // www về bundled: patch OTA cũ không còn được cài, để manifest (kể cả bắt buộc) tải lại OTA mới hơn bundled
+        if (source.kind == SourceKind.BUNDLED) editor.putInt(MiniAppSourceConstants.PREF_PATCH, 0)
+        editor
             .putString(MiniAppSourceConstants.PREF_SOURCE_KIND, source.kind.pref)
             .putInt(MiniAppSourceConstants.PREF_SOURCE_PATCH, source.patch)
             .putString(MiniAppSourceConstants.PREF_SOURCE_MODE, source.mode)
@@ -368,6 +380,14 @@ internal class MiniAppUpdateController(
         sourceInstaller.cleanUpdateArtifacts()
         downloadedUpdateReady = false
         return null
+    }
+
+    private fun discardWithdrawnPendingUpdate(context: Context, remotePatch: Int?) {
+        val sourceInstaller = SourceInstaller(context)
+        if (updateDecisionResolver.discardsPendingUpdate(OtaArtifact.read(sourceInstaller.updateZip), remotePatch)) {
+            Log.w(PayMEMiniApp.TAG, "Discarding pending source update newer than the manifest")
+            sourceInstaller.cleanUpdateArtifacts()
+        }
     }
 
     private fun persistInstalledPatch(context: Context, installed: OtaArtifact) {

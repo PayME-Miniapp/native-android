@@ -8,6 +8,7 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.*
+import com.payme.sdk.runtime.PartnerCallbacks
 import com.payme.sdk.runtime.PayMEConfig
 import com.payme.sdk.runtime.PayMERuntime
 import org.json.JSONException
@@ -33,9 +34,15 @@ internal class NetworkRequest(
     private val action: ActionOpenMiniApp,
     private val config: PayMEConfig = PayMERuntime.requireConfig()
 ) {
+    /**
+     * [onSuccess] là xử lý của SDK (partner được gọi trong đó qua callback đã bọc): lỗi trong đó → [onError].
+     * [onError] của partner được bọc: lỗi chỉ ghi log.
+     */
     fun setOnRequest(
         onSuccess: (response: JSONObject) -> Unit, onError: (ActionOpenMiniApp, PayMEError) -> Unit
     ) {
+        @Suppress("NAME_SHADOWING")
+        val onError = PartnerCallbacks.guard("onError", onError)
         val encryptedRequest = EncryptedNetworkRequestBuilder(config).build(apiPath, token, params)
         val responseCryptoRSA = CryptoRSA(config.publicKey, config.privateKey)
         val responseCryptoAES = CryptoAES()
@@ -65,11 +72,18 @@ internal class NetworkRequest(
                     return@Listener
                 }
                 Log.d(PayMEMiniApp.TAG, "Network request succeeded: action=$action path=$apiPath")
-                // Lỗi trong onSuccess (callback partner) không được làm crash app, cũng không báo thêm onError
                 try {
                     onSuccess(finalJSONObject)
                 } catch (e: Exception) {
-                    Log.e(PayMEMiniApp.TAG, "onSuccess callback failed: ${e.javaClass.simpleName}")
+                    // Lỗi xử lý của SDK (không phải của partner): báo onError thay vì crash
+                    Log.e(PayMEMiniApp.TAG, "response handling failed: ${e.javaClass.simpleName}")
+                    onError(
+                        action, PayMEError(
+                            PayMEErrorType.Network,
+                            PayMENetworkErrorCode.OTHER.toString(),
+                            context.getString(getPayMENetworkErrorDescription(PayMENetworkErrorCode.OTHER.toString()))
+                        )
+                    )
                 }
             },
             Response.ErrorListener { error ->

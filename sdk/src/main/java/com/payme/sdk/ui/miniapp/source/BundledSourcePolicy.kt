@@ -17,11 +17,18 @@ internal data class InstalledSource(val kind: SourceKind, val patch: Int, val mo
  */
 internal object BundledSourcePolicy {
     /**
-     * SDK cũ không ghi bản đang cài. PREF_PATCH cũ > bundled chỉ có thể là OTA đã cài (giữ lại);
-     * còn lại (0.7.x OTA 0411, bundled 0500/0501, không rõ) coi như chưa biết → cài lại bundled.
+     * SDK cũ không ghi bản đang cài; PREF_PATCH cũ không đáng tin (kill switch không reset nó).
+     * Dùng patch đọc từ chính www ([wwwPatch], xem [parseWebPatch]): chỉ giữ khi mới hơn bundled;
+     * không đọc được (0.7.x, không rõ) → chưa biết → cài lại bundled (OTA mới hơn sẽ được tải lại).
      */
-    fun installedOrLegacy(recorded: InstalledSource?, legacyMode: String, legacyPatch: Int, bundledPatch: Int): InstalledSource? =
-        recorded ?: InstalledSource(SourceKind.OTA, legacyPatch, legacyMode).takeIf { legacyPatch > bundledPatch }
+    fun installedOrLegacy(recorded: InstalledSource?, legacyMode: String, wwwPatch: Int?, bundledPatch: Int): InstalledSource? =
+        recorded ?: wwwPatch?.takeIf { it > bundledPatch }?.let { InstalledSource(SourceKind.OTA, it, legacyMode) }
+
+    private val WEB_PATCH = Regex("patch:\"(\\d{3,5})\"")
+
+    /** Patch ghi trong JS của web (patch:"0502"); không có hoặc nhiều giá trị khác nhau → null. */
+    fun parseWebPatch(js: String): Int? =
+        WEB_PATCH.findAll(js).map { it.groupValues[1].toInt() }.distinct().toList().singleOrNull()
 
     /** [forceBundled]: manifest kill switch (patch 0) yêu cầu chạy bundled. */
     fun shouldInstallBundled(

@@ -23,6 +23,7 @@ import com.payme.sdk.models.PayMEError
 import com.payme.sdk.models.PayMEErrorType
 import com.payme.sdk.models.getIdentityTokenFromOpenMiniAppData
 import com.payme.sdk.runtime.MiniAppSession
+import com.payme.sdk.runtime.PartnerCallbacks
 import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.runtime.SessionClose
 import com.payme.sdk.utils.BridgeExecutor
@@ -460,7 +461,7 @@ class MiniAppFragment : Fragment() {
         closeMiniApp()
         if (identityToken.isNullOrBlank()) {
             // Modal đã đóng mà không mở được KYC (thiếu token, vd. PAYME/khách vãng lai): partner vẫn phải nhận kết quả
-            callbacks.onError(session.action, PayMEMiniApp.Launcher.identityTokenRequiredError(ctx))
+            PartnerCallbacks.guard("onError", callbacks.onError)(session.action, PayMEMiniApp.Launcher.identityTokenRequiredError(ctx))
             return
         }
         PayMEMiniApp.Launcher.launch(ctx, OpenMiniAppType.screen, OpenMiniAppKYCData(identityToken), config, callbacks)

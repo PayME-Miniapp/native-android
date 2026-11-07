@@ -202,6 +202,16 @@ internal class SourceInstaller internal constructor(
                 .firstOrNull()
         }
 
+        /** Patch của web đang cài, đọc từ static/js/index.*.js (chỉ dùng một lần cho dữ liệu của SDK cũ). */
+        fun readWebPatch(webRoot: File?): Int? = if (webRoot == null) null else try {
+            File(webRoot, "static/js").listFiles { f -> f.isFile && f.name.startsWith("index.") && f.name.endsWith(".js") }
+                ?.mapNotNull { BundledSourcePolicy.parseWebPatch(it.readText()) }
+                ?.distinct()
+                ?.singleOrNull()
+        } catch (e: Exception) {
+            null
+        }
+
         private fun hasIndexFile(directory: File): Boolean {
             return File(directory, INDEX_FILE_NAME).isFile
         }
