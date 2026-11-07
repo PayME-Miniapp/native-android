@@ -16,7 +16,11 @@ import com.payme.sdk.utils.MixpanelUtil
 
 class MiniAppActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
+    val sessionId = intent.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)
+    val session = PayMERuntime.getSession(sessionId)
+    // Sau khi process bị huỷ, phiên (cùng identityToken) đã mất: không cho hệ thống khôi phục MiniAppFragment cũ,
+    // nếu không fragment sẽ crash vì thiếu phiên. Activity đóng ngay bên dưới.
+    super.onCreate(if (session == null) null else savedInstanceState)
     
     // Cho phép layout kéo dài vào khu vực của hệ thống (ví dụ: status bar, navigation bar)
     WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -41,8 +45,6 @@ class MiniAppActivity : AppCompatActivity() {
     // Gán layout cho Activity từ file activity_miniapp.xml
     setContentView(R.layout.activity_miniapp)
 
-    val sessionId = intent.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)
-    val session = PayMERuntime.getSession(sessionId)
     if (session == null) {
       Log.e(PayMEMiniApp.TAG, "Missing miniapp session. Finishing MiniAppActivity.")
       finish()

@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.payme.sdk.PayMEMiniApp
@@ -49,6 +50,7 @@ import org.json.JSONObject
 
 class MiniAppFragment : Fragment() {
     private lateinit var session: MiniAppSession
+    private var sessionMissing = false
     private var sessionId: String? = null
     private lateinit var views: MiniAppViews
     private var rootView: View? = null
@@ -163,8 +165,13 @@ class MiniAppFragment : Fragment() {
         sessionId = arguments?.getString(PayMERuntime.EXTRA_SESSION_ID)
             ?: activity?.intent?.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)
             ?: PayMERuntime.activeSession()?.id
-        session = PayMERuntime.getSession(sessionId)
-            ?: error("Missing miniapp session")
+        session = PayMERuntime.getSession(sessionId) ?: run {
+            // Hệ thống khôi phục fragment sau khi process bị huỷ: phiên (cùng identityToken) đã mất, không chạy tiếp được.
+            // Đóng nơi chứa (modal hoặc MiniAppActivity) thay vì crash app của partner.
+            sessionMissing = true
+            closeHostWithoutSession()
+            return
+        }
         PayMERuntime.activate(session.id)
         if (savedInstanceState == null) com.payme.sdk.utils.KycImageStore.clear(requireContext().filesDir)
 
@@ -222,6 +229,7 @@ class MiniAppFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
+        if (sessionMissing) return View(inflater.context)
         val view: View = inflater.inflate(R.layout.fragment_mini_app, container, false)
         payMEUpdatePatchViewModel = PayMEUpdatePatchViewModel()
         views = MiniAppViews.bind(view)
@@ -394,6 +402,12 @@ class MiniAppFragment : Fragment() {
         if (retained != null) miniappViewModel.openMiniAppData = retained else releaseOpenMiniAppData()
     }
 
+    private fun closeHostWithoutSession() {
+        Log.e(PayMEMiniApp.TAG, "Missing miniapp session after process restore. Closing the mini-app.")
+        val host = parentFragment
+        if (host is DialogFragment) host.dismissAllowingStateLoss() else activity?.finish()
+    }
+
     private fun releaseOpenMiniAppData() {
         if (::miniappViewModel.isInitialized) miniappViewModel.openMiniAppData = null
         clearOpenMiniAppData()
@@ -428,6 +442,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        if (sessionMissing) return
         nativeAppState = "background"
         if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
             return
@@ -445,6 +460,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        if (sessionMissing) return
         nativeAppState = "active"
         if (payMEUpdatePatchViewModel.getWebLoaded().value == false) {
             return
@@ -466,6 +482,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (sessionMissing) return
         retainOrReleaseOpenMiniAppData()
         updateController.dispose()
         if (activity?.isChangingConfigurations != true) context?.let { com.payme.sdk.utils.KycImageStore.clear(it.filesDir) }
@@ -473,6 +490,7 @@ class MiniAppFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        if (sessionMissing) return
         myWebView?.let { webViewController.removeBridge(it) }
         // Không xoá payload ở đây: view có thể được dựng lại trong khi fragment và phiên vẫn sống,
         // khi đó redispatchOpenMiniApp cần payload. Payload được xoá ở onDestroy và khi đóng miniapp.

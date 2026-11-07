@@ -102,8 +102,13 @@ class MiniAppBottomSheetDialog : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Activity của partner được khôi phục sau khi process bị huỷ: phiên đã mất, đóng modal
+        // (MiniAppFragment con cũng tự đóng khi thiếu phiên).
+        val session = PayMERuntime.getSession(sessionId) ?: run {
+            dismissAllowingStateLoss()
+            return
+        }
         PayMERuntime.activate(sessionId)
-        val session = PayMERuntime.getSession(sessionId) ?: return
         session.closeAction = {
             session.isCloseRequested = true
             PayMERuntime.markSessionClosed(session.id)

@@ -28,13 +28,4 @@ object MixpanelUtil {
     internal fun identify(distinctId: String) {
         mixpanelAPI?.identify(distinctId)
     }
-
-    fun setPeople(name: String, phone: String, email: String, accountId: Number) {
-        val json = JSONObject()
-        json.put("\$name", name)
-        json.put("\$phone", phone)
-        json.put("\$email", email)
-        mixpanelAPI?.identify(accountId.toString())
-        mixpanelAPI?.people?.set(json)
-    }
 }
