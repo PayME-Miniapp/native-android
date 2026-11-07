@@ -78,4 +78,12 @@ class OpenGuardTest {
         assertTrue(next != null && next !== first)
         assertTrue(PayMEMiniApp.isOpen)
     }
+
+    @Test
+    fun modalNeedsALiveActivityAndFragmentManager() {
+        assertTrue(PayMEMiniApp.Launcher.isModalHostUsable(isFinishing = false, isDestroyed = false, isFragmentManagerDestroyed = false))
+        assertFalse(PayMEMiniApp.Launcher.isModalHostUsable(isFinishing = true, isDestroyed = false, isFragmentManagerDestroyed = false))
+        assertFalse(PayMEMiniApp.Launcher.isModalHostUsable(isFinishing = false, isDestroyed = true, isFragmentManagerDestroyed = false))
+        assertFalse(PayMEMiniApp.Launcher.isModalHostUsable(isFinishing = false, isDestroyed = false, isFragmentManagerDestroyed = true))
+    }
 }

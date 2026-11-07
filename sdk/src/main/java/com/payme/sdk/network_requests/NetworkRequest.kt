@@ -65,8 +65,12 @@ internal class NetworkRequest(
                     return@Listener
                 }
                 Log.d(PayMEMiniApp.TAG, "Network request succeeded: action=$action path=$apiPath")
-                // Ngoài try: lỗi trong onSuccess (callback partner) không được báo thêm onError
-                onSuccess(finalJSONObject)
+                // Lỗi trong onSuccess (callback partner) không được làm crash app, cũng không báo thêm onError
+                try {
+                    onSuccess(finalJSONObject)
+                } catch (e: Exception) {
+                    Log.e(PayMEMiniApp.TAG, "onSuccess callback failed: ${e.javaClass.simpleName}")
+                }
             },
             Response.ErrorListener { error ->
                 val errorCode = NetworkErrorMapper.code(error)

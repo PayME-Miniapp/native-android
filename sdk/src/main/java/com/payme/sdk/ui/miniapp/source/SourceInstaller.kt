@@ -116,17 +116,6 @@ internal class SourceInstaller internal constructor(
         return SourceInstallResult.success()
     }
 
-    fun ensureExistingOrBundledSource(): Boolean {
-        return ensureExistingOrBundledSourceDetailed().success
-    }
-
-    fun ensureExistingOrBundledSourceDetailed(): SourceInstallResult {
-        if (findWebRoot(wwwDirectory) != null) {
-            return SourceInstallResult.success()
-        }
-        return installBundledSourceDetailed()
-    }
-
     fun installBundledSource(): Boolean {
         return installBundledSourceDetailed().success
     }

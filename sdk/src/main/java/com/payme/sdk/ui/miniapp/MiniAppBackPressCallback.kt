@@ -47,6 +47,20 @@ internal fun resolveMiniAppBackAfterHook(
     else resolveMiniAppBack(canGoBack, url, isBlockedScreen)
 
 /**
+ * Hook không trả lời kịp (timeout): không đóng ngay vì web có thể chỉ chậm (popup vẫn mở) — chỉ lùi web nếu được.
+ * Lần timeout thứ hai liên tiếp mới cho đóng, để renderer treo không bẫy người dùng.
+ */
+internal fun resolveMiniAppBackOnHookTimeout(
+    previousTimedOut: Boolean,
+    canGoBack: Boolean,
+    url: String,
+    isBlockedScreen: Boolean
+): MiniAppBackAction {
+    val action = resolveMiniAppBack(canGoBack, url, isBlockedScreen)
+    return if (action == MiniAppBackAction.CLOSE && !previousTimedOut) MiniAppBackAction.IGNORE else action
+}
+
+/**
  * Chống gọi lồng: trong lúc chờ kết quả hook, back mới bị bỏ qua. Mỗi lần chờ có token;
  * kết quả muộn (sau timeout hoặc lần khác) không được xử lý lần hai.
  */
@@ -79,6 +93,8 @@ internal class MiniAppBackPressCallback(
 ) : OnBackPressedCallback(true) {
     private val gate = WebBackHookGate()
     private val handler = Handler(Looper.getMainLooper())
+    // Lần hỏi hook trước đã timeout
+    private var lastHookTimedOut = false
 
     override fun handleOnBackPressed() {
         Log.d(PayMEMiniApp.TAG, "onBackPressed Called")
@@ -90,12 +106,20 @@ internal class MiniAppBackPressCallback(
         }
         val token = gate.begin() ?: return
         // Web không trả lời (renderer treo): không giữ back mãi
-        val timeout = Runnable { if (gate.finish(token)) applyBack(webView, null) }
+        val timeout = Runnable {
+            if (gate.finish(token)) {
+                applyBack(webView, null, timedOut = true)
+                lastHookTimedOut = true
+            }
+        }
         handler.postDelayed(timeout, WEB_BACK_HOOK_TIMEOUT_MS)
         try {
             webView.evaluateJavascript(WEB_BACK_HOOK_SCRIPT) { result ->
                 handler.removeCallbacks(timeout)
-                if (gate.finish(token)) applyBack(webView, result)
+                if (gate.finish(token)) {
+                    lastHookTimedOut = false
+                    applyBack(webView, result)
+                }
             }
         } catch (e: Exception) {
             handler.removeCallbacks(timeout)
@@ -103,13 +127,18 @@ internal class MiniAppBackPressCallback(
         }
     }
 
-    private fun applyBack(webView: WebView, jsResult: String?) {
+    private fun applyBack(webView: WebView, jsResult: String?, timedOut: Boolean = false) {
         // Fragment/WebView đã huỷ trong lúc chờ: bỏ qua
         if (webViewProvider() !== webView) return
         val url = webView.url.orEmpty()
         val urlPath = url.toUri().path.orEmpty()
         val isBlocked = url.isNotEmpty() && isStringInJsonArray(blockedScreensProvider(), urlPath)
-        when (resolveMiniAppBackAfterHook(jsResult, webView.canGoBack(), url, isBlocked)) {
+        val action = if (timedOut) {
+            resolveMiniAppBackOnHookTimeout(lastHookTimedOut, webView.canGoBack(), url, isBlocked)
+        } else {
+            resolveMiniAppBackAfterHook(jsResult, webView.canGoBack(), url, isBlocked)
+        }
+        when (action) {
             MiniAppBackAction.WEB_HANDLED -> Log.d(PayMEMiniApp.TAG, "web handled back")
             MiniAppBackAction.WEB_BACK -> {
                 Log.d(PayMEMiniApp.TAG, "webview back")

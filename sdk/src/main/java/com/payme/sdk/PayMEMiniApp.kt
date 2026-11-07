@@ -151,6 +151,10 @@ class PayMEMiniApp(
             if (openType == OpenMiniAppType.modal && context !is FragmentActivity) {
                 return reject(MINIAPP_CANNOT_PRESENT, R.string.modal_requires_fragment_activity)
             }
+            // Activity đang đóng/đã huỷ: modal không hiện được, không tạo phiên
+            if (openType == OpenMiniAppType.modal && !canPresentModal(context as FragmentActivity)) {
+                return reject(MINIAPP_CANNOT_PRESENT, R.string.error_occurred)
+            }
             // Phiên kẹt (host đã mất) không được chặn mãi
             PayMERuntime.clearStaleSessions { SdkLocale.wrap(context).getString(R.string.user_cancel_miniapp).orEmpty() }
             // Không chồng mini-app: lần mở thứ hai bị từ chối, phiên đang mở giữ nguyên
@@ -194,6 +198,13 @@ class PayMEMiniApp(
                 reject(MINIAPP_CANNOT_PRESENT, R.string.error_occurred)
             }
         }
+
+        private fun canPresentModal(activity: FragmentActivity): Boolean =
+            isModalHostUsable(activity.isFinishing, activity.isDestroyed, activity.supportFragmentManager.isDestroyed)
+
+        /** Modal chỉ gắn được vào Activity chưa finish/huỷ và FragmentManager còn sống. */
+        internal fun isModalHostUsable(isFinishing: Boolean, isDestroyed: Boolean, isFragmentManagerDestroyed: Boolean): Boolean =
+            !isFinishing && !isDestroyed && !isFragmentManagerDestroyed
 
         private fun openError(context: Context, code: String, description: Int) =
             PayMEError(PayMEErrorType.MiniApp, code, SdkLocale.wrap(context).getString(description).orEmpty())

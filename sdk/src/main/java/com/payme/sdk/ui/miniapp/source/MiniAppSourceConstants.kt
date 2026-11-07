@@ -6,6 +6,12 @@ internal object MiniAppSourceConstants {
     const val PREFERENCES_NAME = "PAYME_NATIVE_UPDATE"
     const val PREF_MODE = "PAYME_MODE"
     const val PREF_PATCH = "PAYME_PATCH"
+    // Bản đang nằm trong www: "bundled" hoặc "ota" + patch của bản đó (SDK cũ không ghi)
+    const val PREF_SOURCE_KIND = "PAYME_WWW_SOURCE"
+    const val PREF_SOURCE_PATCH = "PAYME_WWW_PATCH"
+    const val PREF_SOURCE_MODE = "PAYME_WWW_MODE"
+    /** Patch của web đóng gói trong assets/www (patch:"0502" trong bundle). Đổi zip thì phải đổi số này (có test kiểm tra). */
+    const val BUNDLED_PATCH = 502
     const val WWW_ASSET_DIR = "www"
     const val WWW_DIR = "www"
     const val UPDATE_DIR = "update"

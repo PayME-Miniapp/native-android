@@ -58,6 +58,8 @@ class HostEndSessionTest {
         assertNull(PayMERuntime.getSession(session.id))
         assertFalse(PayMEMiniApp.isOpen)
         assertEquals(0, closeActionCalls)
+        // Kết quả web tới muộn của phiên này bị bỏ qua
+        assertTrue(session.isCloseRequested)
     }
 
     @Test

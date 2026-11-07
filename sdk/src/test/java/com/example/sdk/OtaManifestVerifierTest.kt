@@ -119,7 +119,7 @@ class OtaManifestVerifierTest {
     @Test fun untrustedEntriesNeverDownloadAndLeaveStoredStateAlone() {
         val cases = listOf(
             // The default resolver pins the production key, which did not sign the test vector.
-            UpdateDecisionResolver() to vector,
+            UpdateDecisionResolver(bundledPatch = 0) to vector,
             resolver() to vector.copy(sig = ""),
             resolver() to vector.copy(size = 1),
             resolver() to vector.copy(patch = 600)
@@ -144,10 +144,10 @@ class OtaManifestVerifierTest {
     @Test fun killSwitchNeedsNoSignatureButPatchZeroNeverDownloads() {
         assertEquals(
             UpdateDecision.LoadDefaultSource,
-            UpdateDecisionResolver().resolve(RemoteUpdateMode(0, 0, ""), mode, StoredUpdateState(mode, 500)).decision
+            UpdateDecisionResolver(bundledPatch = 0).resolve(RemoteUpdateMode(0, 0, ""), mode, StoredUpdateState(mode, 500)).decision
         )
         // Mode change resets the local patch to -1; an unsigned patch 0 must still not download.
-        val result = UpdateDecisionResolver().resolve(
+        val result = UpdateDecisionResolver(bundledPatch = 0).resolve(
             RemoteUpdateMode(0, 5, "https://static.payme.vn/p.zip"), "miniapp_sandbox", StoredUpdateState(mode, 500)
         )
         assertEquals(UpdateDecision.NoUpdate, result.decision)
@@ -155,7 +155,7 @@ class OtaManifestVerifierTest {
 
     @Test fun antiRollbackNeverDownloadsOrInstallsAnOlderPatch() {
         val pair = newKeyPair()
-        val resolver = UpdateDecisionResolver(OtaEntryVerifier(listOf(pair.public), sdkVersion)::isTrusted)
+        val resolver = UpdateDecisionResolver(OtaEntryVerifier(listOf(pair.public), sdkVersion)::isTrusted, bundledPatch = 0)
         val older = sign(vector.copy(patch = 499, latestMandatoryPatch = 499, sig = ""), pair.private)
         assertTrue(OtaEntryVerifier(listOf(pair.public), sdkVersion).isTrusted(older, mode))
         assertEquals(UpdateDecision.NoUpdate, resolver.resolve(older, mode, StoredUpdateState(mode, 500)).decision)
@@ -170,7 +170,7 @@ class OtaManifestVerifierTest {
         assertTrue(resolver.acceptsPendingUpdate(OtaArtifact(mode, 300, vector.sha256, 1), mode, StoredUpdateState("miniapp_sandbox", 900)))
     }
 
-    private fun resolver() = UpdateDecisionResolver(testVerifier::isTrusted)
+    private fun resolver() = UpdateDecisionResolver(testVerifier::isTrusted, bundledPatch = 0)
 
     private fun newKeyPair(): KeyPair =
         KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair()

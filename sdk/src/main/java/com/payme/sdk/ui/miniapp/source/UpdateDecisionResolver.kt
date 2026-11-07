@@ -32,7 +32,9 @@ internal data class UpdateDecisionResult(
 )
 
 internal class UpdateDecisionResolver(
-    private val isTrusted: (RemoteUpdateMode, String) -> Boolean = { entry, mode -> PINNED_VERIFIER.isTrusted(entry, mode) }
+    private val isTrusted: (RemoteUpdateMode, String) -> Boolean = { entry, mode -> PINNED_VERIFIER.isTrusted(entry, mode) },
+    // OTA không cũ hơn web đóng gói: patch <= bundled thì không tải/cài
+    private val bundledPatch: Int = MiniAppSourceConstants.BUNDLED_PATCH
 ) {
     fun resolve(
         versionLookup: VersionLookupResult?,
@@ -75,16 +77,17 @@ internal class UpdateDecisionResolver(
         } else {
             null
         }
-        val localPatch = mutation?.patch ?: storedState.patch
+        val localPatch = BundledSourcePolicy.effectiveLocalPatch(mutation?.patch ?: storedState.patch, bundledPatch)
         return resolve(remoteMode, currentMode, localPatch, mutation)
     }
 
     /**
      * Install-time check for a downloaded zip: same mode, and never lower than the installed patch
-     * of that mode (anti-rollback). Another mode's patch number does not apply.
+     * of that mode (anti-rollback), and newer than the bundled source. Another mode's patch number does not apply.
      */
     fun acceptsPendingUpdate(pending: OtaArtifact, currentMode: String, storedState: StoredUpdateState): Boolean =
-        pending.mode == currentMode && (storedState.mode != pending.mode || pending.patch >= storedState.patch)
+        pending.mode == currentMode && pending.patch > bundledPatch &&
+            (storedState.mode != pending.mode || pending.patch >= storedState.patch)
 
     private fun resolve(
         remoteMode: RemoteUpdateMode,

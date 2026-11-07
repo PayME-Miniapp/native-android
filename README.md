@@ -4,7 +4,7 @@
 
 Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp/rút/chuyển tiền, dịch vụ, eKYC) ngay trong ứng dụng của đối tác.
 
-**Phiên bản hiện tại:** `0.8.3` (SDK 1.0.24, mini-app patch 0501). Xem [lịch sử phiên bản](https://github.com/PayME-Miniapp/native-android/releases).
+**Phiên bản hiện tại:** `0.8.4` (SDK 1.0.24, mini-app patch 0502). Xem [lịch sử phiên bản](https://github.com/PayME-Miniapp/native-android/releases).
 
 ## Mục lục
 
@@ -74,12 +74,12 @@ allprojects {
 
 ```groovy
 dependencies {
-    implementation 'com.github.PayME-Miniapp:native-android:0.8.3'
+    implementation 'com.github.PayME-Miniapp:native-android:0.8.4'
 }
 ```
 
 > [!WARNING]
-> Không dùng `0.8.0`: bản này trên JitPack được build từ commit cũ. `0.8.1`, `0.8.2` có cùng API với `0.8.3`; nên dùng `0.8.3`.
+> Không dùng `0.8.0`: bản này trên JitPack được build từ commit cũ. `0.8.1`, `0.8.2`, `0.8.3` có cùng API với `0.8.4`; nên dùng `0.8.4` (bản mới nhất, gồm các bản sửa lỗi vòng đời mini-app).
 
 ## Cấu hình ứng dụng
 
@@ -230,7 +230,7 @@ fun setUpListener(
 - `onResponse`: gọi khi một action kết thúc thành công, kèm action và dữ liệu `JSONObject` do mini-app hoặc API trả về.
 - `onError`: gọi khi có lỗi hoặc người dùng đóng mini-app, kèm action và `PayMEError`.
 - Listener dùng chung cho mọi instance `PayMEMiniApp`; lần gọi sau ghi đè lần trước. Truyền `null` thì giữ listener cũ.
-- Callback được gọi trên main thread, riêng `IDENTITY_TOKEN_REQUIRED`, `MINIAPP_ALREADY_OPEN` và `MINIAPP_CANNOT_PRESENT` được gọi đồng bộ trên luồng đã gọi hàm.
+- Callback được gọi trên main thread, riêng `IDENTITY_TOKEN_REQUIRED`, `MINIAPP_ALREADY_OPEN`, `MINIAPP_CANNOT_PRESENT` và `USER_CANCEL` của phiên kẹt (xem [Mở, đóng và nút back](#mở-đóng-và-nút-back)) được gọi đồng bộ trên luồng đã gọi `openMiniApp`.
 
 Nếu dữ liệu `onResponse` có `"isCloseMiniApp": true` thì SDK đóng mini-app sau khi gọi callback. Nội dung `JSONObject` của các action mở mini-app do mini-app quy định; dữ liệu của `getBalance` và `getAccountInformation` được mô tả ở mục tương ứng.
 
@@ -314,7 +314,7 @@ payME.openMiniApp(
 - **Nút back của hệ thống** (cả `screen` và `modal`): trước tiên mini-app web tự xử lý (đóng popup trên cùng hoặc chặn back ở màn đang thanh toán); nếu không, lùi về trang trước trong mini-app; hết trang thì đóng mini-app và `onError` trả `USER_CANCEL`.
 - **Đóng modal** bằng cách chạm ngoài hoặc nút đóng trong mini-app trả `USER_CANCEL` với `type = UserCancel`.
 - **App đóng Activity đang chứa mini-app** (`finish()` Activity có modal, xoá task...) khi mini-app còn mở: `onError` trả `USER_CANCEL` một lần. Xoay màn hình, đổi dark mode/ngôn ngữ hay hệ thống tạm huỷ Activity không đóng mini-app.
-- **Thời gian khởi động 15 giây:** nếu sau 15 giây mini-app vừa mở vẫn chưa hiển thị được (Activity/modal không được tạo, ví dụ app bị chuyển nền ngay), lần `openMiniApp` tiếp theo coi phiên đó là đã mất: báo `USER_CANCEL` cho phiên cũ rồi mở phiên mới thay vì trả `MINIAPP_ALREADY_OPEN`.
+- **Thời gian khởi động 15 giây:** nếu sau 15 giây mini-app vừa mở vẫn chưa hiển thị được (Activity/modal không được tạo, ví dụ app bị chuyển nền ngay), lần `openMiniApp` tiếp theo coi phiên đó là đã mất: báo `USER_CANCEL` cho phiên cũ rồi mở phiên mới thay vì trả `MINIAPP_ALREADY_OPEN`. `USER_CANCEL` này được gọi đồng bộ ngay trong `openMiniApp`, trước khi mini-app mới mở.
 
 ### Các lớp OpenMiniApp*Data
 
@@ -454,7 +454,7 @@ Nên xử lý theo `code`, không dựa vào `type`.
 | `401` | `MiniApp` | `identityToken` sai hoặc hết hạn (hoặc phiên hết hạn khi đang dùng). Mini-app đóng (`isCloseMiniApp = true`); `getBalance`/`getAccountInformation` cũng trả mã này | Server lấy `identityToken` mới rồi mở lại |
 | `USER_CANCEL` | `UserCancel` | Người dùng đóng mini-app (nút trong mini-app, nút back của hệ thống khi hết trang, chạm ngoài modal), hoặc app đóng Activity đang chứa mini-app. Mỗi lần đóng chỉ báo một lần | Không coi là lỗi; quay về luồng của app |
 | `MINIAPP_ALREADY_OPEN` | `MiniApp` | Gọi `openMiniApp` khi đang có mini-app mở (kể cả từ Activity khác). Mini-app mới không được mở, mini-app đang mở giữ nguyên | Đợi mini-app hiện tại đóng, hoặc gọi `close()` rồi mở lại |
-| `MINIAPP_CANNOT_PRESENT` | `MiniApp` | Không hiển thị được mini-app: mở `modal` mà `context` không phải `FragmentActivity`, hoặc không mở được Activity/modal (ví dụ Activity đã lưu trạng thái) | Truyền `FragmentActivity` đang hiển thị; thử lại khi Activity ở foreground |
+| `MINIAPP_CANNOT_PRESENT` | `MiniApp` | Không hiển thị được mini-app: mở `modal` mà `context` không phải `FragmentActivity` hoặc Activity đang đóng/đã huỷ, hoặc không mở được Activity/modal (ví dụ Activity đã lưu trạng thái) | Truyền `FragmentActivity` đang hiển thị; thử lại khi Activity ở foreground |
 | `CONNECTION_LOST` | `Network` | Mất kết nối, đăng ký thiết bị thất bại hoặc không giải mã được phản hồi | Báo người dùng kiểm tra mạng, cho thử lại |
 | `TIMED_OUT` | `Network` | Quá thời gian chờ máy chủ | Cho thử lại |
 | `SERVER_ERROR` | `Network` | Máy chủ trả lỗi HTTP | Thử lại sau |
@@ -474,7 +474,7 @@ Nên xử lý theo `code`, không dựa vào `type`.
 
 | 0.7.x | 0.8.x |
 | --- | --- |
-| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.3'` |
+| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.4'` |
 | `OpenMiniAppOpenData(phone = ...)` và tương tự cho `KYC`, `Service`, `Deposit`, `Withdraw`, `Transfer`, `Payment`, `TransferQR` | `OpenMiniAppOpenData(identityToken = ...)` và tương tự |
 | `OpenMiniAppPaymentDirectData(phone = ..., paymentDirectData = ...)` | `OpenMiniAppPaymentDirectData(identityToken = ..., paymentDirectData = ...)` hoặc bỏ `identityToken` (khách vãng lai) |
 | `OpenMiniAppPayMEData()` | Không đổi |
@@ -487,7 +487,7 @@ Việc cần làm phía đối tác: thêm API phía server để lấy `identit
 
 ## Cập nhật OTA mini-app
 
-SDK đóng gói sẵn một bản mini-app (0.8.3: patch 0501) và có thể nhận bản vá web qua OTA mà không cần phát hành lại app. Đối tác không cần làm gì thêm ngoài việc chọn đúng [`setMode`](#setmode).
+SDK đóng gói sẵn một bản mini-app (0.8.4: patch 0502) và có thể nhận bản vá web qua OTA mà không cần phát hành lại app. Đối tác không cần làm gì thêm ngoài việc chọn đúng [`setMode`](#setmode). Khi nâng cấp SDK, bản web đóng gói mới được cài thay cho bản đang có trên máy nếu bản đó cũ hơn (kể cả bản OTA cũ); bản OTA mới hơn bản đóng gói được giữ nguyên.
 
 - SDK đọc manifest tại `https://static.payme.vn/frontend/miniapp-store/PayMEMiniAppVersion.json` và lấy mục theo mode hiện tại.
 - Bản vá chỉ được cài khi mục trong manifest có chữ ký ECDSA P-256 hợp lệ của PayME, URL tải nằm trên `https://static.payme.vn`, kích thước không quá 128 MB, và file tải về đúng `size` và `sha256`. Nếu không, SDK giữ bản đang chạy.

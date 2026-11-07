@@ -11,7 +11,10 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.models.Locale
 import com.payme.sdk.runtime.PayMERuntime
+import com.payme.sdk.ui.miniapp.source.BundledSourcePolicy
 import com.payme.sdk.ui.miniapp.source.ConnectivityMonitor
+import com.payme.sdk.ui.miniapp.source.InstalledSource
+import com.payme.sdk.ui.miniapp.source.SourceKind
 import com.payme.sdk.ui.miniapp.source.LocalhostServerController
 import com.payme.sdk.ui.miniapp.source.MiniAppSourceConstants
 import com.payme.sdk.ui.miniapp.source.OtaArtifact
@@ -254,34 +257,68 @@ internal class MiniAppUpdateController(
         }
 
         Log.d(PayMEMiniApp.TAG, "chay vo unzip source down san")
-        val sourceResult = sourceInstaller.ensureExistingOrBundledSourceDetailed()
-        if (!sourceResult.success) {
-            if (sourceResult.failureReason == SourceInstallFailureReason.INSUFFICIENT_STORAGE) {
-                Log.e(PayMEMiniApp.TAG, "Not enough storage to install bundled source")
-                return handleInstallStorageFailure(safeContext, sourceInstaller)
-            }
-            Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
-            handleUnzipError()
-            return false
+        return ensureBundledSource(safeContext, sourceInstaller, forceBundled = false)
+    }
+
+    /**
+     * Cài lại web đóng gói khi www trống, là bundled của SDK cũ, chưa rõ (SDK cũ) hoặc OTA cũ hơn bundled
+     * ([forceBundled]: kill switch thì mọi OTA). Cài lỗi giữa chừng mà www cũ còn chạy được thì giữ bản cũ.
+     */
+    private fun ensureBundledSource(context: Context, sourceInstaller: SourceInstaller, forceBundled: Boolean): Boolean {
+        val bundledPatch = MiniAppSourceConstants.BUNDLED_PATCH
+        val hasWebRoot = SourceInstaller.findWebRoot(sourceInstaller.wwwDirectory) != null
+        if (!BundledSourcePolicy.shouldInstallBundled(hasWebRoot, installedSource(context), bundledPatch, currentMode(), forceBundled)) {
+            return true
         }
-        return true
+        Log.d(PayMEMiniApp.TAG, "install bundled source patch $bundledPatch")
+        val sourceResult = sourceInstaller.installBundledSourceDetailed()
+        if (sourceResult.success) {
+            recordInstalledSource(context, InstalledSource(SourceKind.BUNDLED, bundledPatch))
+            return true
+        }
+        if (hasWebRoot && SourceInstaller.findWebRoot(sourceInstaller.wwwDirectory) != null) {
+            Log.w(PayMEMiniApp.TAG, "Bundled source install failed (${sourceResult.failureReason}); keeping the installed source")
+            return true
+        }
+        if (sourceResult.failureReason == SourceInstallFailureReason.INSUFFICIENT_STORAGE) {
+            Log.e(PayMEMiniApp.TAG, "Not enough storage to install bundled source")
+            return handleInstallStorageFailure(context, sourceInstaller)
+        }
+        Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
+        handleUnzipError()
+        return false
     }
 
     private fun unzipDefaultSource(): Boolean {
         val safeContext = contextProvider() ?: return false
         Log.d(PayMEMiniApp.TAG, "chay vo unzipDefaultSource")
-        val sourceInstaller = SourceInstaller(safeContext)
-        val installResult = sourceInstaller.installBundledSourceDetailed()
-        if (!installResult.success) {
-            if (installResult.failureReason == SourceInstallFailureReason.INSUFFICIENT_STORAGE) {
-                Log.e(PayMEMiniApp.TAG, "Not enough storage to install bundled source")
-                return handleInstallStorageFailure(safeContext, sourceInstaller)
+        return ensureBundledSource(safeContext, SourceInstaller(safeContext), forceBundled = true)
+    }
+
+    private fun installedSource(context: Context): InstalledSource? {
+        val preferences = context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE)
+        val recorded = SourceKind.fromPref(preferences.getString(MiniAppSourceConstants.PREF_SOURCE_KIND, null))
+            ?.let {
+                InstalledSource(
+                    it,
+                    preferences.getInt(MiniAppSourceConstants.PREF_SOURCE_PATCH, 0),
+                    preferences.getString(MiniAppSourceConstants.PREF_SOURCE_MODE, "").orEmpty()
+                )
             }
-            Log.e(PayMEMiniApp.TAG, "Failed to unzip default source file. Closing miniapp")
-            handleUnzipError()
-            return false
-        }
-        return true
+        return BundledSourcePolicy.installedOrLegacy(
+            recorded,
+            legacyMode = preferences.getString(MiniAppSourceConstants.PREF_MODE, "").orEmpty(),
+            legacyPatch = preferences.getInt(MiniAppSourceConstants.PREF_PATCH, 0),
+            bundledPatch = MiniAppSourceConstants.BUNDLED_PATCH
+        )
+    }
+
+    private fun recordInstalledSource(context: Context, source: InstalledSource) {
+        context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE).edit()
+            .putString(MiniAppSourceConstants.PREF_SOURCE_KIND, source.kind.pref)
+            .putInt(MiniAppSourceConstants.PREF_SOURCE_PATCH, source.patch)
+            .putString(MiniAppSourceConstants.PREF_SOURCE_MODE, source.mode)
+            .commit()
     }
 
     private fun handleInstallStorageFailure(
@@ -337,6 +374,9 @@ internal class MiniAppUpdateController(
         context.getSharedPreferences(MiniAppSourceConstants.PREFERENCES_NAME, Context.MODE_PRIVATE).edit()
             .putString(MiniAppSourceConstants.PREF_MODE, installed.mode)
             .putInt(MiniAppSourceConstants.PREF_PATCH, installed.patch)
+            .putString(MiniAppSourceConstants.PREF_SOURCE_KIND, SourceKind.OTA.pref)
+            .putInt(MiniAppSourceConstants.PREF_SOURCE_PATCH, installed.patch)
+            .putString(MiniAppSourceConstants.PREF_SOURCE_MODE, installed.mode)
             .apply()
         downloadedUpdateReady = false
     }

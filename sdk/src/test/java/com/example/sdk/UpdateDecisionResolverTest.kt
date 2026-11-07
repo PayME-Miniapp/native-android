@@ -87,9 +87,10 @@ class UpdateDecisionResolverTest {
 
         assertEquals("miniapp_sandbox", result.mutation?.mode)
         assertEquals(-1, result.mutation?.patch)
-        assertTrue(result.decision is UpdateDecision.MandatoryUpdate)
+        // Patch -1 được nâng lên mức bundled (ở đây 0): www về bundled (BundledSourcePolicy), OTA mới hơn tải ngầm
+        assertTrue(result.decision is UpdateDecision.BackgroundUpdate)
     }
 
     // These cases cover the decision table for entries that already passed verification.
-    private fun resolver() = UpdateDecisionResolver(isTrusted = { _, _ -> true })
+    private fun resolver() = UpdateDecisionResolver(isTrusted = { _, _ -> true }, bundledPatch = 0)
 }

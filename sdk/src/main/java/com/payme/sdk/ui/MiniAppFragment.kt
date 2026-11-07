@@ -365,7 +365,11 @@ class MiniAppFragment : Fragment() {
         }
     }
 
+    /** Phiên đã kết thúc (host huỷ, close()): kết quả web tới muộn không được gửi cho partner. */
+    private fun isSessionEnded(): Boolean = PayMERuntime.getSession(session.id) == null
+
     private fun returnSuccess(data: String) {
+        if (isSessionEnded()) return
         try {
             // Partner mở lại ngay trong onResponse được; callback ném lỗi thì vẫn đóng
             val json = JSONObject(data)
@@ -376,6 +380,7 @@ class MiniAppFragment : Fragment() {
     }
 
     private fun returnError(data: String) {
+        if (isSessionEnded()) return
         try {
             val json = JSONObject(data)
             val code = json.optString("code", "")
@@ -453,9 +458,12 @@ class MiniAppFragment : Fragment() {
         val callbacks = session.callbacks.copy()
         val identityToken = getIdentityTokenFromOpenMiniAppData(openMiniAppData)
         closeMiniApp()
-        identityToken?.let {
-            PayMEMiniApp.Launcher.launch(ctx, OpenMiniAppType.screen, OpenMiniAppKYCData(it), config, callbacks)
+        if (identityToken.isNullOrBlank()) {
+            // Modal đã đóng mà không mở được KYC (thiếu token, vd. PAYME/khách vãng lai): partner vẫn phải nhận kết quả
+            callbacks.onError(session.action, PayMEMiniApp.Launcher.identityTokenRequiredError(ctx))
+            return
         }
+        PayMEMiniApp.Launcher.launch(ctx, OpenMiniAppType.screen, OpenMiniAppKYCData(identityToken), config, callbacks)
     }
 
     override fun onPause() {

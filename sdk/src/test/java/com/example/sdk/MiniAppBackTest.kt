@@ -5,6 +5,7 @@ import com.payme.sdk.ui.miniapp.WebBackHookGate
 import com.payme.sdk.ui.miniapp.isWebBackHandled
 import com.payme.sdk.ui.miniapp.resolveMiniAppBack
 import com.payme.sdk.ui.miniapp.resolveMiniAppBackAfterHook
+import com.payme.sdk.ui.miniapp.resolveMiniAppBackOnHookTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -82,5 +83,20 @@ class MiniAppBackTest {
         val second = gate.begin()!!
         assertFalse(gate.finish(first))
         assertTrue(gate.finish(second))
+    }
+
+    @Test
+    fun firstHookTimeoutNeverClosesTheMiniApp() {
+        // Web chậm (popup có thể vẫn mở): chỉ lùi web nếu được, không thì bỏ qua
+        assertEquals(MiniAppBackAction.IGNORE, resolveMiniAppBackOnHookTimeout(false, canGoBack = false, url = url, isBlockedScreen = false))
+        assertEquals(MiniAppBackAction.WEB_BACK, resolveMiniAppBackOnHookTimeout(false, canGoBack = true, url = url, isBlockedScreen = false))
+        assertEquals(MiniAppBackAction.IGNORE, resolveMiniAppBackOnHookTimeout(false, canGoBack = true, url = url, isBlockedScreen = true))
+    }
+
+    @Test
+    fun secondHookTimeoutInARowMayClose() {
+        // Renderer treo không được bẫy người dùng
+        assertEquals(MiniAppBackAction.CLOSE, resolveMiniAppBackOnHookTimeout(true, canGoBack = false, url = url, isBlockedScreen = false))
+        assertEquals(MiniAppBackAction.IGNORE, resolveMiniAppBackOnHookTimeout(true, canGoBack = false, url = url, isBlockedScreen = true))
     }
 }

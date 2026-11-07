@@ -113,6 +113,8 @@ internal object PayMERuntime {
     fun endSessionFromHost(sessionId: String?, cancelDescription: () -> String) {
         val session = getSession(sessionId) ?: return
         val shouldNotifyCancel = session.shouldNotifyUserCancelOnDismiss()
+        // Đánh dấu đang đóng: kết quả web tới muộn bị bỏ qua, partner mở lại trong USER_CANCEL được
+        session.isCloseRequested = true
         session.closeAction = null
         markSessionClosed(session.id)
         try {

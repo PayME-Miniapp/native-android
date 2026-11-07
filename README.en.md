@@ -4,7 +4,7 @@
 
 An Android library that opens the PayME Miniapp (wallet, payments, deposit/withdraw/transfer, bill services, eKYC) inside a partner app.
 
-**Current version:** `0.8.3` (SDK 1.0.24, mini-app patch 0501). See the [release history](https://github.com/PayME-Miniapp/native-android/releases).
+**Current version:** `0.8.4` (SDK 1.0.24, mini-app patch 0502). See the [release history](https://github.com/PayME-Miniapp/native-android/releases).
 
 ## Contents
 
@@ -74,12 +74,12 @@ allprojects {
 
 ```groovy
 dependencies {
-    implementation 'com.github.PayME-Miniapp:native-android:0.8.3'
+    implementation 'com.github.PayME-Miniapp:native-android:0.8.4'
 }
 ```
 
 > [!WARNING]
-> Do not use `0.8.0`: the JitPack artifact for that tag was built from an older commit. `0.8.1` and `0.8.2` have the same API as `0.8.3`; use `0.8.3`.
+> Do not use `0.8.0`: the JitPack artifact for that tag was built from an older commit. `0.8.1`, `0.8.2` and `0.8.3` have the same API as `0.8.4`; use `0.8.4` (the latest, with the mini-app lifecycle fixes).
 
 ## App configuration
 
@@ -230,7 +230,7 @@ fun setUpListener(
 - `onResponse`: called when an action completes successfully, with the action and a `JSONObject` returned by the mini-app or the API.
 - `onError`: called on errors or when the user closes the mini-app, with the action and a `PayMEError`.
 - Listeners are shared by all `PayMEMiniApp` instances; a later call replaces the earlier one. Passing `null` keeps the existing listener.
-- Callbacks run on the main thread, except `IDENTITY_TOKEN_REQUIRED`, `MINIAPP_ALREADY_OPEN` and `MINIAPP_CANNOT_PRESENT`, which are delivered synchronously on the calling thread.
+- Callbacks run on the main thread, except `IDENTITY_TOKEN_REQUIRED`, `MINIAPP_ALREADY_OPEN`, `MINIAPP_CANNOT_PRESENT` and the `USER_CANCEL` of a lost session (see [Opening, closing and the back button](#opening-closing-and-the-back-button)), which are delivered synchronously on the thread that called `openMiniApp`.
 
 If the `onResponse` data contains `"isCloseMiniApp": true`, the SDK closes the mini-app after the callback. The `JSONObject` content for actions that open the mini-app is defined by the mini-app; the payloads of `getBalance` and `getAccountInformation` are described in their sections.
 
@@ -314,7 +314,7 @@ payME.openMiniApp(
 - **System back button** (both `screen` and `modal`): the mini-app web handles it first (closes its top popup, or blocks back on a payment screen); otherwise it goes back one page inside the mini-app; with no page left it closes the mini-app and `onError` reports `USER_CANCEL`.
 - **Dismissing the modal** by tapping outside or with the mini-app's close button reports `USER_CANCEL` with `type = UserCancel`.
 - **The app finishing the Activity that hosts the mini-app** (`finish()` on the Activity showing the modal, removing the task...) while it is open: `onError` reports `USER_CANCEL` once. Rotation, dark mode/language changes or the system temporarily destroying the Activity do not close the mini-app.
-- **15-second start window:** if a just-opened mini-app still has not appeared after 15 seconds (its Activity/modal was never created, for example the app went to the background right away), the next `openMiniApp` treats that session as lost: it reports `USER_CANCEL` for the old session and opens the new one instead of returning `MINIAPP_ALREADY_OPEN`.
+- **15-second start window:** if a just-opened mini-app still has not appeared after 15 seconds (its Activity/modal was never created, for example the app went to the background right away), the next `openMiniApp` treats that session as lost: it reports `USER_CANCEL` for the old session and opens the new one instead of returning `MINIAPP_ALREADY_OPEN`. That `USER_CANCEL` is delivered synchronously inside `openMiniApp`, before the new mini-app opens.
 
 ### OpenMiniApp*Data classes
 
@@ -454,7 +454,7 @@ Handle errors by `code`, not by `type`.
 | `401` | `MiniApp` | Invalid or expired `identityToken` (or the session expired while in use). The mini-app closes (`isCloseMiniApp = true`); `getBalance`/`getAccountInformation` return the same code | Get a new `identityToken` on the server and open again |
 | `USER_CANCEL` | `UserCancel` | The user closed the mini-app (in-app close button, system back with no page left, tapping outside the modal), or the app finished the Activity hosting the mini-app. Reported once per close | Not an error; return to the app flow |
 | `MINIAPP_ALREADY_OPEN` | `MiniApp` | `openMiniApp` was called while a mini-app is open (including from another Activity). The new one does not open; the open one is left as it is | Wait for the current mini-app to close, or call `close()` and open again |
-| `MINIAPP_CANNOT_PRESENT` | `MiniApp` | The mini-app cannot be shown: `modal` with a `context` that is not a `FragmentActivity`, or the Activity/modal could not be opened (for example the Activity has already saved its state) | Pass the visible `FragmentActivity`; retry when the Activity is in the foreground |
+| `MINIAPP_CANNOT_PRESENT` | `MiniApp` | The mini-app cannot be shown: `modal` with a `context` that is not a `FragmentActivity` or whose Activity is finishing/destroyed, or the Activity/modal could not be opened (for example the Activity has already saved its state) | Pass the visible `FragmentActivity`; retry when the Activity is in the foreground |
 | `CONNECTION_LOST` | `Network` | No connection, device registration failed, or the response could not be decrypted | Ask the user to check the network and retry |
 | `TIMED_OUT` | `Network` | Server timeout | Retry |
 | `SERVER_ERROR` | `Network` | The server returned an HTTP error | Retry later |
@@ -474,7 +474,7 @@ Handle errors by `code`, not by `type`.
 
 | 0.7.x | 0.8.x |
 | --- | --- |
-| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.3'` |
+| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.4'` |
 | `OpenMiniAppOpenData(phone = ...)` and likewise for `KYC`, `Service`, `Deposit`, `Withdraw`, `Transfer`, `Payment`, `TransferQR` | `OpenMiniAppOpenData(identityToken = ...)` and likewise |
 | `OpenMiniAppPaymentDirectData(phone = ..., paymentDirectData = ...)` | `OpenMiniAppPaymentDirectData(identityToken = ..., paymentDirectData = ...)`, or omit `identityToken` (guest) |
 | `OpenMiniAppPayMEData()` | Unchanged |
@@ -487,7 +487,7 @@ What partners need to do: add a server-side call that obtains the `identityToken
 
 ## Mini-app OTA updates
 
-The SDK bundles a mini-app build (0.8.3: patch 0501) and can receive web patches over the air without an app release. Partners only need to pick the right [`setMode`](#setmode).
+The SDK bundles a mini-app build (0.8.4: patch 0502) and can receive web patches over the air without an app release. Partners only need to pick the right [`setMode`](#setmode). When the SDK is upgraded, its new bundled web build replaces the build already on the device if that one is older (including an older OTA patch); an OTA patch newer than the bundled build is kept.
 
 - The SDK reads the manifest at `https://static.payme.vn/frontend/miniapp-store/PayMEMiniAppVersion.json` and uses the entry for the current mode.
 - A patch is installed only if its manifest entry carries a valid PayME ECDSA P-256 signature, the download URL is on `https://static.payme.vn`, the size is at most 128 MB, and the downloaded file matches `size` and `sha256`. Otherwise the SDK keeps the current build.
