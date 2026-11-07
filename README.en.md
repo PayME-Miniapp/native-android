@@ -4,7 +4,7 @@
 
 An Android library that opens the PayME Miniapp (wallet, payments, deposit/withdraw/transfer, bill services, eKYC) inside a partner app.
 
-**Current version:** `0.8.2` (SDK 1.0.24, mini-app patch 0501). See the [release history](https://github.com/PayME-Miniapp/native-android/releases).
+**Current version:** `0.8.3` (SDK 1.0.24, mini-app patch 0501). See the [release history](https://github.com/PayME-Miniapp/native-android/releases).
 
 ## Contents
 
@@ -74,12 +74,12 @@ allprojects {
 
 ```groovy
 dependencies {
-    implementation 'com.github.PayME-Miniapp:native-android:0.8.2'
+    implementation 'com.github.PayME-Miniapp:native-android:0.8.3'
 }
 ```
 
 > [!WARNING]
-> Do not use `0.8.0`: the JitPack artifact for that tag was built from an older commit. `0.8.1` has the same API as `0.8.2`; use `0.8.2`.
+> Do not use `0.8.0`: the JitPack artifact for that tag was built from an older commit. `0.8.1` and `0.8.2` have the same API as `0.8.3`; use `0.8.3`.
 
 ## App configuration
 
@@ -443,7 +443,7 @@ Handle errors by `code`, not by `type`.
 | --- | --- | --- | --- |
 | `IDENTITY_TOKEN_REQUIRED` | `MiniApp` | Blank `identityToken` for a required action, `getBalance` or `getAccountInformation`. The mini-app is not opened | Get an `identityToken` from your server before calling |
 | `401` | `MiniApp` | Invalid or expired `identityToken` (or the session expired while in use). The mini-app closes (`isCloseMiniApp = true`); `getBalance`/`getAccountInformation` return the same code | Get a new `identityToken` on the server and open again |
-| `USER_CANCEL` | `UserCancel` or `MiniApp` | The user closed the mini-app. Closed with the in-app close button: `UserCancel`; modal dismissed by swipe or tap outside: `MiniApp` | Not an error; return to your app flow |
+| `USER_CANCEL` | `UserCancel` | The user closed the mini-app (in-app close button, or swiping/tapping outside the modal). Reported once per close | Not an error; return to the app flow |
 | `CONNECTION_LOST` | `Network` | No connection, device registration failed, or the response could not be decrypted | Ask the user to check the network and retry |
 | `TIMED_OUT` | `Network` | Server timeout | Retry |
 | `SERVER_ERROR` | `Network` | The server returned an HTTP error | Retry later |
@@ -463,7 +463,7 @@ Handle errors by `code`, not by `type`.
 
 | 0.7.x | 0.8.x |
 | --- | --- |
-| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.2'` |
+| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.3'` |
 | `OpenMiniAppOpenData(phone = ...)` and likewise for `KYC`, `Service`, `Deposit`, `Withdraw`, `Transfer`, `Payment`, `TransferQR` | `OpenMiniAppOpenData(identityToken = ...)` and likewise |
 | `OpenMiniAppPaymentDirectData(phone = ..., paymentDirectData = ...)` | `OpenMiniAppPaymentDirectData(identityToken = ..., paymentDirectData = ...)`, or omit `identityToken` (guest) |
 | `OpenMiniAppPayMEData()` | Unchanged |
@@ -476,7 +476,7 @@ What partners need to do: add a server-side call that obtains the `identityToken
 
 ## Mini-app OTA updates
 
-The SDK bundles a mini-app build (0.8.2: patch 0501) and can receive web patches over the air without an app release. Partners only need to pick the right [`setMode`](#setmode).
+The SDK bundles a mini-app build (0.8.3: patch 0501) and can receive web patches over the air without an app release. Partners only need to pick the right [`setMode`](#setmode).
 
 - The SDK reads the manifest at `https://static.payme.vn/frontend/miniapp-store/PayMEMiniAppVersion.json` and uses the entry for the current mode.
 - A patch is installed only if its manifest entry carries a valid PayME ECDSA P-256 signature, the download URL is on `https://static.payme.vn`, the size is at most 128 MB, and the downloaded file matches `size` and `sha256`. Otherwise the SDK keeps the current build.

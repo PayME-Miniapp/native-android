@@ -4,7 +4,7 @@
 
 Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp/rút/chuyển tiền, dịch vụ, eKYC) ngay trong ứng dụng của đối tác.
 
-**Phiên bản hiện tại:** `0.8.2` (SDK 1.0.24, mini-app patch 0501). Xem [lịch sử phiên bản](https://github.com/PayME-Miniapp/native-android/releases).
+**Phiên bản hiện tại:** `0.8.3` (SDK 1.0.24, mini-app patch 0501). Xem [lịch sử phiên bản](https://github.com/PayME-Miniapp/native-android/releases).
 
 ## Mục lục
 
@@ -74,12 +74,12 @@ allprojects {
 
 ```groovy
 dependencies {
-    implementation 'com.github.PayME-Miniapp:native-android:0.8.2'
+    implementation 'com.github.PayME-Miniapp:native-android:0.8.3'
 }
 ```
 
 > [!WARNING]
-> Không dùng `0.8.0`: bản này trên JitPack được build từ commit cũ. `0.8.1` có cùng API với `0.8.2`; nên dùng `0.8.2`.
+> Không dùng `0.8.0`: bản này trên JitPack được build từ commit cũ. `0.8.1`, `0.8.2` có cùng API với `0.8.3`; nên dùng `0.8.3`.
 
 ## Cấu hình ứng dụng
 
@@ -443,7 +443,7 @@ Nên xử lý theo `code`, không dựa vào `type`.
 | --- | --- | --- | --- |
 | `IDENTITY_TOKEN_REQUIRED` | `MiniApp` | `identityToken` rỗng ở action bắt buộc, `getBalance` hoặc `getAccountInformation`. Mini-app không được mở | Lấy `identityToken` từ server trước khi gọi |
 | `401` | `MiniApp` | `identityToken` sai hoặc hết hạn (hoặc phiên hết hạn khi đang dùng). Mini-app đóng (`isCloseMiniApp = true`); `getBalance`/`getAccountInformation` cũng trả mã này | Server lấy `identityToken` mới rồi mở lại |
-| `USER_CANCEL` | `UserCancel` hoặc `MiniApp` | Người dùng đóng mini-app. Đóng bằng nút trong mini-app: `UserCancel`; vuốt hoặc chạm ngoài để tắt modal: `MiniApp` | Không coi là lỗi; quay về luồng của app |
+| `USER_CANCEL` | `UserCancel` | Người dùng đóng mini-app (nút trong mini-app, vuốt hoặc chạm ngoài modal). Mỗi lần đóng chỉ báo một lần | Không coi là lỗi; quay về luồng của app |
 | `CONNECTION_LOST` | `Network` | Mất kết nối, đăng ký thiết bị thất bại hoặc không giải mã được phản hồi | Báo người dùng kiểm tra mạng, cho thử lại |
 | `TIMED_OUT` | `Network` | Quá thời gian chờ máy chủ | Cho thử lại |
 | `SERVER_ERROR` | `Network` | Máy chủ trả lỗi HTTP | Thử lại sau |
@@ -463,7 +463,7 @@ Nên xử lý theo `code`, không dựa vào `type`.
 
 | 0.7.x | 0.8.x |
 | --- | --- |
-| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.2'` |
+| `implementation '...:native-android:0.7.x'` | `implementation 'com.github.PayME-Miniapp:native-android:0.8.3'` |
 | `OpenMiniAppOpenData(phone = ...)` và tương tự cho `KYC`, `Service`, `Deposit`, `Withdraw`, `Transfer`, `Payment`, `TransferQR` | `OpenMiniAppOpenData(identityToken = ...)` và tương tự |
 | `OpenMiniAppPaymentDirectData(phone = ..., paymentDirectData = ...)` | `OpenMiniAppPaymentDirectData(identityToken = ..., paymentDirectData = ...)` hoặc bỏ `identityToken` (khách vãng lai) |
 | `OpenMiniAppPayMEData()` | Không đổi |
@@ -476,7 +476,7 @@ Việc cần làm phía đối tác: thêm API phía server để lấy `identit
 
 ## Cập nhật OTA mini-app
 
-SDK đóng gói sẵn một bản mini-app (0.8.2: patch 0501) và có thể nhận bản vá web qua OTA mà không cần phát hành lại app. Đối tác không cần làm gì thêm ngoài việc chọn đúng [`setMode`](#setmode).
+SDK đóng gói sẵn một bản mini-app (0.8.3: patch 0501) và có thể nhận bản vá web qua OTA mà không cần phát hành lại app. Đối tác không cần làm gì thêm ngoài việc chọn đúng [`setMode`](#setmode).
 
 - SDK đọc manifest tại `https://static.payme.vn/frontend/miniapp-store/PayMEMiniAppVersion.json` và lấy mục theo mode hiện tại.
 - Bản vá chỉ được cài khi mục trong manifest có chữ ký ECDSA P-256 hợp lệ của PayME, URL tải nằm trên `https://static.payme.vn`, kích thước không quá 128 MB, và file tải về đúng `size` và `sha256`. Nếu không, SDK giữ bản đang chạy.
