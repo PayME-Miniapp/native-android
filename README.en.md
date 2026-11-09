@@ -6,6 +6,8 @@ An Android library that opens the PayME Miniapp (wallet, payments, deposit, with
 
 Current version: **0.8.6** (SDK 1.0.24).
 
+> **Required upgrade if you use eKYC:** 0.8.0–0.8.5 crash with `NoSuchMethodError: extractCameraCharacteristics` when the eKYC camera opens (the SDK used CameraX 1.6, which the Kalapa eKYC library does not support). Upgrade to 0.8.6. If your app declares CameraX (`androidx.camera:*`) itself, use `1.5.x` (`1.5.3` recommended), not `1.6.x`.
+
 ## Contents
 
 1. [Requirements](#requirements)
