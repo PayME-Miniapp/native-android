@@ -4,7 +4,7 @@
 
 Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp, rút, chuyển tiền, dịch vụ, eKYC) trong ứng dụng của bạn.
 
-Phiên bản hiện tại: **0.8.5** (SDK 1.0.24).
+Phiên bản hiện tại: **0.8.6** (SDK 1.0.24).
 
 ## Mục lục
 
@@ -46,7 +46,7 @@ Phiên bản hiện tại: **0.8.5** (SDK 1.0.24).
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.8.5'
+       implementation 'com.github.PayME-Miniapp:native-android:0.8.6'
    }
    ```
 
@@ -307,7 +307,7 @@ Bản 0.8.x thay số điện thoại bằng `identityToken` và không tương 
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: tích hợp API `token-init` (liên hệ PayME).
-2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.8.5`.
+2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.8.6`.
 3. Thay mọi `phone = ...` bằng `identityToken = ...`.
 4. Xử lý lỗi `401` và `IDENTITY_TOKEN_REQUIRED`.
 
