@@ -112,7 +112,7 @@ class WalletActivity : AppCompatActivity() {
 `identityToken` là chuỗi PayME cấp cho từng người dùng của bạn. Ứng dụng truyền chuỗi này mỗi lần mở Miniapp.
 
 1. Ứng dụng gọi server của bạn.
-2. Server của bạn gọi API `identityToken/init` của PayME với thông tin người dùng (liên hệ PayME để nhận tài liệu API). Không gọi API này từ ứng dụng.
+2. Server của bạn gọi API `token-init` (`POST /be/ewallet/sdk/token-init`) của PayME với thông tin người dùng (liên hệ PayME để nhận tài liệu API). Không gọi API này từ ứng dụng.
 3. Ứng dụng truyền `identityToken` nhận được vào `OpenMiniApp*Data`, `getBalance` hoặc `getAccountInformation`.
 
 | Lớp dữ liệu / hàm | `identityToken` |
@@ -306,13 +306,13 @@ Bản 0.8.x thay số điện thoại bằng `identityToken` và không tương 
 | `getBalance(phone)` | `getBalance(identityToken)` |
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
-1. Server: tích hợp API `identityToken/init` (liên hệ PayME).
+1. Server: tích hợp API `token-init` (liên hệ PayME).
 2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.8.5`.
 3. Thay mọi `phone = ...` bằng `identityToken = ...`.
 4. Xử lý lỗi `401` và `IDENTITY_TOKEN_REQUIRED`.
 
 ## Hỗ trợ
 
-PayME Technology Corporation, email [hotro@payme.vn](mailto:hotro@payme.vn). Bộ key, tài liệu API `identityToken/init` và API tạo giao dịch `PAYMENT`: liên hệ PayME.
+PayME Technology Corporation, email [hotro@payme.vn](mailto:hotro@payme.vn). Bộ key, tài liệu API `token-init` và API tạo giao dịch `PAYMENT`: liên hệ PayME.
 
 Danh sách phiên bản: [GitHub Releases](https://github.com/PayME-Miniapp/native-android/releases). Ứng dụng mẫu: thư mục [`app`](app).
