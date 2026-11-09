@@ -117,7 +117,6 @@ class WalletActivity : AppCompatActivity() {
 
 | Lớp dữ liệu / hàm | `identityToken` |
 | --- | --- |
-| `OpenMiniAppPayMEData` (`PAYME`) | Không dùng (người dùng tự đăng nhập) |
 | `OpenMiniAppPaymentDirectData` (`PAYMENT`) | Tuỳ chọn. Có thì người dùng trả được bằng ví PayME; không có thì thanh toán như khách vãng lai (thẻ, QR) |
 | Các lớp còn lại, `getBalance`, `getAccountInformation` | Bắt buộc |
 
@@ -163,9 +162,8 @@ payME.openMiniApp(openType, openMiniAppData)
 | `OpenMiniAppTransferQRData` | `TRANSFER_QR` | Chuyển tiền tới tài khoản ngân hàng | `transferQRData`: [`TransferQRData`](#transferqrdata-transfer_qr) |
 | `OpenMiniAppServiceData` | `SERVICE` | Thanh toán dịch vụ (điện, nước, thẻ…) | `additionalData`: [`ServiceData`](#servicedata-service) |
 | `OpenMiniAppDepositData`, `OpenMiniAppWithdrawData`, `OpenMiniAppTransferData` | `DEPOSIT`, `WITHDRAW`, `TRANSFER` | Nạp, rút, chuyển tiền | `additionalData`: [`DepositWithdrawTransferData`](#depositwithdrawtransferdata-deposit-withdraw-transfer) |
-| `OpenMiniAppPayMEData()` | `PAYME` | Toàn bộ ví PayME, người dùng tự đăng nhập | Không có |
 
-Mọi lớp trừ `OpenMiniAppPayMEData` nhận `identityToken` làm tham số đầu tiên.
+Mọi lớp nhận `identityToken` làm tham số đầu tiên.
 
 ```kotlin
 payME.openMiniApp(

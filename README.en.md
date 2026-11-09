@@ -117,7 +117,6 @@ class WalletActivity : AppCompatActivity() {
 
 | Data class / function | `identityToken` |
 | --- | --- |
-| `OpenMiniAppPayMEData` (`PAYME`) | Not used (the user signs in) |
 | `OpenMiniAppPaymentDirectData` (`PAYMENT`) | Optional. With it, the user can pay with the PayME wallet; without it, the user pays as a guest (card, QR) |
 | All other classes, `getBalance`, `getAccountInformation` | Required |
 
@@ -163,9 +162,8 @@ payME.openMiniApp(openType, openMiniAppData)
 | `OpenMiniAppTransferQRData` | `TRANSFER_QR` | Transfer to a bank account | `transferQRData`: [`TransferQRData`](#transferqrdata-transfer_qr) |
 | `OpenMiniAppServiceData` | `SERVICE` | Pay for services (electricity, water, cards…) | `additionalData`: [`ServiceData`](#servicedata-service) |
 | `OpenMiniAppDepositData`, `OpenMiniAppWithdrawData`, `OpenMiniAppTransferData` | `DEPOSIT`, `WITHDRAW`, `TRANSFER` | Deposit, withdraw, transfer | `additionalData`: [`DepositWithdrawTransferData`](#depositwithdrawtransferdata-deposit-withdraw-transfer) |
-| `OpenMiniAppPayMEData()` | `PAYME` | Full PayME wallet, the user signs in | None |
 
-Every class except `OpenMiniAppPayMEData` takes `identityToken` as its first parameter.
+Every class takes `identityToken` as its first parameter.
 
 ```kotlin
 payME.openMiniApp(
