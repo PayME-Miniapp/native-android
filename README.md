@@ -65,15 +65,15 @@ Không cần khai báo quyền. Các quyền cần thiết đã có sẵn trong 
       tools:replace="android:required" />
   ```
 
-- Nếu ứng dụng có `networkSecurityConfig` riêng, file đó phải cho phép cleartext tới `localhost` (Miniapp chạy trên `http://localhost`):
+- SDK khai báo `networkSecurityConfig` chỉ cho phép cleartext tới `localhost` (Miniapp chạy trên `http://localhost`), nên `android:usesCleartextTraffic` của ứng dụng không còn tác dụng. Nếu ứng dụng có `networkSecurityConfig` riêng: thêm `tools:replace="android:networkSecurityConfig"` vào `<application>` và cho phép cleartext tới `localhost` trong file của bạn:
 
   ```xml
   <domain-config cleartextTrafficPermitted="true">
-      <domain includeSubdomains="true">localhost</domain>
+      <domain>localhost</domain>
   </domain-config>
   ```
 
-- Manifest merger báo xung đột thuộc tính `<application>` (`networkSecurityConfig`, `dataExtractionRules`, `fullBackupContent`, `requestLegacyExternalStorage`, `supportsRtl`): thêm `tools:replace` cho thuộc tính đó.
+- React Native: bản debug trên emulator tải JS bundle từ `10.0.2.2`. Thêm file chỉ cho debug `android/app/src/debug/res/xml/payme_miniapp_network_security_config.xml` cho phép thêm cleartext tới `10.0.2.2`.
 - SDK gửi sự kiện telemetry (đã lọc dữ liệu nhạy cảm) lên Mixpanel. Lưu ý khi khai báo Data safety trên Google Play.
 
 ## Bắt đầu nhanh

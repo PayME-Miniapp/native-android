@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Web Miniapp chạy trên http://localhost (WebView của SDK): chỉ cho phép cleartext tới localhost. -->
 <network-security-config>
-    <!-- Allow cleartext traffic for local development domains -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">vula.mecorp.local</domain>
+        <domain includeSubdomains="false">localhost</domain>
     </domain-config>
-
-    <!-- Default: Disable cleartext traffic for everything else (Required for API 37) -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />

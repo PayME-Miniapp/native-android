@@ -65,15 +65,15 @@ No permissions to declare. The required permissions are already in the SDK, and 
       tools:replace="android:required" />
   ```
 
-- If your app has its own `networkSecurityConfig`, it must allow cleartext to `localhost` (the Miniapp runs on `http://localhost`):
+- The SDK sets `networkSecurityConfig` that only allows cleartext to `localhost` (the Miniapp runs on `http://localhost`), so `android:usesCleartextTraffic` in your app no longer applies. If your app has its own `networkSecurityConfig`, add `tools:replace="android:networkSecurityConfig"` to `<application>` and allow cleartext to `localhost` in your file:
 
   ```xml
   <domain-config cleartextTrafficPermitted="true">
-      <domain includeSubdomains="true">localhost</domain>
+      <domain>localhost</domain>
   </domain-config>
   ```
 
-- If the manifest merger reports a conflict on an `<application>` attribute (`networkSecurityConfig`, `dataExtractionRules`, `fullBackupContent`, `requestLegacyExternalStorage`, `supportsRtl`), add `tools:replace` for that attribute.
+- React Native: the debug build on an emulator loads the JS bundle from `10.0.2.2`. Add a debug-only `android/app/src/debug/res/xml/payme_miniapp_network_security_config.xml` that also allows cleartext to `10.0.2.2`.
 - The SDK sends telemetry events (sensitive data filtered) to Mixpanel. Keep this in mind for the Data safety form on Google Play.
 
 ## Quick start

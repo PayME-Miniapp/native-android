@@ -19,7 +19,12 @@
   <uses-feature android:name="android.hardware.NFC" android:required="false" />
   <uses-feature android:name="android.hardware.nfc" android:required="false" />
 
-  <application android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:requestLegacyExternalStorage="true" android:supportsRtl="true" android:networkSecurityConfig="@xml/network_security_config" tools:targetApi="31">
+  <!--
+    SDK chỉ khai báo networkSecurityConfig: web Miniapp chạy trên http://localhost nên cần cleartext tới localhost.
+    Không đặt thuộc tính <application> khác (backup, storage, RTL...) để không đè cấu hình của ứng dụng.
+    Ứng dụng có networkSecurityConfig riêng: tools:replace và cho phép cleartext tới localhost (xem README).
+  -->
+  <application android:networkSecurityConfig="@xml/payme_miniapp_network_security_config">
     <activity android:name=".ui.MiniAppActivity" android:exported="false" android:theme="@style/AppTheme" android:screenOrientation="portrait" android:windowSoftInputMode="stateHidden" />
     <activity android:name=".ui.FaceDetectorActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
     <activity android:name=".ui.FaceAuthenticationActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/CameraActivityTheme" android:windowSoftInputMode="stateHidden" />
