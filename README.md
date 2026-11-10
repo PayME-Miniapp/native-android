@@ -4,9 +4,9 @@
 
 Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp, rút, chuyển tiền, dịch vụ, eKYC) trong ứng dụng của bạn.
 
-Phiên bản hiện tại: **0.8.6** (SDK 1.0.24).
+Phiên bản hiện tại: **0.8.7** (SDK 1.0.24).
 
-> **Bắt buộc nâng nếu dùng eKYC:** 0.8.0–0.8.5 gây crash `NoSuchMethodError: extractCameraCharacteristics` khi mở camera eKYC (SDK dùng CameraX 1.6, không tương thích thư viện eKYC Kalapa). Nâng lên 0.8.6. Nếu ứng dụng tự khai báo CameraX (`androidx.camera:*`), dùng bản `1.5.x` (khuyến nghị `1.5.3`), không dùng `1.6.x`.
+> **Bắt buộc nâng nếu dùng eKYC:** 0.8.0–0.8.5 gây crash `NoSuchMethodError: extractCameraCharacteristics` khi mở camera eKYC (SDK dùng CameraX 1.6, không tương thích thư viện eKYC Kalapa). Nâng lên 0.8.6 trở lên. Nếu ứng dụng tự khai báo CameraX (`androidx.camera:*`), dùng bản `1.5.x` (khuyến nghị `1.5.3`), không dùng `1.6.x`.
 
 ## Mục lục
 
@@ -48,7 +48,7 @@ Phiên bản hiện tại: **0.8.6** (SDK 1.0.24).
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.8.6'
+       implementation 'com.github.PayME-Miniapp:native-android:0.8.7'
    }
    ```
 
@@ -309,7 +309,7 @@ Bản 0.8.x thay số điện thoại bằng `identityToken` và không tương 
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: tích hợp API `token-init` (liên hệ PayME).
-2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.8.6`.
+2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.8.7`.
 3. Thay mọi `phone = ...` bằng `identityToken = ...`.
 4. Xử lý lỗi `401` và `IDENTITY_TOKEN_REQUIRED`.
 

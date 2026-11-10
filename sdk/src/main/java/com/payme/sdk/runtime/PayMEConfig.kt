@@ -31,8 +31,15 @@ internal data class PayMEConfig(
             )
         }
 
-        private fun sanitizeKey(value: String): String {
-            return value.trim().replace("  ", "").replace("\n", "")
+        // Bỏ xuống dòng thật lẫn "\n"/"\r" dạng chữ (dấu "\" và chữ "n"): partner viết khóa trong chuỗi raw
+        // ("""...\n...""") thì "\n" là chữ; để nguyên, web báo "Invalid PEM formatted message".
+        internal fun sanitizeKey(value: String): String {
+            return value.trim()
+                .replace("\\r", "")
+                .replace("\\n", "")
+                .replace("  ", "")
+                .replace("\r", "")
+                .replace("\n", "")
         }
     }
 }

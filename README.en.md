@@ -4,9 +4,9 @@
 
 An Android library that opens the PayME Miniapp (wallet, payments, deposit, withdraw, transfer, services, eKYC) inside your app.
 
-Current version: **0.8.6** (SDK 1.0.24).
+Current version: **0.8.7** (SDK 1.0.24).
 
-> **Required upgrade if you use eKYC:** 0.8.0–0.8.5 crash with `NoSuchMethodError: extractCameraCharacteristics` when the eKYC camera opens (the SDK used CameraX 1.6, which the Kalapa eKYC library does not support). Upgrade to 0.8.6. If your app declares CameraX (`androidx.camera:*`) itself, use `1.5.x` (`1.5.3` recommended), not `1.6.x`.
+> **Required upgrade if you use eKYC:** 0.8.0–0.8.5 crash with `NoSuchMethodError: extractCameraCharacteristics` when the eKYC camera opens (the SDK used CameraX 1.6, which the Kalapa eKYC library does not support). Upgrade to 0.8.6 or later. If your app declares CameraX (`androidx.camera:*`) itself, use `1.5.x` (`1.5.3` recommended), not `1.6.x`.
 
 ## Contents
 
@@ -48,7 +48,7 @@ Current version: **0.8.6** (SDK 1.0.24).
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.8.6'
+       implementation 'com.github.PayME-Miniapp:native-android:0.8.7'
    }
    ```
 
@@ -309,7 +309,7 @@ Handle errors by `error.code`.
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: integrate the `token-init` API (contact PayME).
-2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.8.6`.
+2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.8.7`.
 3. Replace every `phone = ...` with `identityToken = ...`.
 4. Handle the `401` and `IDENTITY_TOKEN_REQUIRED` errors.
 
