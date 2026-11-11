@@ -130,6 +130,28 @@ class IdentityTokenTest {
     }
 
     @Test
+    fun registerDeviceRequestSendsIdentityToken() {
+        val params = AccountPresentation.registerDeviceParams(token, "dummy-device", "0.8.7", "87")
+        assertEquals(
+            mapOf(
+                "deviceId" to "dummy-device",
+                "platform" to "ANDROID_V2",
+                "channel" to "channel",
+                "version" to "0.8.7",
+                "buildNumber" to "87",
+                "identityToken" to token
+            ),
+            params
+        )
+    }
+
+    @Test
+    fun balanceRequestSendsIdentityToken() {
+        val params = AccountPresentation.balanceParams(token, "dummy-device")
+        assertEquals(mapOf("clientId" to "dummy-device", "identityToken" to token), params)
+    }
+
+    @Test
     fun toStringNeverPrintsIdentityToken() {
         withToken().forEach { data ->
             val printed = data.toString()
