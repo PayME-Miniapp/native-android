@@ -4,7 +4,7 @@
 
 An Android library that opens the PayME Miniapp (wallet, payments, deposit, withdraw, transfer, services, eKYC) inside your app.
 
-Current version: **0.8.7** (SDK 1.0.24).
+Current version: **0.9.0** (SDK 1.0.24).
 
 > **Required upgrade if you use eKYC:** 0.8.0–0.8.5 crash with `NoSuchMethodError: extractCameraCharacteristics` when the eKYC camera opens (the SDK used CameraX 1.6, which the Kalapa eKYC library does not support). Upgrade to 0.8.6 or later. If your app declares CameraX (`androidx.camera:*`) itself, use `1.5.x` (`1.5.3` recommended), not `1.6.x`.
 
@@ -17,8 +17,9 @@ Current version: **0.8.7** (SDK 1.0.24).
 5. [identityToken](#identitytoken)
 6. [API](#api)
 7. [Error codes](#error-codes)
-8. [Upgrading from 0.7.x](#upgrading-from-07x)
-9. [Support](#support)
+8. [Upgrading to 0.9.0](#upgrading-to-090)
+9. [Upgrading from 0.7.x](#upgrading-from-07x)
+10. [Support](#support)
 
 ## Requirements
 
@@ -27,8 +28,7 @@ Current version: **0.8.7** (SDK 1.0.24).
 - Kotlin 2.1 or higher (if your app uses Kotlin).
 - Opening as `modal` requires the Activity to be a `FragmentActivity` (for example `AppCompatActivity`).
 - Android System WebView with `WEB_MESSAGE_LISTENER` support. On a WebView that is too old, the Miniapp returns `UNSUPPORTED_WEBVIEW`.
-- The `appId`, `publicKey`, `privateKey` key set issued by PayME.
-- Your server can call PayME's `identityToken` API.
+- Your server can call PayME's `identityToken` API (with the key set PayME issues for your server).
 
 ## Installation
 
@@ -48,7 +48,7 @@ Current version: **0.8.7** (SDK 1.0.24).
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.8.7'
+       implementation 'com.github.PayME-Miniapp:native-android:0.9.0'
    }
    ```
 
@@ -92,7 +92,7 @@ class WalletActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        payME = PayMEMiniApp(this, "<APP_ID>", "<PUBLIC_KEY>", "<PRIVATE_KEY>", ENV.SANDBOX, Locale.vi)
+        payME = PayMEMiniApp(this, ENV.SANDBOX, Locale.vi)
         payME.setMode("miniapp_sandbox") // only with ENV.SANDBOX
         payME.setUpListener(
             onResponse = { action, data -> Log.d("PayME", "onResponse $action") },
@@ -107,7 +107,7 @@ class WalletActivity : AppCompatActivity() {
 }
 ```
 
-> Do not put real keys in public source code. Do not log `identityToken`, `publicKey` or `privateKey`.
+> Do not log `identityToken`.
 
 ## identityToken
 
@@ -133,19 +133,18 @@ Main class `com.payme.sdk.PayMEMiniApp`; models and enums are in `com.payme.sdk.
 ### Initialization
 
 ```kotlin
-PayMEMiniApp(context, appId, publicKey, privateKey, env = ENV.PRODUCTION, locale = Locale.vi)
+PayMEMiniApp(context, env = ENV.PRODUCTION, locale = Locale.vi)
 ```
 
 | Parameter | Description |
 | --- | --- |
 | `context` | Pass an `Activity`. Opening as `modal` requires a `FragmentActivity` |
-| `appId` | App ID issued by PayME |
-| `publicKey` | PayME's public key |
-| `privateKey` | Your app's private key |
 | `env` | `ENV.PRODUCTION` (default) or `ENV.SANDBOX` |
 | `locale` | `Locale.vi` (default) or `Locale.en` (`com.payme.sdk.models.Locale`, not `java.util.Locale`) |
 
 With `ENV.SANDBOX`, also call `setMode("miniapp_sandbox")`. Production does not need it.
+
+Your app does not pass any key: the SDK has it built in.
 
 ### openMiniApp
 
@@ -297,6 +296,10 @@ Handle errors by `error.code`.
 | `MINIAPP_CANNOT_PRESENT` | The Miniapp cannot be shown (for example `modal` with a `context` that is not a `FragmentActivity`) | Pass a visible `FragmentActivity`, call while the app is in the foreground |
 | Other codes | Network, server or business errors | Show `description`, retry; contact PayME if it keeps happening |
 
+## Upgrading to 0.9.0
+
+Remove `appId`, `publicKey`, `privateKey` from the constructor: `PayMEMiniApp(context, env, locale)`. The old constructor still works (deprecated) and ignores the keys.
+
 ## Upgrading from 0.7.x
 
 0.8.x replaces the phone number with `identityToken` and is not backward compatible.
@@ -309,12 +312,12 @@ Handle errors by `error.code`.
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: integrate the `token-init` API (contact PayME).
-2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.8.7`.
+2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.9.0`.
 3. Replace every `phone = ...` with `identityToken = ...`.
 4. Handle the `401` and `IDENTITY_TOKEN_REQUIRED` errors.
 
 ## Support
 
-PayME Technology Corporation, email [hotro@payme.vn](mailto:hotro@payme.vn). For the key set, the `token-init` API docs and the `PAYMENT` transaction creation API, contact PayME.
+PayME Technology Corporation, email [hotro@payme.vn](mailto:hotro@payme.vn). For the server key set, the `token-init` API docs and the `PAYMENT` transaction creation API, contact PayME.
 
 Versions: [GitHub Releases](https://github.com/PayME-Miniapp/native-android/releases). Sample app: the [`app`](app) folder.

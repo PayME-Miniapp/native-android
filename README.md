@@ -4,7 +4,7 @@
 
 Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp, rút, chuyển tiền, dịch vụ, eKYC) trong ứng dụng của bạn.
 
-Phiên bản hiện tại: **0.8.7** (SDK 1.0.24).
+Phiên bản hiện tại: **0.9.0** (SDK 1.0.24).
 
 > **Bắt buộc nâng nếu dùng eKYC:** 0.8.0–0.8.5 gây crash `NoSuchMethodError: extractCameraCharacteristics` khi mở camera eKYC (SDK dùng CameraX 1.6, không tương thích thư viện eKYC Kalapa). Nâng lên 0.8.6 trở lên. Nếu ứng dụng tự khai báo CameraX (`androidx.camera:*`), dùng bản `1.5.x` (khuyến nghị `1.5.3`), không dùng `1.6.x`.
 
@@ -17,8 +17,9 @@ Phiên bản hiện tại: **0.8.7** (SDK 1.0.24).
 5. [identityToken](#identitytoken)
 6. [API](#api)
 7. [Mã lỗi](#mã-lỗi)
-8. [Nâng cấp từ 0.7.x](#nâng-cấp-từ-07x)
-9. [Hỗ trợ](#hỗ-trợ)
+8. [Nâng cấp lên 0.9.0](#nâng-cấp-lên-090)
+9. [Nâng cấp từ 0.7.x](#nâng-cấp-từ-07x)
+10. [Hỗ trợ](#hỗ-trợ)
 
 ## Yêu cầu
 
@@ -27,8 +28,7 @@ Phiên bản hiện tại: **0.8.7** (SDK 1.0.24).
 - Kotlin 2.1 trở lên (nếu ứng dụng viết bằng Kotlin).
 - Mở dạng `modal` cần Activity là `FragmentActivity` (ví dụ `AppCompatActivity`).
 - Android System WebView hỗ trợ `WEB_MESSAGE_LISTENER`. WebView quá cũ thì Miniapp trả lỗi `UNSUPPORTED_WEBVIEW`.
-- Bộ key `appId`, `publicKey`, `privateKey` do PayME cấp.
-- Server của bạn gọi được API cấp `identityToken` của PayME.
+- Server của bạn gọi được API cấp `identityToken` của PayME (bằng bộ key PayME cấp cho server).
 
 ## Cài đặt
 
@@ -48,7 +48,7 @@ Phiên bản hiện tại: **0.8.7** (SDK 1.0.24).
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.8.7'
+       implementation 'com.github.PayME-Miniapp:native-android:0.9.0'
    }
    ```
 
@@ -92,7 +92,7 @@ class WalletActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        payME = PayMEMiniApp(this, "<APP_ID>", "<PUBLIC_KEY>", "<PRIVATE_KEY>", ENV.SANDBOX, Locale.vi)
+        payME = PayMEMiniApp(this, ENV.SANDBOX, Locale.vi)
         payME.setMode("miniapp_sandbox") // chỉ khi dùng ENV.SANDBOX
         payME.setUpListener(
             onResponse = { action, data -> Log.d("PayME", "onResponse $action") },
@@ -107,7 +107,7 @@ class WalletActivity : AppCompatActivity() {
 }
 ```
 
-> Không đưa key thật vào mã nguồn công khai. Không ghi log `identityToken`, `publicKey`, `privateKey`.
+> Không ghi log `identityToken`.
 
 ## identityToken
 
@@ -133,19 +133,18 @@ Lớp chính `com.payme.sdk.PayMEMiniApp`; model và enum nằm trong `com.payme
 ### Khởi tạo
 
 ```kotlin
-PayMEMiniApp(context, appId, publicKey, privateKey, env = ENV.PRODUCTION, locale = Locale.vi)
+PayMEMiniApp(context, env = ENV.PRODUCTION, locale = Locale.vi)
 ```
 
 | Tham số | Mô tả |
 | --- | --- |
 | `context` | Nên truyền `Activity`. Mở dạng `modal` cần `FragmentActivity` |
-| `appId` | Mã ứng dụng do PayME cấp |
-| `publicKey` | Public key của PayME |
-| `privateKey` | Private key của ứng dụng |
 | `env` | `ENV.PRODUCTION` (mặc định) hoặc `ENV.SANDBOX` |
 | `locale` | `Locale.vi` (mặc định) hoặc `Locale.en` (`com.payme.sdk.models.Locale`, không phải `java.util.Locale`) |
 
 Với `ENV.SANDBOX`, gọi thêm `setMode("miniapp_sandbox")`. Môi trường production không cần gọi.
+
+Ứng dụng không cần truyền key: SDK đã có sẵn.
 
 ### openMiniApp
 
@@ -297,6 +296,10 @@ Xử lý theo `error.code`.
 | `MINIAPP_CANNOT_PRESENT` | Không hiển thị được Miniapp (ví dụ mở `modal` mà `context` không phải `FragmentActivity`) | Truyền `FragmentActivity` đang hiển thị, gọi khi ứng dụng ở foreground |
 | Mã khác | Lỗi mạng, máy chủ hoặc nghiệp vụ | Hiển thị `description`, thử lại; liên hệ PayME nếu lặp lại |
 
+## Nâng cấp lên 0.9.0
+
+Bỏ `appId`, `publicKey`, `privateKey` khỏi hàm khởi tạo: `PayMEMiniApp(context, env, locale)`. Hàm khởi tạo cũ vẫn chạy (deprecated) và bỏ qua key truyền vào.
+
 ## Nâng cấp từ 0.7.x
 
 Bản 0.8.x thay số điện thoại bằng `identityToken` và không tương thích ngược.
@@ -309,12 +312,12 @@ Bản 0.8.x thay số điện thoại bằng `identityToken` và không tương 
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: tích hợp API `token-init` (liên hệ PayME).
-2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.8.7`.
+2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.9.0`.
 3. Thay mọi `phone = ...` bằng `identityToken = ...`.
 4. Xử lý lỗi `401` và `IDENTITY_TOKEN_REQUIRED`.
 
 ## Hỗ trợ
 
-PayME Technology Corporation, email [hotro@payme.vn](mailto:hotro@payme.vn). Bộ key, tài liệu API `token-init` và API tạo giao dịch `PAYMENT`: liên hệ PayME.
+PayME Technology Corporation, email [hotro@payme.vn](mailto:hotro@payme.vn). Bộ key cho server, tài liệu API `token-init` và API tạo giao dịch `PAYMENT`: liên hệ PayME.
 
 Danh sách phiên bản: [GitHub Releases](https://github.com/PayME-Miniapp/native-android/releases). Ứng dụng mẫu: thư mục [`app`](app).
