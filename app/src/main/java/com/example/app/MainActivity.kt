@@ -39,57 +39,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var payMEMiniApp: PayMEMiniApp
     private lateinit var statusText: TextView
     private lateinit var identityTokenInput: EditText
-    private lateinit var currentCredential: ExampleCredential
-    private var currentCredentialIndex: Int = DEFAULT_CREDENTIAL_INDEX
-    private var currentEnv: ENV = ENV.PRODUCTION
+    private var currentEnv: ENV = ENV.SANDBOX
     private var currentLocale: Locale = Locale.vi
-
-    private data class ExampleCredential(
-        val label: String,
-        val appId: String,
-        val publicKey: String,
-        val privateKey: String,
-        val defaultEnv: ENV
-    )
 
     companion object {
         private const val PREF_NAME = "PAYME_WALLET"
-        private const val PREF_CREDENTIAL_INDEX = "PAYME_WALLET_CREDENTIAL_INDEX"
         private const val PREF_ENV = "PAYME_WALLET_ENV"
         private const val PREF_LOCALE = "PAYME_WALLET_LOCALE"
-        private const val DEFAULT_CREDENTIAL_INDEX = 1
         private const val SAMPLE_BANK_NUMBER = "9704000000000018"
         private const val SAMPLE_SWIFT_CODE = "SBITVNVX"
-        private val CREDENTIAL_PRESETS = listOf(
-            ExampleCredential(
-                label = "SANDBOX ecosystem 250069027220",
-                appId = BuildConfig.PAYME_PRESET_0_APP_ID,
-                publicKey = BuildConfig.PAYME_PRESET_0_PUBLIC_KEY,
-                privateKey = BuildConfig.PAYME_PRESET_0_PRIVATE_KEY,
-                defaultEnv = ENV.SANDBOX
-            ),
-            ExampleCredential(
-                label = "SANDBOX partner 143090043042",
-                appId = BuildConfig.PAYME_PRESET_1_APP_ID,
-                publicKey = BuildConfig.PAYME_PRESET_1_PUBLIC_KEY,
-                privateKey = BuildConfig.PAYME_PRESET_1_PRIVATE_KEY,
-                defaultEnv = ENV.SANDBOX
-            ),
-            ExampleCredential(
-                label = "STAGING ecosystem 264245066910",
-                appId = BuildConfig.PAYME_PRESET_2_APP_ID,
-                publicKey = BuildConfig.PAYME_PRESET_2_PUBLIC_KEY,
-                privateKey = BuildConfig.PAYME_PRESET_2_PRIVATE_KEY,
-                defaultEnv = ENV.STAGING
-            ),
-            ExampleCredential(
-                label = "SANDBOX app",
-                appId = BuildConfig.PAYME_PRESET_3_APP_ID,
-                publicKey = BuildConfig.PAYME_PRESET_3_PUBLIC_KEY,
-                privateKey = BuildConfig.PAYME_PRESET_3_PRIVATE_KEY,
-                defaultEnv = ENV.SANDBOX
-            )
-        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,37 +57,10 @@ class MainActivity : AppCompatActivity() {
         identityTokenInput = findViewById(R.id.identity_token)
 
         val sharedPreference = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        val hasSavedCredential = sharedPreference.contains(PREF_CREDENTIAL_INDEX)
-        currentCredentialIndex = normalizeCredentialIndex(
-            sharedPreference.getInt(PREF_CREDENTIAL_INDEX, DEFAULT_CREDENTIAL_INDEX)
-        )
-        currentCredential = CREDENTIAL_PRESETS[currentCredentialIndex]
-        currentEnv = if (hasSavedCredential) {
-            parseEnv(sharedPreference.getString(PREF_ENV, currentCredential.defaultEnv.name))
-        } else {
-            currentCredential.defaultEnv
-        }
+        currentEnv = parseEnv(sharedPreference.getString(PREF_ENV, ENV.SANDBOX.name))
         currentLocale = parseLocale(sharedPreference.getString(PREF_LOCALE, Locale.vi.name))
-        if (!hasSavedCredential) {
-            sharedPreference.edit {
-                putInt(PREF_CREDENTIAL_INDEX, currentCredentialIndex)
-                putString(PREF_ENV, currentEnv.name)
-            }
-        }
 
-        if (!hasDemoCredentials(currentCredential.appId, currentCredential.publicKey, currentCredential.privateKey)) {
-            showStatus("Configure demo credentials in local.properties before opening the SDK")
-            return
-        }
-
-        payMEMiniApp = PayMEMiniApp(
-            this,
-            currentCredential.appId,
-            currentCredential.publicKey,
-            currentCredential.privateKey,
-            currentEnv,
-            currentLocale
-        )
+        payMEMiniApp = PayMEMiniApp(this, currentEnv, currentLocale)
 
         configurePayME(sharedPreference)
         bindActions(sharedPreference)
@@ -287,15 +218,6 @@ class MainActivity : AppCompatActivity() {
             payMEMiniApp.setLanguage(currentLocale)
             showStatus("Locale set: ${currentLocale.name}")
         }
-        findViewById<Button>(R.id.switch_credentials).setOnClickListener {
-            val nextIndex = nextCredentialIndex(currentCredentialIndex)
-            val nextCredential = CREDENTIAL_PRESETS[nextIndex]
-            sharedPreference.edit {
-                putInt(PREF_CREDENTIAL_INDEX, nextIndex)
-                putString(PREF_ENV, nextCredential.defaultEnv.name)
-            }
-            recreate()
-        }
         findViewById<Button>(R.id.switch_env).setOnClickListener {
             currentEnv = nextEnv(currentEnv)
             sharedPreference.edit { putString(PREF_ENV, currentEnv.name) }
@@ -410,17 +332,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun normalizeCredentialIndex(index: Int): Int {
-        return if (index in CREDENTIAL_PRESETS.indices) index else DEFAULT_CREDENTIAL_INDEX
-    }
-
-    private fun nextCredentialIndex(index: Int): Int {
-        return (normalizeCredentialIndex(index) + 1) % CREDENTIAL_PRESETS.size
-    }
-
     private fun readyStatus(): String {
-        return "Ready: credential=${currentCredential.label}, appId=${currentCredential.appId}, " +
-            "env=${currentEnv.name}, locale=${currentLocale.name}, mode=${modeFor(currentEnv)}"
+        return "Ready: env=${currentEnv.name}, locale=${currentLocale.name}, mode=${modeFor(currentEnv)}"
     }
 
     private fun showStatus(message: String) {

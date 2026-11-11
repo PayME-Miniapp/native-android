@@ -37,7 +37,7 @@ class ReopenInCallbackTest {
     fun setUp() {
         // Lớp test khác có thể để lại phiên trong PayMERuntime (static)
         while (true) PayMERuntime.removeSession(PayMERuntime.activeSession()?.id ?: break)
-        sdk = PayMEMiniApp(context, "app", "pub", "priv", ENV.SANDBOX, Locale.en)
+        sdk = PayMEMiniApp(context, ENV.SANDBOX, Locale.en)
         sdk.setUpListener(onError = { _, error -> errors.add(error) })
         sdk.openMiniApp(OpenMiniAppType.screen, OpenMiniAppPayMEData())
         old = PayMERuntime.activeSession()!!

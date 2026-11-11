@@ -15,6 +15,9 @@ internal data class PayMEConfig(
     val buildNumber: Int = BuildConfig.BUILD_NUMBER
 ) {
     companion object {
+        fun create(env: ENV, locale: Locale): PayMEConfig =
+            create(EmbeddedAppKey.APP_ID, EmbeddedAppKey.publicKey, EmbeddedAppKey.privateKey, env, locale)
+
         fun create(
             appId: String,
             publicKey: String,

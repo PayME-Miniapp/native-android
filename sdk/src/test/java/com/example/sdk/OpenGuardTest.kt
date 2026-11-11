@@ -32,7 +32,7 @@ class OpenGuardTest {
 
     @Before
     fun setUp() {
-        sdk = PayMEMiniApp(plainContext, "app", "pub", "priv", ENV.SANDBOX, Locale.en)
+        sdk = PayMEMiniApp(plainContext, ENV.SANDBOX, Locale.en)
         sdk.setUpListener(onError = { _, error -> errors.add(error) })
     }
 

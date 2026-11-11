@@ -17,14 +17,27 @@ import com.payme.sdk.utils.SdkLocale
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 
+/** SDK dùng sẵn bộ key "app" của PayME; đối tác xác thực người dùng bằng identityToken. */
 class PayMEMiniApp(
     private val context: Context,
-    appId: String,
-    publicKey: String,
-    privateKey: String,
     env: ENV = ENV.PRODUCTION,
     locale: Locale = Locale.vi
 ) {
+    /** [appId], [publicKey], [privateKey] không còn dùng: SDK luôn dùng bộ key "app" có sẵn. */
+    @Deprecated(
+        "Dùng PayMEMiniApp(context, env, locale). SDK đã có sẵn key, appId/publicKey/privateKey bị bỏ qua.",
+        ReplaceWith("PayMEMiniApp(context, env, locale)")
+    )
+    @Suppress("UNUSED_PARAMETER")
+    constructor(
+        context: Context,
+        appId: String,
+        publicKey: String,
+        privateKey: String,
+        env: ENV = ENV.PRODUCTION,
+        locale: Locale = Locale.vi
+    ) : this(context, env, locale)
+
     private var activeSessionId: String? = null
 
     companion object {
@@ -51,7 +64,7 @@ class PayMEMiniApp(
     }
 
     init {
-        val config = PayMEConfig.create(appId, publicKey, privateKey, env, locale)
+        val config = PayMEConfig.create(env, locale)
         PayMERuntime.initialize(config)
         syncLegacyConfig(config)
         MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
