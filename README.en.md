@@ -273,8 +273,31 @@ payME.setUpListener(
 
 | Event | Payload | When |
 | --- | --- | --- |
-| `onResponse` | `action`, `JSONObject?` | A transaction succeeds, or a `getBalance` / `getAccountInformation` result arrives |
+| `onResponse` | `action`, `JSONObject?` | A transaction result is available (check `state` below), or a `getBalance` / `getAccountInformation` result arrives |
 | `onError` | `action`, `PayMEError` (`code`, `description`, `isCloseMiniApp`) | An error occurs or the user closes the Miniapp |
+
+**Transaction results.** For `PAY`, `PAYMENT`, `TRANSFER_QR`, `SERVICE`, `DEPOSIT`, `WITHDRAW` and `TRANSFER`, the Miniapp sends `onResponse` when the user leaves the result screen, **whatever the transaction state**, not only on success. Always check `state`, and confirm on your server (via `ipnUrl` or a lookup API) before you deliver:
+
+| Field | Meaning |
+| --- | --- |
+| `state` | `SUCCEEDED` succeeded · `PENDING` still processing (check again later) · `FAILED` failed |
+| `transaction` | PayME transaction id |
+| `partnerTransaction` | Your transaction id (the value you passed when opening) |
+| `amount`, `amountText` | Amount (integer VND) and the formatted string |
+| `method`, `createdAt` | Payment method, creation time |
+| `extraData` | Your own data, as passed |
+
+The Miniapp also sends `onResponse` with action `GET_BALANCE` on its own when the balance changes (not from your `getBalance` call).
+
+```kotlin
+onResponse = { action, data ->
+    if (action == ActionOpenMiniApp.PAY) when (data?.optString("state")) {
+        "SUCCEEDED" -> { /* paid */ }
+        "PENDING" -> { /* processing: check on your server */ }
+        else -> { /* failed */ }
+    }
+}
+```
 
 - The listener is shared by all `PayMEMiniApp` instances; calling it again replaces the previous listener.
 - If the `onResponse` data has `"isCloseMiniApp": true`, the SDK closes the Miniapp after the callback.

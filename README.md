@@ -273,8 +273,31 @@ payME.setUpListener(
 
 | Sự kiện | Nội dung | Khi nào |
 | --- | --- | --- |
-| `onResponse` | `action`, `JSONObject?` | Giao dịch thành công, hoặc có kết quả `getBalance` / `getAccountInformation` |
+| `onResponse` | `action`, `JSONObject?` | Có kết quả giao dịch (xem `state` bên dưới), hoặc có kết quả `getBalance` / `getAccountInformation` |
 | `onError` | `action`, `PayMEError` (`code`, `description`, `isCloseMiniApp`) | Có lỗi hoặc người dùng đóng Miniapp |
+
+**Kết quả giao dịch.** Với `PAY`, `PAYMENT`, `TRANSFER_QR`, `SERVICE`, `DEPOSIT`, `WITHDRAW`, `TRANSFER`, Miniapp gửi `onResponse` khi người dùng rời màn kết quả, **ở mọi trạng thái giao dịch**, không chỉ khi thành công. Luôn kiểm tra `state`, và đối chiếu trên server (qua `ipnUrl` hoặc API tra cứu) trước khi giao hàng:
+
+| Trường | Ý nghĩa |
+| --- | --- |
+| `state` | `SUCCEEDED` thành công · `PENDING` đang xử lý (tra lại sau) · `FAILED` thất bại |
+| `transaction` | Mã giao dịch PayME |
+| `partnerTransaction` | Mã giao dịch của bạn (giá trị đã truyền khi mở) |
+| `amount`, `amountText` | Số tiền (số nguyên VND) và chuỗi đã định dạng |
+| `method`, `createdAt` | Phương thức thanh toán, thời điểm tạo |
+| `extraData` | Dữ liệu riêng bạn đã truyền |
+
+Miniapp cũng tự gửi `onResponse` với action `GET_BALANCE` khi số dư thay đổi (không do bạn gọi `getBalance`).
+
+```kotlin
+onResponse = { action, data ->
+    if (action == ActionOpenMiniApp.PAY) when (data?.optString("state")) {
+        "SUCCEEDED" -> { /* đã thanh toán */ }
+        "PENDING" -> { /* đang xử lý: tra lại trên server */ }
+        else -> { /* thất bại */ }
+    }
+}
+```
 
 - Listener dùng chung cho mọi instance `PayMEMiniApp`; gọi lại thì ghi đè listener cũ.
 - Dữ liệu `onResponse` có `"isCloseMiniApp": true` thì SDK đóng Miniapp sau callback.
