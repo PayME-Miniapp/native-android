@@ -4,7 +4,7 @@
 
 An Android library that opens the PayME Miniapp (wallet, payments, deposit, withdraw, transfer, services, eKYC) inside your app.
 
-Current version: **0.9.0** (SDK 1.0.24).
+Current version: **0.10.0** (SDK 1.0.24).
 
 > **Required upgrade if you use eKYC:** 0.8.0–0.8.5 crash with `NoSuchMethodError: extractCameraCharacteristics` when the eKYC camera opens (the SDK used CameraX 1.6, which the Kalapa eKYC library does not support). Upgrade to 0.8.6 or later. If your app declares CameraX (`androidx.camera:*`) itself, use `1.5.x` (`1.5.3` recommended), not `1.6.x`.
 
@@ -17,9 +17,10 @@ Current version: **0.9.0** (SDK 1.0.24).
 5. [identityToken](#identitytoken)
 6. [API](#api)
 7. [Error codes](#error-codes)
-8. [Upgrading to 0.9.0](#upgrading-to-090)
-9. [Upgrading from 0.7.x](#upgrading-from-07x)
-10. [Support](#support)
+8. [Upgrading to 0.10.0](#upgrading-to-0100)
+9. [Upgrading to 0.9.0](#upgrading-to-090)
+10. [Upgrading from 0.7.x](#upgrading-from-07x)
+11. [Support](#support)
 
 ## Requirements
 
@@ -48,7 +49,7 @@ Current version: **0.9.0** (SDK 1.0.24).
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.9.0'
+       implementation 'com.github.PayME-Miniapp:native-android:0.10.0'
    }
    ```
 
@@ -296,6 +297,11 @@ Handle errors by `error.code`.
 | `MINIAPP_CANNOT_PRESENT` | The Miniapp cannot be shown (for example `modal` with a `context` that is not a `FragmentActivity`) | Pass a visible `FragmentActivity`, call while the app is in the foreground |
 | Other codes | Network, server or business errors | Show `description`, retry; contact PayME if it keeps happening |
 
+## Upgrading to 0.10.0
+
+- The SDK no longer declares `READ_CONTACTS`. Picking a phone number for top-up uses the system contact picker, which needs no permission and meets the Google Play policy for apps targeting Android 17. If your app declares `READ_CONTACTS` only because of the SDK, you can remove it.
+- `Utils.getContacts` is removed.
+
 ## Upgrading to 0.9.0
 
 Remove `appId`, `publicKey`, `privateKey` from the constructor: `PayMEMiniApp(context, env, locale)`. The old constructor still works (deprecated) and ignores the keys.
@@ -312,7 +318,7 @@ Remove `appId`, `publicKey`, `privateKey` from the constructor: `PayMEMiniApp(co
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: integrate the `token-init` API (contact PayME).
-2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.9.0`.
+2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.10.0`.
 3. Replace every `phone = ...` with `identityToken = ...`.
 4. Handle the `401` and `IDENTITY_TOKEN_REQUIRED` errors.
 

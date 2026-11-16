@@ -4,7 +4,7 @@
 
 Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp, rút, chuyển tiền, dịch vụ, eKYC) trong ứng dụng của bạn.
 
-Phiên bản hiện tại: **0.9.0** (SDK 1.0.24).
+Phiên bản hiện tại: **0.10.0** (SDK 1.0.24).
 
 > **Bắt buộc nâng nếu dùng eKYC:** 0.8.0–0.8.5 gây crash `NoSuchMethodError: extractCameraCharacteristics` khi mở camera eKYC (SDK dùng CameraX 1.6, không tương thích thư viện eKYC Kalapa). Nâng lên 0.8.6 trở lên. Nếu ứng dụng tự khai báo CameraX (`androidx.camera:*`), dùng bản `1.5.x` (khuyến nghị `1.5.3`), không dùng `1.6.x`.
 
@@ -17,9 +17,10 @@ Phiên bản hiện tại: **0.9.0** (SDK 1.0.24).
 5. [identityToken](#identitytoken)
 6. [API](#api)
 7. [Mã lỗi](#mã-lỗi)
-8. [Nâng cấp lên 0.9.0](#nâng-cấp-lên-090)
-9. [Nâng cấp từ 0.7.x](#nâng-cấp-từ-07x)
-10. [Hỗ trợ](#hỗ-trợ)
+8. [Nâng cấp lên 0.10.0](#nâng-cấp-lên-0100)
+9. [Nâng cấp lên 0.9.0](#nâng-cấp-lên-090)
+10. [Nâng cấp từ 0.7.x](#nâng-cấp-từ-07x)
+11. [Hỗ trợ](#hỗ-trợ)
 
 ## Yêu cầu
 
@@ -48,7 +49,7 @@ Phiên bản hiện tại: **0.9.0** (SDK 1.0.24).
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.9.0'
+       implementation 'com.github.PayME-Miniapp:native-android:0.10.0'
    }
    ```
 
@@ -296,6 +297,11 @@ Xử lý theo `error.code`.
 | `MINIAPP_CANNOT_PRESENT` | Không hiển thị được Miniapp (ví dụ mở `modal` mà `context` không phải `FragmentActivity`) | Truyền `FragmentActivity` đang hiển thị, gọi khi ứng dụng ở foreground |
 | Mã khác | Lỗi mạng, máy chủ hoặc nghiệp vụ | Hiển thị `description`, thử lại; liên hệ PayME nếu lặp lại |
 
+## Nâng cấp lên 0.10.0
+
+- SDK không còn khai báo quyền `READ_CONTACTS`. Chọn số điện thoại khi nạp tiền dùng bộ chọn danh bạ của hệ thống, không cần quyền, đáp ứng chính sách Google Play cho ứng dụng target Android 17. Nếu ứng dụng tự khai báo `READ_CONTACTS` chỉ vì SDK, có thể bỏ.
+- Bỏ hàm `Utils.getContacts`.
+
 ## Nâng cấp lên 0.9.0
 
 Bỏ `appId`, `publicKey`, `privateKey` khỏi hàm khởi tạo: `PayMEMiniApp(context, env, locale)`. Hàm khởi tạo cũ vẫn chạy (deprecated) và bỏ qua key truyền vào.
@@ -312,7 +318,7 @@ Bản 0.8.x thay số điện thoại bằng `identityToken` và không tương 
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: tích hợp API `token-init` (liên hệ PayME).
-2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.9.0`.
+2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.10.0`.
 3. Thay mọi `phone = ...` bằng `identityToken = ...`.
 4. Xử lý lỗi `401` và `IDENTITY_TOKEN_REQUIRED`.
 
