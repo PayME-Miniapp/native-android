@@ -30,7 +30,12 @@ class SourceDownloaderTest {
     ) = SourceDownloader(
         filesDir,
         storageSpaceChecker,
-        connectionFactory = { java.net.URL(responseUrl).openConnection() as java.net.HttpURLConnection },
+        // Mỗi test một server một kết nối: không dùng lại kết nối keep-alive của test trước.
+        connectionFactory = {
+            (java.net.URL(responseUrl).openConnection() as java.net.HttpURLConnection).apply {
+                setRequestProperty("Connection", "close")
+            }
+        },
         maxDownloadBytes = maxDownloadBytes
     )
 

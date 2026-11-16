@@ -58,7 +58,9 @@ internal fun withRawHttpResponse(response: String, block: (String) -> Unit) {
 }
 
 internal fun withRawHttpResponseBytes(response: ByteArray, block: (String) -> Unit) {
-    val server = ServerSocket(0)
+    // Bind riêng loopback: macOS cho tiến trình khác bind 127.0.0.1 cùng cổng với socket 0.0.0.0
+    // và nhận request thay (test từng thấy HTTP 400 không do server này trả).
+    val server = ServerSocket(0, 50, java.net.InetAddress.getLoopbackAddress())
     val thread = Thread {
         try {
             server.use { socket ->
