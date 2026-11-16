@@ -49,6 +49,7 @@ internal class MiniAppBridgeFactory(
             sendNativeDeviceInfo = { onSent -> onSendNativeDeviceInfo(onSent) },
             resendOpenMiniApp = { onResendOpenMiniApp() },
             getContacts = { permissionControllerProvider().getContacts() },
+            pickContact = { permissionControllerProvider().pickContact() },
             nativeOpenKeyboard = {
                 activityProvider()?.let { WebViewJsDispatcher.nativeOpenKeyboard(it, webViewProvider()) }
             },

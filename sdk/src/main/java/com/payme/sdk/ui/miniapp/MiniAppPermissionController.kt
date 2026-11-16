@@ -3,10 +3,13 @@ package com.payme.sdk.ui.miniapp
 import com.payme.sdk.utils.SdkLocale
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
+import android.net.Uri
 import android.os.Build
+import android.provider.ContactsContract
 import android.util.Log
 import android.webkit.WebView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +20,7 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.ui.showSubWebView
 import com.payme.sdk.utils.BridgeExecutor
+import com.payme.sdk.utils.PickedContact
 import com.payme.sdk.utils.QrImageStore
 import com.payme.sdk.utils.WebViewJsDispatcher
 import org.json.JSONObject
@@ -42,6 +46,12 @@ internal class MiniAppPermissionController(
             if (isGranted) {
                 paramsSaveQr?.let { downloadImageQR(it) }
             }
+        }
+
+    private val pickContactLauncher =
+        fragment.registerForActivityResult(PickPhoneContact()) { uri: Uri? ->
+            // Huỷ chọn: không gửi gì, web giữ nguyên modal.
+            if (uri != null) sendPickedContact(uri)
         }
 
     private val requestPermissionLauncher =
@@ -98,6 +108,33 @@ internal class MiniAppPermissionController(
         val activity = fragment.activity ?: return
         val webView = webViewProvider() ?: return
         WebViewJsDispatcher.nativePermissionStatus(activity, webView, "READ_CONTACTS", "BLOCKED")
+    }
+
+    fun pickContact() {
+        try {
+            pickContactLauncher.launch(Unit)
+        } catch (e: ActivityNotFoundException) {
+            Log.d(PayMEMiniApp.TAG, "pickContact: no contact picker ${e.message}")
+        }
+    }
+
+    private fun sendPickedContact(uri: Uri) {
+        val activity = fragment.activity ?: return
+        val webView = webViewProvider() ?: return
+        BridgeExecutor.execute {
+            try {
+                val columns = arrayOf(
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER
+                )
+                val json = activity.contentResolver.query(uri, columns, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) PickedContact.json(cursor.getString(0), cursor.getString(1)) else null
+                }
+                json?.let { WebViewJsDispatcher.evaluate(activity, webView, "nativePickedContact", it, null) }
+            } catch (e: Exception) {
+                Log.d(PayMEMiniApp.TAG, "pickContact read failed ${e.message}")
+            }
+        }
     }
 
     fun requestPermission(data: String) {

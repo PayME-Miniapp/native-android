@@ -27,6 +27,7 @@ internal class JavaScriptInterface(private val bridge: MiniAppBridge) {
                 "jsRequestPermission" -> jsRequestPermission(data)
                 "jsRequestDeviceInfo" -> jsRequestDeviceInfo(data)
                 "jsRequestContacts" -> jsRequestContacts(data)
+                "jsPickContact" -> jsPickContact(data)
                 "jsShowKeyboard" -> jsShowKeyboard(data)
                 "jsOneSignalSendTags" -> jsOneSignalSendTags(data)
                 "jsOneSignalDeleteTags" -> jsOneSignalDeleteTags(data)
@@ -122,6 +123,11 @@ internal class JavaScriptInterface(private val bridge: MiniAppBridge) {
     public fun jsRequestContacts(data: String) {
         Log.d(PayMEMiniApp.TAG, "jsRequestContacts")
         bridge.jsRequestContacts()
+    }
+
+    public fun jsPickContact(data: String) {
+        Log.d(PayMEMiniApp.TAG, "jsPickContact")
+        bridge.jsPickContact()
     }
 
     public fun jsShowKeyboard(data: String) {

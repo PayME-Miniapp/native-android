@@ -25,6 +25,7 @@ class MiniAppBridgeTest {
             sendNativeDeviceInfo = { onSent -> calls.add("device"); onSent() },
             resendOpenMiniApp = { calls.add("openMiniApp") },
             getContacts = { calls.add("contacts") },
+            pickContact = { calls.add("pick") },
             nativeOpenKeyboard = { calls.add("keyboard") },
             openWebView = { calls.add("webview:$it") },
             onSuccess = { calls.add("success:$it") },
@@ -59,6 +60,7 @@ class MiniAppBridgeTest {
         bridge.jsRequestPermission("camera")
         bridge.jsRequestDeviceInfo()
         bridge.jsRequestContacts()
+        bridge.jsPickContact()
         bridge.jsShowKeyboard()
         bridge.jsOpenWebView("web")
         bridge.jsResponse("ok")
@@ -88,6 +90,7 @@ class MiniAppBridgeTest {
                 "device",
                 "openMiniApp",
                 "contacts",
+                "pick",
                 "keyboard",
                 "webview:web",
                 "success:ok",
@@ -111,6 +114,9 @@ class MiniAppBridgeTest {
         transport.dispatch("{\"type\":\"jsClose\",\"data\":null}")
         assertEquals(listOf("close"), calls)
         calls.clear()
+        transport.dispatch("{\"type\":\"jsPickContact\",\"data\":{}}")
+        assertEquals(listOf("pick"), calls)
+        calls.clear()
         // Reload: the web boots with jsRequestDeviceInfo and needs openMiniApp after the normal reply.
         transport.dispatch("{\"type\":\"jsRequestDeviceInfo\",\"data\":{}}")
         assertEquals(listOf("device", "openMiniApp"), calls)
@@ -127,7 +133,7 @@ class MiniAppBridgeTest {
             // Cold root-check cache: the reply is posted later from BridgeExecutor.
             sendNativeDeviceInfo = { onSent -> pendingReplies.add { calls.add("device"); onSent() } },
             resendOpenMiniApp = { calls.add("openMiniApp") },
-            getContacts = {}, nativeOpenKeyboard = {}, openWebView = {}, onSuccess = {}, onError = {},
+            getContacts = {}, pickContact = {}, nativeOpenKeyboard = {}, openWebView = {}, onSuccess = {}, onError = {},
             closeMiniApp = {}, openUrl = {}, saveQR = {}, changeEnv = {}, changeLocale = {},
             setListScreenBackBlocked = {}, setModalHeight = {}, requestNFCPermission = {}, trackLog = {},
             oneSignalSendTags = null, oneSignalDeleteTags = null

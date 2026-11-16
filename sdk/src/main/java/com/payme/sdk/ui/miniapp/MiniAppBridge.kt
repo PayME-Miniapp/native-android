@@ -18,6 +18,7 @@ internal class MiniAppBridge(
     private val sendNativeDeviceInfo: (onSent: () -> Unit) -> Unit,
     private val resendOpenMiniApp: () -> Unit,
     private val getContacts: () -> Unit,
+    private val pickContact: () -> Unit,
     private val nativeOpenKeyboard: () -> Unit,
     private val openWebView: (String) -> Unit,
     private val onSuccess: (String) -> Unit,
@@ -49,6 +50,7 @@ internal class MiniAppBridge(
     // sent only once the device-info reply is out (that reply can wait on the root check).
     fun jsRequestDeviceInfo() = sendNativeDeviceInfo { resendOpenMiniApp() }
     fun jsRequestContacts() = getContacts()
+    fun jsPickContact() = pickContact()
     fun jsShowKeyboard() = nativeOpenKeyboard()
     fun jsOpenWebView(data: String) = openWebView(data)
     fun jsError(data: String) = onError(data)
