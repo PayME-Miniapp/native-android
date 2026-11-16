@@ -17,6 +17,15 @@ import com.payme.sdk.runtime.PayMERuntime
 import org.json.JSONObject
 
 object AccountPresentation {
+    /**
+     * accessToken trong getAccountInfo: chỉ là chuỗi không rỗng mới tính là đã liên kết.
+     * Đọc giá trị thô (opt) vì optString của org.json Android trả "null" cho JSON null.
+     */
+    internal fun accessTokenOf(raw: Any?): String? = (raw as? String)?.takeIf { it.isNotBlank() }
+
+    /** message của account/balance; null/rỗng → [fallback] (không hiện chữ "null"). */
+    internal fun messageOf(raw: Any?, fallback: String): String = (raw as? String)?.takeIf { it.isNotBlank() } ?: fallback
+
     private const val HTTP_STATUS_UNAUTHORIZED = 401
 
     private const val PLATFORM = "ANDROID_V2"
@@ -183,10 +192,10 @@ object AccountPresentation {
                     return@setOnRequest
                 }
                 val data = jsonObjectAccount.optJSONObject("data")
-                val accessToken = data?.optString("accessToken") // Simplify accessToken extraction
+                val accessToken = accessTokenOf(data?.opt("accessToken"))
 
                 val responseJson = JSONObject()
-                if (accessToken.isNullOrEmpty()) {
+                if (accessToken == null) {
                     responseJson.put("linked", false)
                     responseJson.put("message", context.getString(R.string.account_not_linked))
                     onResponse(ActionOpenMiniApp.GET_BALANCE, responseJson)
@@ -208,7 +217,7 @@ object AccountPresentation {
                         responseJson.put("balance", balance)
                         responseJson.put(
                             "message",
-                            balanceResponse.optString("message") ?: context.getString(R.string.error_occurred)
+                            messageOf(balanceResponse.opt("message"), context.getString(R.string.error_occurred))
                         )
                         onResponse(ActionOpenMiniApp.GET_BALANCE, responseJson)
                     })
