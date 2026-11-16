@@ -17,7 +17,6 @@ import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.R
 import com.payme.sdk.ui.showSubWebView
 import com.payme.sdk.utils.BridgeExecutor
-import com.payme.sdk.utils.ContactsReader
 import com.payme.sdk.utils.QrImageStore
 import com.payme.sdk.utils.WebViewJsDispatcher
 import org.json.JSONObject
@@ -42,21 +41,6 @@ internal class MiniAppPermissionController(
             }
             if (isGranted) {
                 paramsSaveQr?.let { downloadImageQR(it) }
-            }
-        }
-
-    private val requestContactsPermissionLauncher =
-        fragment.registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            val activity = fragment.activity
-            val webView = webViewProvider()
-            if (activity != null && webView != null) {
-                    WebViewJsDispatcher.nativePermissionStatus(
-                    activity, webView, "READ_CONTACTS",
-                    if (isGranted) "GRANTED" else "DENIED"
-                )
-                if (isGranted) {
-                    sendContactsInBackground(webView)
-                }
             }
         }
 
@@ -109,34 +93,11 @@ internal class MiniAppPermissionController(
         }
     }
 
+    /** Web cũ còn gọi jsRequestContacts: SDK không còn quyền danh bạ (Google Play, API 37) nên luôn BLOCKED. */
     fun getContacts() {
-        try {
-            val activity = fragment.activity
-            val webView = webViewProvider()
-            if (activity == null || webView == null) {
-                return
-            }
-            when {
-                ContextCompat.checkSelfPermission(
-                    fragment.requireContext(), Manifest.permission.READ_CONTACTS
-                ) == PackageManager.PERMISSION_GRANTED -> {
-                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, "READ_CONTACTS", "GRANTED")
-                    sendContactsInBackground(webView)
-                }
-
-                ActivityCompat.shouldShowRequestPermissionRationale(
-                    activity, Manifest.permission.READ_CONTACTS
-                ) -> {
-                    WebViewJsDispatcher.nativePermissionStatus(activity, webView, "READ_CONTACTS", "BLOCKED")
-                }
-
-                else -> {
-                    requestContactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(PayMEMiniApp.TAG, "getContacts exception: ${e.message} ")
-        }
+        val activity = fragment.activity ?: return
+        val webView = webViewProvider() ?: return
+        WebViewJsDispatcher.nativePermissionStatus(activity, webView, "READ_CONTACTS", "BLOCKED")
     }
 
     fun requestPermission(data: String) {
@@ -148,6 +109,11 @@ internal class MiniAppPermissionController(
             val activity = fragment.activity
             val webView = webViewProvider()
             if (activity == null || webView == null) {
+                return
+            }
+            if (permissionType == "READ_CONTACTS") {
+                WebViewJsDispatcher.nativePermissionStatus(activity, webView, permissionType, "BLOCKED")
+                permissionType = ""
                 return
             }
             val androidPermission = "android.permission.$permissionType"
@@ -264,10 +230,5 @@ internal class MiniAppPermissionController(
                 WebViewJsDispatcher.evaluate(activity, webView, "nativeSaveQR", response.toString())
             })
         }
-    }
-
-    private fun sendContactsInBackground(webView: WebView) {
-        val activity = fragment.activity ?: return
-        BridgeExecutor.execute { ContactsReader.sendContacts(activity, webView) }
     }
 }

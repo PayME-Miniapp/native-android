@@ -132,10 +132,6 @@ object Utils {
         return ImageProcessingUtils.validateListObject(detectedObject)
     }
 
-    fun getContacts(context: Context, webView: WebView) {
-        ContactsReader.sendContacts(context, webView)
-    }
-
     fun downloadWithoutTemp(link: String, path: String) {
         FileDownloadUtils.downloadWithoutTemp(link, path)
     }

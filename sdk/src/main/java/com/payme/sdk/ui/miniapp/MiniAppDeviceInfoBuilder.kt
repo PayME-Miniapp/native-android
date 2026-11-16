@@ -12,6 +12,7 @@ import com.payme.sdk.utils.BiometricGateway
 import com.payme.sdk.utils.DeviceSecurityUtils
 import com.payme.sdk.utils.DeviceTypeResolver
 import com.payme.sdk.utils.Utils
+import org.json.JSONArray
 import org.json.JSONObject
 
 internal object MiniAppDeviceInfoBuilder {
@@ -57,6 +58,7 @@ internal object MiniAppDeviceInfoBuilder {
         deviceInfo.put("deviceType", DeviceTypeResolver(context).deviceType.value)
         deviceInfo.put("insets", insets)
         deviceInfo.put("miniAppVersion", BuildConfig.SDK_VERSION)
+        deviceInfo.put("capabilities", JSONArray(DeviceCapabilities.ALL))
 
         val biometric = JSONObject()
         biometric.put("isSupport", BiometricGateway.isReady(context))
