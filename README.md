@@ -6,6 +6,8 @@ Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp, rút, chu
 
 Phiên bản hiện tại: **0.10.2** (SDK 1.0.24). Bản 0.10.2: SDK kèm sẵn rule R8/ProGuard, app bật minify không cần tự thêm rule cho eKYC/NFC/ML Kit.
 
+> **Google Play: quyền danh bạ (hạn 27/01/2027, app target Android 17 / API 37):** SDK 0.7.x–0.9.x khai báo `READ_CONTACTS`, quyền này được gộp vào app và Google Play sẽ yêu cầu giải trình. Nâng lên 0.10.0 trở lên (dùng bộ chọn danh bạ của hệ thống, không cần quyền). Nếu chưa nâng được, thêm vào `AndroidManifest.xml` của app (thẻ `<manifest>` cần `xmlns:tools="http://schemas.android.com/tools"`): `<uses-permission android:name="android.permission.READ_CONTACTS" tools:node="remove" />` — khi đó nút danh bạ ở màn nạp điện thoại báo chưa được cấp quyền, mục số đã nạp gần đây vẫn dùng được.
+
 > **Bắt buộc nâng nếu dùng eKYC:** 0.8.0–0.8.5 gây crash `NoSuchMethodError: extractCameraCharacteristics` khi mở camera eKYC (SDK dùng CameraX 1.6, không tương thích thư viện eKYC Kalapa). Nâng lên 0.8.6 trở lên. Nếu ứng dụng tự khai báo CameraX (`androidx.camera:*`), dùng bản `1.5.x` (khuyến nghị `1.5.3`), không dùng `1.6.x`.
 
 ## Mục lục
