@@ -4,7 +4,7 @@
 
 Thư viện Android để mở PayME Miniapp (ví, thanh toán, nạp, rút, chuyển tiền, dịch vụ, eKYC) trong ứng dụng của bạn.
 
-Phiên bản hiện tại: **0.10.2** (SDK 1.0.24). Bản 0.10.2: SDK kèm sẵn rule R8/ProGuard, app bật minify không cần tự thêm rule cho eKYC/NFC/ML Kit.
+Phiên bản hiện tại: **0.11.0** (SDK 1.0.24). Bản 0.11.0: bỏ Mixpanel, SDK native không còn gửi sự kiện lên Mixpanel; gỡ object `com.payme.sdk.utils.MixpanelUtil`. Từ 0.10.2 SDK đã kèm sẵn rule R8/ProGuard.
 
 > **Google Play: quyền danh bạ (hạn 27/01/2027, app target Android 17 / API 37):** SDK 0.7.x–0.9.x khai báo `READ_CONTACTS`, quyền này được gộp vào app và Google Play sẽ yêu cầu giải trình. Nâng lên 0.10.0 trở lên (dùng bộ chọn danh bạ của hệ thống, không cần quyền). Nếu chưa nâng được, thêm vào `AndroidManifest.xml` của app (thẻ `<manifest>` cần `xmlns:tools="http://schemas.android.com/tools"`): `<uses-permission android:name="android.permission.READ_CONTACTS" tools:node="remove" />` — khi đó nút danh bạ ở màn nạp điện thoại báo chưa được cấp quyền, mục số đã nạp gần đây vẫn dùng được.
 
@@ -51,7 +51,7 @@ Phiên bản hiện tại: **0.10.2** (SDK 1.0.24). Bản 0.10.2: SDK kèm sẵn
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.10.2'
+       implementation 'com.github.PayME-Miniapp:native-android:0.11.0'
    }
    ```
 
@@ -342,7 +342,7 @@ Bản 0.8.x thay số điện thoại bằng `identityToken` và không tương 
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: tích hợp API `token-init` (liên hệ PayME).
-2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.10.2`.
+2. Đổi dependency thành `com.github.PayME-Miniapp:native-android:0.11.0`.
 3. Thay mọi `phone = ...` bằng `identityToken = ...`.
 4. Xử lý lỗi `401` và `IDENTITY_TOKEN_REQUIRED`.
 

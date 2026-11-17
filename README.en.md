@@ -4,7 +4,7 @@
 
 An Android library that opens the PayME Miniapp (wallet, payments, deposit, withdraw, transfer, services, eKYC) inside your app.
 
-Current version: **0.10.2** (SDK 1.0.24). 0.10.2: the SDK ships its R8/ProGuard rules, so apps with minify on no longer add rules for eKYC/NFC/ML Kit.
+Current version: **0.11.0** (SDK 1.0.24). 0.11.0: Mixpanel removed, the native SDK no longer sends events to Mixpanel; the `com.payme.sdk.utils.MixpanelUtil` object is gone. Since 0.10.2 the SDK ships its R8/ProGuard rules.
 
 > **Google Play: contacts permission (deadline 27 Jan 2027, apps targeting Android 17 / API 37):** SDK 0.7.x–0.9.x declare `READ_CONTACTS`; it is merged into your app and Google Play will ask you to justify it. Upgrade to 0.10.0 or later (system contact picker, no permission). If you cannot upgrade yet, add to your app's `AndroidManifest.xml` (the `<manifest>` tag needs `xmlns:tools="http://schemas.android.com/tools"`): `<uses-permission android:name="android.permission.READ_CONTACTS" tools:node="remove" />` — the contacts button on the top-up screen then reports the permission as not granted; recently topped-up numbers still work.
 
@@ -51,7 +51,7 @@ Current version: **0.10.2** (SDK 1.0.24). 0.10.2: the SDK ships its R8/ProGuard 
 
    ```groovy
    dependencies {
-       implementation 'com.github.PayME-Miniapp:native-android:0.10.2'
+       implementation 'com.github.PayME-Miniapp:native-android:0.11.0'
    }
    ```
 
@@ -342,7 +342,7 @@ Remove `appId`, `publicKey`, `privateKey` from the constructor: `PayMEMiniApp(co
 | `getAccountInformation(phone)` | `getAccountInformation(identityToken)` |
 
 1. Server: integrate the `token-init` API (contact PayME).
-2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.10.2`.
+2. Change the dependency to `com.github.PayME-Miniapp:native-android:0.11.0`.
 3. Replace every `phone = ...` with `identityToken = ...`.
 4. Handle the `401` and `IDENTITY_TOKEN_REQUIRED` errors.
 
