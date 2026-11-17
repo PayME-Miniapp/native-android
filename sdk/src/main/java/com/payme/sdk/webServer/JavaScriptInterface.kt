@@ -55,9 +55,9 @@ internal class JavaScriptInterface(private val bridge: MiniAppBridge) {
         bridge.jsRequestPreferences()
     }
 
-    public fun jsLog(data: String) {
+    // Web logs may carry credentials and personal data: acknowledge only, never store or forward them.
+    public fun jsLog(@Suppress("UNUSED_PARAMETER") data: String) {
         Log.d(PayMEMiniApp.TAG, "jsLog")
-        bridge.jsLog(data)
     }
 
     public fun jsBiometricAuthentication(data: String) {

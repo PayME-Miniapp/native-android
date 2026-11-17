@@ -14,7 +14,6 @@ biometric = "1.2.0-alpha05"
 lottie = "6.7.1"
 gson = "2.15.0"
 volley = "1.2.1"
-mixpanel = "8.12.0"
 camerax = "1.5.3"
 mlkit-object-detection = "17.0.2"
 mlkit-face-detection = "16.1.7"
@@ -38,7 +37,6 @@ androidx-biometric = { group = "androidx.biometric", name = "biometric", version
 lottie = { group = "com.airbnb.android", name = "lottie", version.ref = "lottie" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
-mixpanel = { group = "com.mixpanel.android", name = "mixpanel-android", version.ref = "mixpanel" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }

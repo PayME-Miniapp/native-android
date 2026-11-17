@@ -12,7 +12,6 @@ import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.ui.MiniAppActivity
 import com.payme.sdk.ui.MiniAppBottomSheetDialog
 import com.payme.sdk.ui.dismissSafely
-import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.SdkLocale
 import org.json.JSONObject
 import java.lang.ref.WeakReference
@@ -67,7 +66,6 @@ class PayMEMiniApp(
         val config = PayMEConfig.create(env, locale)
         PayMERuntime.initialize(config)
         syncLegacyConfig(config)
-        MixpanelUtil.initializeMixpanel(context, "b169d00f07bcf9b469ae9484ff4321cc")
         // Ngôn ngữ chỉ áp dụng cho UI mini-app (SdkLocale), không đổi Locale/Resources của app partner
     }
 

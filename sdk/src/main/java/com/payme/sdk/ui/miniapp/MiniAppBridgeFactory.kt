@@ -5,7 +5,6 @@ import android.webkit.WebView
 import androidx.fragment.app.FragmentActivity
 import com.payme.sdk.runtime.MiniAppSession
 import com.payme.sdk.utils.BiometricGateway
-import com.payme.sdk.utils.BridgeExecutor
 import com.payme.sdk.utils.PermissionCameraUtil
 import com.payme.sdk.utils.WebViewJsDispatcher
 import com.payme.sdk.webServer.JavaScriptInterface
@@ -64,7 +63,6 @@ internal class MiniAppBridgeFactory(
             setListScreenBackBlocked = { data -> onSetListScreenBackBlocked(data) },
             setModalHeight = { data -> onSetModalHeight(data) },
             requestNFCPermission = { _: String -> permissionControllerProvider().requestNFCPermission() },
-            trackLog = { data -> BridgeExecutor.execute { JsLogTelemetry.track(data) } },
             oneSignalSendTags = session.callbacks.onOneSignalSendTags,
             oneSignalDeleteTags = session.callbacks.onOneSignalDeleteTags
         )

@@ -79,7 +79,6 @@ No permissions to declare. The required permissions are already in the SDK, and 
   ```
 
 - React Native: the debug build on an emulator loads the JS bundle from `10.0.2.2`. Add a debug-only `android/app/src/debug/res/xml/payme_miniapp_network_security_config.xml` that also allows cleartext to `10.0.2.2`.
-- The SDK sends telemetry events (sensitive data filtered) to Mixpanel. Keep this in mind for the Data safety form on Google Play.
 
 ## Quick start
 

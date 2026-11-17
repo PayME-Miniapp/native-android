@@ -79,7 +79,6 @@ Không cần khai báo quyền. Các quyền cần thiết đã có sẵn trong 
   ```
 
 - React Native: bản debug trên emulator tải JS bundle từ `10.0.2.2`. Thêm file chỉ cho debug `android/app/src/debug/res/xml/payme_miniapp_network_security_config.xml` cho phép thêm cleartext tới `10.0.2.2`.
-- SDK gửi sự kiện telemetry (đã lọc dữ liệu nhạy cảm) lên Mixpanel. Lưu ý khi khai báo Data safety trên Google Play.
 
 ## Bắt đầu nhanh
 

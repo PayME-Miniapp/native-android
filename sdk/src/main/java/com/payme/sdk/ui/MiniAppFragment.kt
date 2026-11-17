@@ -29,7 +29,6 @@ import com.payme.sdk.runtime.SessionClose
 import com.payme.sdk.utils.BridgeExecutor
 import com.payme.sdk.utils.DeviceSecurityUtils
 import com.payme.sdk.utils.LightContext
-import com.payme.sdk.utils.MixpanelUtil
 import com.payme.sdk.utils.SdkLocale
 import com.payme.sdk.utils.NetworkMonitor
 import com.payme.sdk.utils.WebViewJsDispatcher
@@ -482,7 +481,6 @@ class MiniAppFragment : Fragment() {
         }
         // Tạm dừng WebView để tối ưu tài nguyên
         myWebView?.onPause()
-        MixpanelUtil.flushEvents()
     }
 
     override fun onResume() {

@@ -38,15 +38,10 @@ class MiniAppBridgeTest {
             setListScreenBackBlocked = { calls.add("blocked:${it.length()}") },
             setModalHeight = { calls.add("height:$it") },
             requestNFCPermission = { calls.add("nfc:$it") },
-            trackLog = { calls.add("log") },
             oneSignalSendTags = { calls.add("sendTags:$it") },
             oneSignalDeleteTags = { calls.add("deleteTags:$it") }
         )
 
-        bridge.jsLog("{\"accessToken\":\"dummy-token\",\"phone\":\"dummy-phone\"}")
-        bridge.jsLog("invalid JSON")
-        assertEquals(listOf("log", "log"), calls)
-        calls.clear()
         bridge.jsPreferences("pref")
         bridge.jsRequestPreferences()
         bridge.jsBiometricAuthentication("bio")
@@ -135,7 +130,7 @@ class MiniAppBridgeTest {
             resendOpenMiniApp = { calls.add("openMiniApp") },
             getContacts = {}, pickContact = {}, nativeOpenKeyboard = {}, openWebView = {}, onSuccess = {}, onError = {},
             closeMiniApp = {}, openUrl = {}, saveQR = {}, changeEnv = {}, changeLocale = {},
-            setListScreenBackBlocked = {}, setModalHeight = {}, requestNFCPermission = {}, trackLog = {},
+            setListScreenBackBlocked = {}, setModalHeight = {}, requestNFCPermission = {},
             oneSignalSendTags = null, oneSignalDeleteTags = null
         )
 

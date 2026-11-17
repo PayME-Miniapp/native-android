@@ -1,6 +1,5 @@
 package com.example.sdk
 
-import com.google.gson.Gson
 import com.payme.sdk.PayMEMiniApp
 import com.payme.sdk.models.DepositWithdrawTransferData
 import com.payme.sdk.models.ENV
@@ -27,7 +26,6 @@ import com.payme.sdk.presentation.AccountPresentation
 import com.payme.sdk.runtime.PayMEConfig
 import com.payme.sdk.runtime.PayMERuntime
 import com.payme.sdk.ui.MiniAppFragment
-import com.payme.sdk.ui.miniapp.JsLogTelemetry
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -159,15 +157,6 @@ class IdentityTokenTest {
             assertTrue(printed.contains("${data.action}"))
         }
         assertFalse(withToken().toString().contains(token))
-    }
-
-    @Test
-    fun jsLogTelemetryDropsIdentityToken() {
-        val log = mapOf("type" to "OPEN-MINI-APP", "action" to "OPEN", "identityToken" to token, "code" to 1)
-        val properties = JsLogTelemetry.sanitize(Gson().toJson(Gson().toJson(log)))
-        assertEquals(mapOf("type" to "OPEN-MINI-APP", "action" to "OPEN", "code" to 1L), properties)
-        assertNull(JsLogTelemetry.sanitize(Gson().toJson("OPEN-MINI-APP - {\"identityToken\":\"$token\"}"))["identityToken"])
-        assertFalse(properties.values.any { "$it".contains(token) })
     }
 
     @Test

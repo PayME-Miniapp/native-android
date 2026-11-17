@@ -15,7 +15,6 @@ import com.payme.sdk.R
 import com.payme.sdk.utils.SdkLocale
 import com.payme.sdk.runtime.HostLifecycle
 import com.payme.sdk.runtime.PayMERuntime
-import com.payme.sdk.utils.MixpanelUtil
 import java.lang.ref.WeakReference
 
 class MiniAppActivity : AppCompatActivity() {
@@ -82,6 +81,5 @@ class MiniAppActivity : AppCompatActivity() {
       val description = getString(R.string.user_cancel_miniapp)
       PayMERuntime.endSessionFromHost(intent.getStringExtra(PayMERuntime.EXTRA_SESSION_ID)) { description }
     }
-    MixpanelUtil.flushEvents()
   }
 }

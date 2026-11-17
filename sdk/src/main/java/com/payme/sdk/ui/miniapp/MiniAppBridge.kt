@@ -31,7 +31,6 @@ internal class MiniAppBridge(
     private val setListScreenBackBlocked: (JSONArray) -> Unit,
     private val setModalHeight: (Int) -> Unit,
     private val requestNFCPermission: (String) -> Unit,
-    private val trackLog: (String) -> Unit,
     private val oneSignalSendTags: ((String) -> Unit)?,
     private val oneSignalDeleteTags: ((String) -> Unit)?
 ) {
@@ -74,7 +73,4 @@ internal class MiniAppBridge(
         val parseJson = JSONObject(data)
         setModalHeight(parseJson.optInt("height"))
     }
-
-    // Web logs may contain credentials and personal data: trackLog must sanitise (JsLogTelemetry).
-    fun jsLog(data: String) = trackLog(data)
 }
