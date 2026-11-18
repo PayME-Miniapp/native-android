@@ -26,7 +26,7 @@
 
 ## Thứ tự phát hành chung
 
-Web patch (OTA/zip) → native-android → iOS (`native-ios`, trunk) → RN + Flutter → repo tài liệu (`payme-mini-app`, `payme-miniapp-flutter`) → ví PayME, demo-dpp.
+Web patch (OTA/zip) → native-android → iOS (Release trên `native-ios`, repo spec `PayME-Miniapp/Specs`, package `payme-miniapp-spm`; xem `RELEASE.md` của repo SDK iOS) → RN + Flutter → repo tài liệu (`payme-mini-app`, `payme-miniapp-flutter`) → ví PayME, demo-dpp.
 
 ## Chữ ký OTA (dòng hiện tại)
 
